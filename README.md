@@ -11,6 +11,7 @@ Prerequisites: Node 20+ and npm (verified with Node 24, npm 12 on Windows).
 ```sh
 npm install
 npm run dev      # local dev server (Vite)
+npm run dev -- --host  # expose a LAN URL for phone testing (same WiFi)
 npm test         # Vitest suite (game-logic tests, no browser needed)
 npm run build    # typecheck + production build
 npm run preview  # preview the production build
