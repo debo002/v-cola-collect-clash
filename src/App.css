@@ -216,61 +216,6 @@
   border-color: transparent;
 }
 
-.hand-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.hand-row {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.hand-card {
-  width: 110px;
-  flex-shrink: 0;
-}
-
-.hand-card .card-name {
-  font-size: 11px;
-}
-
-.hand-actions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-}
-
-.zone-btns {
-  display: flex;
-  gap: 6px;
-}
-
-.zone-btn {
-  flex: 1;
-  padding: 10px 0;
-  font-size: 12px;
-}
-
-.placed-tag {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-h);
-  background: var(--social-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 8px 8px 12px;
-}
-
 .loaner-tag {
   font-size: 11px;
   font-weight: 700;
@@ -437,4 +382,169 @@
   font-size: 40px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* Snap-style board */
+
+.turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.turn-banner strong {
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.turn-banner span {
+  font-size: 12px;
+}
+
+.board-zones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.zone-slot {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  padding: 10px 8px;
+  min-height: 150px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.zone-slot.drop-ready {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.zone-slot-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.zone-slot-head strong {
+  font-size: 15px;
+}
+
+.zone-slot-head em {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.zone-minis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.zone-hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.mini {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 3px 8px 3px 3px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.mini img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.mini strong {
+  font-size: 14px;
+}
+
+.mini button {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.hand-fan {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 2px 4px;
+  margin-top: 6px;
+}
+
+.fan-card {
+  flex: 0 0 108px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  position: relative;
+}
+
+.fan-card.picked .card {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+  transform: translateY(-6px);
+}
+
+.fan-card.placed {
+  opacity: 0.55;
+}
+
+.fan-card .card-name {
+  font-size: 11px;
+}
+
+.fan-card .loaner-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+.result-banner {
+  animation: pop 0.35s ease-out;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.reveal-chip {
+  animation: pop 0.3s ease-out;
 }

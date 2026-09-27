@@ -10,6 +10,7 @@ import {
   lockPlayer,
   revealRound,
   placeCards,
+  MAX_PLACE,
   TIMER_SECONDS,
   unplaceCard,
   type MatchState,
@@ -124,10 +125,10 @@ export function QuickPlay({ collection }: { collection: Collection }) {
     }
   }
 
-  function place(by: Player, handIndex: number, zone: string) {
+  function placeMany(by: Player, list: { handIndex: number; zone: string }[]) {
     if (!match) return;
     const map = placedMap(match, by);
-    map.set(handIndex, zone);
+    for (const p of list) map.set(p.handIndex, p.zone);
     try {
       setMatch(
         placeCards(
@@ -179,7 +180,7 @@ export function QuickPlay({ collection }: { collection: Collection }) {
           match={match}
           player={player}
           seconds={seconds}
-          onPlace={(i, z) => place(player, i, z)}
+          onPlaceMany={(list) => placeMany(player, list)}
           onUnplace={(i) => unplace(player, i)}
           onLock={() => lock(player)}
         />
@@ -221,84 +222,154 @@ function PlacingView({
   match,
   player,
   seconds,
-  onPlace,
+  onPlaceMany,
   onUnplace,
   onLock,
 }: {
   match: MatchState;
   player: Player;
   seconds: number;
-  onPlace: (handIndex: number, zone: string) => void;
+  onPlaceMany: (list: { handIndex: number; zone: string }[]) => void;
   onUnplace: (handIndex: number) => void;
   onLock: () => void;
 }) {
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const map = placedMap(match, player);
   const hand: readonly HandCard[] = match.hands[player];
-  const foe: Player = player === 'A' ? 'B' : 'A';
-  const foePlaced = placedMap(match, foe).size;
+  const usable = new Set([...selected].filter((i) => !map.has(i) && i < hand.length));
+
+  function toggle(i: number) {
+    if (map.has(i)) {
+      onUnplace(i);
+      return;
+    }
+    const next = new Set(usable);
+    if (next.has(i)) next.delete(i);
+    else if (next.size < MAX_PLACE) next.add(i);
+    setSelected(next);
+  }
+
+  function drop(zone: string) {
+    if (usable.size === 0) return;
+    onPlaceMany([...usable].map((handIndex) => ({ handIndex, zone })));
+    setSelected(new Set());
+  }
 
   return (
     <div>
-      <div className="turn-head">
+      <div className="turn-banner" role="status">
         <strong>
-          Player {player} — Round {match.round} of 3
+          Player {player} · Round {match.round} of 3
         </strong>
-        <span className={seconds <= 3 ? 'timer urgent' : 'timer'} aria-live="polite">
+        <span>place up to 2 — tap cards, then a zone</span>
+        <span className={seconds <= 5 ? 'timer urgent' : 'timer'} aria-live="polite">
           {seconds}s
         </span>
       </div>
-      <p className="demo-note">
-        Opponent has placed {foePlaced} card{foePlaced === 1 ? '' : 's'} (hidden).
-      </p>
-      <div className="hand-list">
+
+      <div className="board-zones">
+        {ZONES.map((z) => {
+          const mine = [...map.entries()].filter(([, zid]) => zid === z.id);
+          return (
+            <button
+              key={z.id}
+              type="button"
+              className={`zone zone-${z.id} zone-slot${usable.size > 0 ? ' drop-ready' : ''}`}
+              onClick={() => drop(z.id)}
+              aria-label={`Place selected cards in ${z.name}`}
+            >
+              <span className="zone-slot-head">
+                <strong>{z.name}</strong>
+                <em>{z.tagline}</em>
+              </span>
+              <span className="zone-minis">
+                {mine.length === 0 ? (
+                  <span className="zone-hint">
+                    {usable.size > 0 ? 'tap to drop here' : 'your cards land here'}
+                  </span>
+                ) : (
+                  mine.map(([i]) => {
+                    const hc = hand[i];
+                    const flavor = hc ? flavorOf(hc.flavor) : undefined;
+                    if (!flavor || !hc) return null;
+                    return (
+                      <MiniCard
+                        key={i}
+                        flavorId={flavor.id}
+                        name={flavor.name}
+                        power={hc.power}
+                        onRemove={() => onUnplace(i)}
+                      />
+                    );
+                  })
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="demo-note">Opponent cards stay hidden until both players lock in.</p>
+
+      <div className="hand-fan" role="group" aria-label="Your hand — tap to select">
         {hand.map((hc, i) => {
           const flavor = flavorOf(hc.flavor);
           if (!flavor) return null;
-          const zone = map.get(i);
+          const placed = map.has(i);
           return (
-            <div key={i} className="hand-row">
-              <div className="hand-card">
-                <FlavorCard flavor={flavor} power={hc.power} selected={zone !== undefined} />
-              </div>
-              <div className="hand-actions">
-                {zone ? (
-                  <div className="placed-tag">
-                    <span>
-                      in {ZONES.find((z) => z.id === zone)?.name ?? zone} · P{hc.power}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn step"
-                      onClick={() => onUnplace(i)}
-                      aria-label={`Remove ${flavor.name} from ${zone}`}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div className="zone-btns" role="group" aria-label={`Place ${flavor.name}`}>
-                    {ZONES.map((z) => (
-                      <button
-                        key={z.id}
-                        type="button"
-                        className="btn zone-btn"
-                        onClick={() => onPlace(i, z.id)}
-                      >
-                        {z.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {hc.loaner ? <span className="loaner-tag">loaner</span> : null}
-              </div>
-            </div>
+            <button
+              key={i}
+              type="button"
+              className={`fan-card${usable.has(i) ? ' picked' : ''}${placed ? ' placed' : ''}`}
+              onClick={() => toggle(i)}
+              aria-pressed={usable.has(i)}
+              aria-label={`${flavor.name}, power ${hc.power}${placed ? ', placed' : ''}`}
+            >
+              <FlavorCard
+                flavor={flavor}
+                power={hc.power}
+                selected={usable.has(i)}
+                dimmed={placed}
+              />
+              {hc.loaner ? <span className="loaner-tag">loaner</span> : null}
+            </button>
           );
         })}
       </div>
       <button type="button" className="btn btn-primary lock-btn" onClick={onLock}>
-        Lock in ({map.size} placed)
+        Lock in ({map.size}/2 placed)
       </button>
     </div>
+  );
+}
+
+function MiniCard({
+  flavorId,
+  name,
+  power,
+  onRemove,
+}: {
+  flavorId: string;
+  name: string;
+  power: number;
+  onRemove: () => void;
+}) {
+  const flavor = flavorOf(flavorId);
+  if (!flavor) return null;
+  return (
+    <span className="mini">
+      <img src={flavorImageUrl(flavor)} alt="" aria-hidden="true" />
+      <strong>{power}</strong>
+      <button
+        type="button"
+        aria-label={`Remove ${name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+      >
+        ✕
+      </button>
+    </span>
   );
 }
 
