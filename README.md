@@ -32,5 +32,9 @@ docs/            # local-only specs (gitignored, never committed)
 ```
 
 Rules: cards store Flavor only — Power (1–5) is rolled fresh every match, never
-stored. Flavor/zone names live in `src/game/cards.ts` (`src/game/zones.ts` later) —
+stored. Flavor/zone names live in `src/game/cards.ts` / `src/game/zones.ts` —
 never hardcoded elsewhere.
+
+Demo placeholders: real V7 can photos (`public/assets/cards/<flavor-id>.webp`)
+on CSS line-color gradients, CSS zone banners + card back. No AI art. Final art
+brief lives in `docs/ASSET_REQUESTS.md` (local-only).
