@@ -97,6 +97,22 @@ export function unusedIndices(state: MatchState, player: Player): number[] {
   return state.hands[player].map((_, i) => i).filter((i) => !used.has(i));
 }
 
+/**
+ * Cards spent in EARLIER rounds. The current round is excluded on purpose:
+ * placeCards replaces this round's picks, so re-submitting them together
+ * with a second card must not read as "already used".
+ */
+function usedInEarlierRounds(state: MatchState, player: Player): Set<number> {
+  const used = new Set<number>();
+  state.boards.forEach((board, i) => {
+    if (i === state.round - 1) return;
+    for (const zoneId of Object.keys(board)) {
+      for (const card of (board[zoneId] as ZoneSide)[player]) used.add(card.handIndex);
+    }
+  });
+  return used;
+}
+
 function setBoard(state: MatchState, board: Board): MatchState {
   const boards = state.boards.map((b, i) => (i === state.round - 1 ? board : b));
   return { ...state, boards };
@@ -112,7 +128,7 @@ export function placeCards(
   if (placements.length < MIN_PLACE || placements.length > MAX_PLACE) {
     throw new RangeError(`Place ${MIN_PLACE}–${MAX_PLACE} cards per round`);
   }
-  const used = usedIndices(state, player);
+  const used = usedInEarlierRounds(state, player);
   const seen = new Set<number>();
   for (const p of placements) {
     if (!ZONE_IDS.has(p.zone)) throw new RangeError(`Unknown zone: ${p.zone}`);

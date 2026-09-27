@@ -60,7 +60,33 @@ describe('placement', () => {
     expect(unusedIndices(s, 'A')).toEqual([2, 3, 4, 5]);
   });
 
-  it('rejects 0 or 3+ cards, unknown zones, and reused cards', () => {
+  it('places the second card incrementally without flagging the first', () => {
+    let s = placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'cool' }]);
+    s = placeCards(s, 'A', [
+      { handIndex: 0, zone: 'cool' },
+      { handIndex: 2, zone: 'party' },
+    ]);
+    expect(currentBoard(s)['cool']?.['A']).toHaveLength(1);
+    expect(currentBoard(s)['party']?.['A']).toHaveLength(1);
+    expect(unusedIndices(s, 'A')).toEqual([1, 3, 4, 5]);
+  });
+
+  it('still rejects reusing a card spent in an earlier round', () => {
+    let s = placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'cool' }]);
+    s = placeCards(s, 'B', [{ handIndex: 0, zone: 'cool' }]);
+    s = lockPlayer(s, 'A');
+    s = lockPlayer(s, 'B');
+    s = revealRound(s);
+    expect(() =>
+      placeCards(s, 'A', [
+        { handIndex: 0, zone: 'party' },
+        { handIndex: 1, zone: 'party' },
+      ])
+    ).toThrow(RangeError);
+    expect(() => placeCards(s, 'A', [{ handIndex: 0, zone: 'party' }])).toThrow(RangeError);
+  });
+
+  it('rejects 0 or 3+ cards, unknown zones, and duplicates in one call', () => {
     expect(() => placeCards(freshMatch(), 'A', [])).toThrow(RangeError);
     expect(() =>
       placeCards(freshMatch(), 'A', [
@@ -72,13 +98,22 @@ describe('placement', () => {
     expect(() => placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'mars' }])).toThrow(
       RangeError
     );
-    const s = placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'cool' }]);
     expect(() =>
-      placeCards(s, 'A', [
-        { handIndex: 0, zone: 'party' },
-        { handIndex: 2, zone: 'party' },
+      placeCards(freshMatch(), 'A', [
+        { handIndex: 1, zone: 'party' },
+        { handIndex: 1, zone: 'cool' },
       ])
     ).toThrow(RangeError);
+  });
+
+  it('allows moving this round’s pick to another zone when adding the second card', () => {
+    const s = placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'cool' }]);
+    const moved = placeCards(s, 'A', [
+      { handIndex: 0, zone: 'party' },
+      { handIndex: 2, zone: 'party' },
+    ]);
+    expect(currentBoard(moved)['cool']?.['A']).toHaveLength(0);
+    expect(currentBoard(moved)['party']?.['A']).toHaveLength(2);
   });
 
   it('lets a player re-pick before locking, and pull a card back', () => {
