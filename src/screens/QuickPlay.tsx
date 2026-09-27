@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../game/cards';
 import type { Collection } from '../game/collection';
-import { buildQuickPlayHand, type HandCard } from '../game/hands';
+import { buildCustomHand, buildQuickPlayHand, type HandCard } from '../game/hands';
 import {
   autoPlaceForTimeout,
   bothLocked,
@@ -19,10 +19,10 @@ import {
 } from '../game/match';
 import { matchWinner } from '../game/series';
 import { scoreMatch, type ZoneResult } from '../game/scoring';
-import type { Flavor } from '../game/types';
+import type { Flavor, FlavorId } from '../game/types';
 import { ZONES } from '../game/zones';
 import { flavorImageUrl } from '../components/assetPaths';
-import { FlavorCard } from '../components/FlavorCard';
+import { GameCard } from '../components/GameCard';
 
 type Stage = 'idle' | 'placeA' | 'passB' | 'placeB' | 'roundResult' | 'matchOver';
 
@@ -42,9 +42,10 @@ function flavorOf(flavorId: string): Flavor | undefined {
   return getFlavorById(flavorId);
 }
 
-export function QuickPlay({ collection }: { collection: Collection }) {
+export function QuickPlay({ collection, deck }: { collection: Collection; deck: FlavorId[] }) {
   const [match, setMatch] = useState<MatchState | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
+  const [mode, setMode] = useState<'quick' | 'custom'>('quick');
   const [seconds, setSeconds] = useState(TIMER_SECONDS);
   const [notice, setNotice] = useState('');
   const [results, setResults] = useState<ZoneResult[] | null>(null);
@@ -98,10 +99,20 @@ export function QuickPlay({ collection }: { collection: Collection }) {
     }
   }
 
-  function start() {
-    const handA = buildQuickPlayHand(collection);
-    const handB = buildQuickPlayHand(collection);
-    setMatch(createMatch(handA, handB));
+  function start(pick: 'quick' | 'custom') {
+    try {
+      const build =
+        pick === 'quick'
+          ? () => buildQuickPlayHand(collection)
+          : () => buildCustomHand(collection, deck);
+      setMatch(createMatch(build(), build()));
+    } catch (e) {
+      setNotice(
+        e instanceof Error ? e.message : 'Deck no longer matches the collection — fix it in Deck.'
+      );
+      return;
+    }
+    setMode(pick);
     setResults(null);
     setWinner(null);
     setNotice('');
@@ -154,14 +165,10 @@ export function QuickPlay({ collection }: { collection: Collection }) {
   }
 
   return (
-    <section aria-label="Quick Play">
+    <section aria-label="Play">
       <div className="section-head">
-        <h2>Quick Play</h2>
-        {stage === 'idle' || stage === 'matchOver' ? (
-          <button type="button" className="btn btn-primary" onClick={start}>
-            {stage === 'matchOver' ? 'Rematch' : 'Start match'}
-          </button>
-        ) : (
+        <h2>{mode === 'custom' ? 'Custom Match' : 'Quick Play'}</h2>
+        {stage === 'idle' || stage === 'matchOver' ? null : (
           <button type="button" className="btn" onClick={endMatch}>
             End match
           </button>
@@ -169,10 +176,36 @@ export function QuickPlay({ collection }: { collection: Collection }) {
       </div>
 
       {!match || stage === 'idle' ? (
-        <p className="demo-note">
-          One phone, two players. Hands are drawn from this device&apos;s collection (loaners fill
-          gaps). 3 rounds, 1–2 cards each, {TIMER_SECONDS}s per turn.
-        </p>
+        <div className="mode-menu">
+          <p className="demo-note">
+            One phone, two players. 3 rounds, max 2 cards each, {TIMER_SECONDS}s per turn.
+          </p>
+          <button type="button" className="btn btn-primary lock-btn" onClick={() => start('quick')}>
+            Quick Play — random hands
+          </button>
+          <button
+            type="button"
+            className="btn lock-btn"
+            onClick={() => start('custom')}
+            disabled={deck.length === 0}
+            title={
+              deck.length === 0 ? 'Build your deck in the Deck tab first' : `Deck: ${deck.length}/6`
+            }
+          >
+            Custom Match — my deck ({deck.length}/6)
+          </button>
+        </div>
+      ) : null}
+
+      {stage === 'matchOver' ? (
+        <button
+          type="button"
+          className="btn btn-primary lock-btn"
+          onClick={() => start(mode)}
+          style={{ marginBottom: 12 }}
+        >
+          Rematch ({mode === 'custom' ? 'custom' : 'quick'})
+        </button>
       ) : null}
 
       {match && player ? (
@@ -236,6 +269,13 @@ function PlacingView({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const map = placedMap(match, player);
   const hand: readonly HandCard[] = match.hands[player];
+  const foe: Player = player === 'A' ? 'B' : 'A';
+  // Opponent total only — never per-zone, so their spread stays secret.
+  const foeTotal = match.boards.reduce((n, board) => {
+    let count = 0;
+    for (const zoneId of Object.keys(board)) count += board[zoneId][foe].length;
+    return n + count;
+  }, 0);
   const usable = new Set([...selected].filter((i) => !map.has(i) && i < hand.length));
 
   function toggle(i: number) {
@@ -337,7 +377,16 @@ function PlacingView({
 
       <div className="board-zones">
         {ZONES.map((z) => {
-          const mine = [...map.entries()].filter(([, zid]) => zid === z.id);
+          // Everything you have ever put here stays visible: earlier rounds
+          // revealed with their powers, this round's picks straight away.
+          const mine: { handIndex: number; current: boolean }[] = [];
+          match.boards.forEach((board, bi) => {
+            const side = board[z.id];
+            if (!side) return;
+            for (const card of side[player]) {
+              mine.push({ handIndex: card.handIndex, current: bi === match.round - 1 });
+            }
+          });
           return (
             <button
               key={z.id}
@@ -357,7 +406,7 @@ function PlacingView({
                     {usable.size > 0 ? 'tap to drop here' : 'your cards land here'}
                   </span>
                 ) : (
-                  mine.map(([i]) => {
+                  mine.map(({ handIndex: i, current }) => {
                     const hc = hand[i];
                     const flavor = hc ? flavorOf(hc.flavor) : undefined;
                     if (!flavor || !hc) return null;
@@ -367,7 +416,7 @@ function PlacingView({
                         flavorId={flavor.id}
                         name={flavor.name}
                         power={hc.power}
-                        onRemove={() => onUnplace(i)}
+                        onRemove={current ? () => onUnplace(i) : undefined}
                       />
                     );
                   })
@@ -377,7 +426,18 @@ function PlacingView({
           );
         })}
       </div>
-      <p className="demo-note">Opponent cards stay hidden until both players lock in.</p>
+      <div className="foe-tray" aria-label="Opponent hidden cards">
+        <span className="demo-note">Opponent (hidden):</span>
+        {foeTotal === 0 ? (
+          <span className="demo-note">nothing yet</span>
+        ) : (
+          Array.from({ length: foeTotal }, (_, k) => (
+            <span key={k} className="card-back-mini" aria-hidden="true">
+              ?
+            </span>
+          ))
+        )}
+      </div>
 
       <div className="hand-fan" role="group" aria-label="Your hand — tap to select">
         {hand.map((hc, i) => {
@@ -398,13 +458,13 @@ function PlacingView({
               aria-pressed={usable.has(i)}
               aria-label={`${flavor.name}, power ${hc.power}${placed ? ', placed' : ''}`}
             >
-              <FlavorCard
+              <GameCard
                 flavor={flavor}
                 power={hc.power}
                 selected={usable.has(i)}
                 dimmed={placed}
+                loaner={hc.loaner}
               />
-              {hc.loaner ? <span className="loaner-tag">loaner</span> : null}
             </button>
           );
         })}
@@ -426,7 +486,7 @@ function MiniCard({
   flavorId: string;
   name: string;
   power: number;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) {
   const flavor = flavorOf(flavorId);
   if (!flavor) return null;
@@ -434,16 +494,18 @@ function MiniCard({
     <span className="mini">
       <img src={flavorImageUrl(flavor)} alt="" aria-hidden="true" />
       <strong>{power}</strong>
-      <button
-        type="button"
-        aria-label={`Remove ${name}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-      >
-        ✕
-      </button>
+      {onRemove ? (
+        <button
+          type="button"
+          aria-label={`Remove ${name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          ✕
+        </button>
+      ) : null}
     </span>
   );
 }

@@ -1,6 +1,6 @@
 import { FLAVORS } from '../game/cards';
 import { countOf, type Collection } from '../game/collection';
-import { FlavorCard } from '../components/FlavorCard';
+import { GameCard } from '../components/GameCard';
 
 /**
  * Demo collection manager (stand-in until scanning lands in Phase 2):
@@ -37,7 +37,7 @@ export function Collection({
           const count = countOf(collection, flavor.id);
           return (
             <div key={flavor.id} className="collection-slot">
-              <FlavorCard flavor={flavor} dimmed={count === 0} />
+              <GameCard flavor={flavor} dimmed={count === 0} />
               <div className="stepper" aria-label={`${flavor.name} copies`}>
                 <button
                   type="button"
