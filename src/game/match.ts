@@ -13,9 +13,9 @@ import { ZONES } from './zones';
 export const ROUNDS = 3;
 export const MIN_PLACE = 1;
 export const MAX_PLACE = 2;
-export const TIMER_SECONDS = 12;
-export const MIN_POWER = 1;
-export const MAX_POWER = 5;
+// Approved override (2026-09-27): spec §5 says a 12s flat timer; Abdullah
+// raised it to 20s after playtesting — too fast to read the board on a phone.
+export const TIMER_SECONDS = 20;
 
 export type Player = 'A' | 'B';
 export type ZoneId = string;
@@ -187,26 +187,24 @@ export function bothLocked(state: MatchState): boolean {
   return state.locks.A && state.locks.B;
 }
 
-/** Power (1–5) rolls fresh for every card, at reveal. */
-export function rollPower(rng: Rng = Math.random): number {
-  return MIN_POWER + intBelow(rng, MAX_POWER - MIN_POWER + 1);
-}
-
 /**
- * Simultaneous reveal once both players lock in: rolls Power for this round's
- * cards, then advances the round (or completes the match after round 3).
+ * Simultaneous reveal once both players lock in: powers dealt with the hand
+ * stand (rolled fresh at deal, never stored), then advance the round
+ * (or complete the match after round 3).
  */
-export function revealRound(state: MatchState, rng: Rng = Math.random): MatchState {
+export function revealRound(state: MatchState): MatchState {
   if (state.phase !== 'placing') throw new RangeError('Match is not accepting placements');
   if (!bothLocked(state)) throw new RangeError('Both players must lock in before reveal');
   const board = currentBoard(state);
   const revealed: { [zoneId: string]: ZoneSide } = {};
   for (const zoneId of Object.keys(board)) {
     const side = board[zoneId] as ZoneSide;
-    revealed[zoneId] = {
-      A: side.A.map((c) => ({ ...c, power: rollPower(rng) })),
-      B: side.B.map((c) => ({ ...c, power: rollPower(rng) })),
-    };
+    const stand = (owner: Player) =>
+      side[owner].map((c) => ({
+        ...c,
+        power: (state.hands[owner][c.handIndex] as HandCard).power,
+      }));
+    revealed[zoneId] = { A: stand('A'), B: stand('B') };
   }
   const boards = state.boards.map((b, i) => (i === state.round - 1 ? revealed : b));
   if (state.round >= ROUNDS) {

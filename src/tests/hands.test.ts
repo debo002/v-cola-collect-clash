@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addCopy, emptyCollection } from '../game/collection';
 import { buildCustomHand, buildQuickPlayHand, HAND_SIZE } from '../game/hands';
-import type { Rng } from '../game/rng';
+import { MAX_POWER, MIN_POWER, type Rng } from '../game/rng';
 
 const zero: Rng = () => 0;
 
@@ -91,5 +91,14 @@ describe('custom hand', () => {
   it('rejects picking the same flavor more times than owned', () => {
     const c = addCopy(emptyCollection(), 'v-cola');
     expect(() => buildCustomHand(c, ['v-cola', 'v-cola'], zero)).toThrow(RangeError);
+  });
+
+  it('rolls power 1–5 fresh on every dealt card', () => {
+    const low = buildQuickPlayHand(fullCollection(), zero);
+    expect(low.every((c) => c.power === MIN_POWER)).toBe(true);
+    const high = buildQuickPlayHand(fullCollection(), () => 0.9999);
+    expect(high.every((c) => c.power === MAX_POWER)).toBe(true);
+    const custom = buildCustomHand(fullCollection(), ['v-cola'], zero);
+    expect(custom.find((c) => !c.loaner && c.flavor === 'v-cola')?.power).toBe(MIN_POWER);
   });
 });

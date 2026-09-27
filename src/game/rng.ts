@@ -15,3 +15,11 @@ export function shuffled<T>(items: readonly T[], rng: Rng): T[] {
   }
   return out;
 }
+
+export const MIN_POWER = 1;
+export const MAX_POWER = 5;
+
+/** Power (1–5), rolled fresh for every card in every match. */
+export function rollPower(rng: Rng = Math.random): number {
+  return MIN_POWER + intBelow(rng, MAX_POWER - MIN_POWER + 1);
+}

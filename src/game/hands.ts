@@ -1,6 +1,6 @@
 import { FLAVOR_IDS, isFlavorId } from './cards';
 import { countOf, type Collection } from './collection';
-import { intBelow, shuffled, type Rng } from './rng';
+import { intBelow, rollPower, shuffled, type Rng } from './rng';
 import type { FlavorId } from './types';
 
 /**
@@ -14,6 +14,12 @@ export interface HandCard {
   readonly flavor: FlavorId;
   /** True for temporary match-only cards (player owns fewer than 6). */
   readonly loaner: boolean;
+  /**
+   * Power, rolled fresh at deal. Shown on your own hand/placed cards during
+   * your turn; hidden from the opponent until simultaneous reveal. Never
+   * stored in the collection (approved override 2026-09-27: visible deck).
+   */
+  readonly power: number;
 }
 
 /** Owned copies expanded into a multiset pool, in canonical flavor order. */
@@ -31,14 +37,15 @@ function randomFlavor(rng: Rng): FlavorId {
 }
 
 function fillWithLoaners(hand: HandCard[], rng: Rng): HandCard[] {
-  while (hand.length < HAND_SIZE) hand.push({ flavor: randomFlavor(rng), loaner: true });
+  while (hand.length < HAND_SIZE)
+    hand.push({ flavor: randomFlavor(rng), loaner: true, power: rollPower(rng) });
   return hand;
 }
 
 export function buildQuickPlayHand(collection: Collection, rng: Rng = Math.random): HandCard[] {
   const picked = shuffled(ownedPool(collection), rng)
     .slice(0, HAND_SIZE)
-    .map((flavor): HandCard => ({ flavor, loaner: false }));
+    .map((flavor): HandCard => ({ flavor, loaner: false, power: rollPower(rng) }));
   return shuffled(fillWithLoaners(picked, rng), rng);
 }
 
@@ -59,13 +66,14 @@ export function buildCustomHand(
   const hand: HandCard[] = picks.map((flavor): HandCard => ({
     flavor: flavor as FlavorId,
     loaner: false,
+    power: rollPower(rng),
   }));
   const pool = ownedPool(collection);
   for (const pick of picks) pool.splice(pool.indexOf(pick as FlavorId), 1);
   const filled = hand.concat(
     shuffled(pool, rng)
       .slice(0, HAND_SIZE - hand.length)
-      .map((flavor): HandCard => ({ flavor, loaner: false }))
+      .map((flavor): HandCard => ({ flavor, loaner: false, power: rollPower(rng) }))
   );
   return shuffled(fillWithLoaners(filled, rng), rng);
 }

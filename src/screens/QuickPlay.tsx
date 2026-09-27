@@ -12,7 +12,6 @@ import {
   placeCards,
   TIMER_SECONDS,
   unplaceCard,
-  type Board,
   type MatchState,
   type PlacedCard,
   type Player,
@@ -108,6 +107,14 @@ export function QuickPlay({ collection }: { collection: Collection }) {
     setStage('placeA');
   }
 
+  function endMatch() {
+    setMatch(null);
+    setResults(null);
+    setWinner(null);
+    setNotice('');
+    setStage('idle');
+  }
+
   function lock(by: Player) {
     if (!match) return;
     try {
@@ -153,7 +160,11 @@ export function QuickPlay({ collection }: { collection: Collection }) {
           <button type="button" className="btn btn-primary" onClick={start}>
             {stage === 'matchOver' ? 'Rematch' : 'Start match'}
           </button>
-        ) : null}
+        ) : (
+          <button type="button" className="btn" onClick={endMatch}>
+            End match
+          </button>
+        )}
       </div>
 
       {!match || stage === 'idle' ? (
@@ -184,7 +195,7 @@ export function QuickPlay({ collection }: { collection: Collection }) {
         </div>
       ) : null}
 
-      {match && (stage === 'roundResult' || stage === 'matchOver') && results ? (
+      {match && (stage === 'roundResult' || stage === 'matchOver') ? (
         <ResultView
           match={match}
           results={results}
@@ -247,12 +258,14 @@ function PlacingView({
           return (
             <div key={i} className="hand-row">
               <div className="hand-card">
-                <FlavorCard flavor={flavor} selected={zone !== undefined} />
+                <FlavorCard flavor={flavor} power={hc.power} selected={zone !== undefined} />
               </div>
               <div className="hand-actions">
                 {zone ? (
                   <div className="placed-tag">
-                    <span>in {ZONES.find((z) => z.id === zone)?.name ?? zone}</span>
+                    <span>
+                      in {ZONES.find((z) => z.id === zone)?.name ?? zone} · P{hc.power}
+                    </span>
                     <button
                       type="button"
                       className="btn step"
@@ -301,15 +314,11 @@ function ResultView({
   onNext,
 }: {
   match: MatchState;
-  results: ZoneResult[];
+  results: ZoneResult[] | null;
   winner: Player | null;
   finished: boolean;
   onNext: () => void;
 }) {
-  // Round result shows just the revealed round; final shows all three.
-  const boards: readonly Board[] = finished
-    ? match.boards
-    : match.boards.slice(match.round - 2, match.round - 1);
   return (
     <div>
       {finished ? (
@@ -318,26 +327,28 @@ function ResultView({
         </div>
       ) : (
         <div className="result-banner round" role="status">
-          Round {match.round - 1} revealed
+          Round {match.round - 1} revealed — no scores until round 3
         </div>
       )}
-      {results.map((r) => {
-        const zone = ZONES.find((z) => z.id === r.zoneId);
+      {ZONES.map((zone) => {
+        const r = results?.find((x) => x.zoneId === zone.id);
         const cards: OwnedCard[] = [];
-        for (const board of boards) {
-          const side = board[r.zoneId];
+        // Future boards are empty, so this only ever shows revealed cards.
+        for (const board of match.boards) {
+          const side = board[zone.id];
           if (!side) continue;
           for (const owner of ['A', 'B'] as const) {
             for (const card of side[owner]) cards.push({ ...card, owner });
           }
         }
         return (
-          <div key={r.zoneId} className={`zone zone-${r.zoneId} result-zone`}>
+          <div key={zone.id} className={`zone zone-${zone.id} result-zone`}>
             <div className="result-zone-head">
-              <strong>{zone?.name}</strong>
+              <strong>{zone.name}</strong>
               <span>
-                A {r.totals.A} — B {r.totals.B}
-                {r.winner ? ` → Player ${r.winner}` : ' → drawn'}
+                {r
+                  ? `A ${r.totals.A} — B ${r.totals.B}${r.winner ? ` → Player ${r.winner}` : ' → drawn'}`
+                  : `${cards.length} card${cards.length === 1 ? '' : 's'} revealed`}
               </span>
             </div>
             <div className="reveal-grid">

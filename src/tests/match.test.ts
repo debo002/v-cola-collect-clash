@@ -7,26 +7,23 @@ import {
   createMatch,
   currentBoard,
   lockPlayer,
-  MAX_POWER,
-  MIN_POWER,
   placeCards,
   revealRound,
-  rollPower,
   TIMER_SECONDS,
   unplaceCard,
   unusedIndices,
   type MatchState,
 } from '../game/match';
-import type { Rng } from '../game/rng';
+import { MAX_POWER, MIN_POWER, rollPower, type Rng } from '../game/rng';
 
 const zero: Rng = () => 0;
-const seq = (...vals: number[]): Rng => {
-  let i = 0;
-  return () => (vals[i++ % vals.length] ?? 0) as number;
-};
 
-function makeHand(): HandCard[] {
-  return FLAVOR_IDS.slice(0, 6).map((flavor) => ({ flavor, loaner: false }));
+function makeHand(powers: readonly number[] = [3, 3, 3, 3, 3, 3]): HandCard[] {
+  return FLAVOR_IDS.slice(0, 6).map((flavor, i) => ({
+    flavor,
+    loaner: false,
+    power: powers[i] ?? 3,
+  }));
 }
 
 function freshMatch(): MatchState {
@@ -43,8 +40,8 @@ describe('match setup', () => {
     expect(() => createMatch(makeHand().slice(0, 5), makeHand())).toThrow(RangeError);
   });
 
-  it('uses a flat 12-second timer constant', () => {
-    expect(TIMER_SECONDS).toBe(12);
+  it('uses the approved 20-second turn timer (spec §5 said 12s)', () => {
+    expect(TIMER_SECONDS).toBe(20);
   });
 
   it('tracks all 6 cards as unused at the start', () => {
@@ -105,19 +102,19 @@ describe('locks and reveal', () => {
     expect(() => lockPlayer(freshMatch(), 'A')).toThrow(RangeError);
   });
 
-  it('reveals only when both players lock, rolling power 1–5 per card', () => {
-    let s = placeCards(freshMatch(), 'A', [{ handIndex: 0, zone: 'cool' }]);
+  it('reveals only when both players lock, keeping dealt powers', () => {
+    let s = createMatch(makeHand([2, 3, 3, 3, 3, 3]), makeHand([5, 3, 3, 3, 3, 3]));
+    s = placeCards(s, 'A', [{ handIndex: 0, zone: 'cool' }]);
     s = placeCards(s, 'B', [{ handIndex: 0, zone: 'cool' }]);
     s = lockPlayer(s, 'A');
     expect(bothLocked(s)).toBe(false);
-    expect(() => revealRound(s, zero)).toThrow(RangeError);
+    expect(() => revealRound(s)).toThrow(RangeError);
     s = lockPlayer(s, 'B');
     expect(bothLocked(s)).toBe(true);
-    // rng 0 → power 1; rng ~1 → power 5
-    s = revealRound(s, seq(0, 0.999));
+    s = revealRound(s);
     const revealed = s.boards[0]?.['cool'];
-    expect(revealed?.['A'][0]?.power).toBe(MIN_POWER);
-    expect(revealed?.['B'][0]?.power).toBe(MAX_POWER);
+    expect(revealed?.['A'][0]?.power).toBe(2);
+    expect(revealed?.['B'][0]?.power).toBe(5);
     expect(s.round).toBe(2);
     expect(bothLocked(s)).toBe(false);
   });
@@ -153,7 +150,7 @@ describe('full match flow', () => {
     let s = freshMatch();
     for (let round = 1; round <= 3; round++) {
       s = playRound(s);
-      s = revealRound(s, zero);
+      s = revealRound(s);
     }
     expect(s.phase).toBe('complete');
     expect(s.round).toBe(3);
