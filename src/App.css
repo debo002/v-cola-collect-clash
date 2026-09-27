@@ -37,6 +37,51 @@
   text-align: left;
 }
 
+.demo-note {
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -50,6 +95,15 @@
   background: #241a20;
   display: flex;
   flex-direction: column;
+}
+
+.card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.card.dimmed {
+  opacity: 0.45;
 }
 
 .card-art {
@@ -112,6 +166,221 @@
   border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
+.collection-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.step {
+  flex: 1;
+  padding: 6px 0;
+}
+
+.count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  min-width: 36px;
+  text-align: center;
+}
+
+.turn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.timer {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-h);
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 12px;
+}
+
+.timer.urgent {
+  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.hand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.hand-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.hand-card {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.hand-card .card-name {
+  font-size: 11px;
+}
+
+.hand-actions {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.zone-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.zone-btn {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 12px;
+}
+
+.placed-tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 8px 8px 12px;
+}
+
+.loaner-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #ffd97a;
+  text-transform: uppercase;
+}
+
+.lock-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 0;
+  font-size: 16px;
+}
+
+.lookaway {
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.lookaway strong {
+  font-size: 20px;
+  color: var(--text-h);
+}
+
+.lookaway p {
+  margin: 0 0 8px;
+}
+
+.notice {
+  color: #ff9d97;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.result-banner {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.result-banner.round {
+  background: var(--social-bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  font-size: 16px;
+}
+
+.result-zone {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.result-zone-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.result-zone-head span {
+  font-size: 13px;
+}
+
+.reveal-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reveal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px 4px 4px;
+  color: #fff;
+}
+
+.reveal-chip img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.reveal-chip strong {
+  font-size: 14px;
+}
+
+.reveal-chip em {
+  font-style: normal;
+  opacity: 0.8;
+}
+
 .zone-list {
   display: flex;
   flex-direction: column;
@@ -168,9 +437,4 @@
   font-size: 40px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.85);
-}
-
-.demo-note {
-  font-size: 13px;
-  margin-top: 8px;
 }
