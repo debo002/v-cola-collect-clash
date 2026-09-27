@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../game/cards';
 import type { Collection } from '../game/collection';
 import { buildQuickPlayHand, type HandCard } from '../game/hands';
@@ -255,13 +255,81 @@ function PlacingView({
     setSelected(new Set());
   }
 
+  // Long-press (250ms) starts a drag; plain swipe keeps scrolling the fan and
+  // a quick tap keeps the select-then-tap-zone flow. Cards move on drop via
+  // the same placeMany path, so the 1–2 per round rule still applies.
+  const [drag, setDrag] = useState<{ i: number; x: number; y: number } | null>(null);
+  const [dropZone, setDropZone] = useState<string | null>(null);
+  const pressPos = useRef<{ x: number; y: number } | null>(null);
+  const pressTimer = useRef<number | null>(null);
+  const justDragged = useRef(false);
+
+  function clearPress() {
+    if (pressTimer.current !== null) {
+      window.clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+    pressPos.current = null;
+  }
+
+  function zoneAt(x: number, y: number): string | null {
+    const el = document.elementFromPoint(x, y)?.closest('[data-zone]');
+    return el?.getAttribute('data-zone') ?? null;
+  }
+
+  function beginPress(e: ReactPointerEvent, i: number) {
+    if (map.has(i)) return;
+    pressPos.current = { x: e.clientX, y: e.clientY };
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      setDrag({ i, x: e.clientX, y: e.clientY });
+      setDropZone(zoneAt(e.clientX, e.clientY));
+    }, 250);
+  }
+
+  function movePress(e: ReactPointerEvent) {
+    if (drag) {
+      setDrag({ ...drag, x: e.clientX, y: e.clientY });
+      setDropZone(zoneAt(e.clientX, e.clientY));
+      return;
+    }
+    const start = pressPos.current;
+    if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 12) clearPress();
+  }
+
+  function endPress(e: ReactPointerEvent, i: number) {
+    const wasDrag = drag !== null && drag.i === i;
+    clearPress();
+    setDrag(null);
+    setDropZone(null);
+    if (wasDrag) {
+      justDragged.current = true;
+      const zone = zoneAt(e.clientX, e.clientY);
+      if (zone) onPlaceMany([{ handIndex: i, zone }]);
+    }
+  }
+
+  function cancelPress() {
+    clearPress();
+    setDrag(null);
+    setDropZone(null);
+  }
+
+  function clickCard(i: number) {
+    if (justDragged.current) {
+      justDragged.current = false;
+      return;
+    }
+    toggle(i);
+  }
+
   return (
     <div>
       <div className="turn-banner" role="status">
         <strong>
           Player {player} · Round {match.round} of 3
         </strong>
-        <span>place up to 2 — tap cards, then a zone</span>
+        <span>drag cards onto zones — or tap cards, then a zone</span>
         <span className={seconds <= 5 ? 'timer urgent' : 'timer'} aria-live="polite">
           {seconds}s
         </span>
@@ -274,7 +342,8 @@ function PlacingView({
             <button
               key={z.id}
               type="button"
-              className={`zone zone-${z.id} zone-slot${usable.size > 0 ? ' drop-ready' : ''}`}
+              data-zone={z.id}
+              className={`zone zone-${z.id} zone-slot${usable.size > 0 ? ' drop-ready' : ''}${dropZone === z.id ? ' drop-target' : ''}`}
               onClick={() => drop(z.id)}
               aria-label={`Place selected cards in ${z.name}`}
             >
@@ -319,8 +388,13 @@ function PlacingView({
             <button
               key={i}
               type="button"
-              className={`fan-card${usable.has(i) ? ' picked' : ''}${placed ? ' placed' : ''}`}
-              onClick={() => toggle(i)}
+              className={`fan-card${usable.has(i) ? ' picked' : ''}${placed ? ' placed' : ''}${drag?.i === i ? ' drag-src' : ''}`}
+              onClick={() => clickCard(i)}
+              onPointerDown={(e) => beginPress(e, i)}
+              onPointerMove={movePress}
+              onPointerUp={(e) => endPress(e, i)}
+              onPointerCancel={cancelPress}
+              onDragStart={(e) => e.preventDefault()}
               aria-pressed={usable.has(i)}
               aria-label={`${flavor.name}, power ${hc.power}${placed ? ', placed' : ''}`}
             >
@@ -335,6 +409,7 @@ function PlacingView({
           );
         })}
       </div>
+      {drag && <DragGhost hand={hand} handIndex={drag.i} x={drag.x} y={drag.y} />}
       <button type="button" className="btn btn-primary lock-btn" onClick={onLock}>
         Lock in ({map.size}/2 placed)
       </button>
@@ -369,6 +444,28 @@ function MiniCard({
       >
         ✕
       </button>
+    </span>
+  );
+}
+
+function DragGhost({
+  hand,
+  handIndex,
+  x,
+  y,
+}: {
+  hand: readonly HandCard[];
+  handIndex: number;
+  x: number;
+  y: number;
+}) {
+  const hc = hand[handIndex];
+  const flavor = hc ? flavorOf(hc.flavor) : undefined;
+  if (!hc || !flavor) return null;
+  return (
+    <span className="drag-ghost" style={{ left: x, top: y }} aria-hidden="true">
+      <img src={flavorImageUrl(flavor)} alt="" />
+      <strong>{hc.power}</strong>
     </span>
   );
 }

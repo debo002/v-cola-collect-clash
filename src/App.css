@@ -548,3 +548,48 @@
 .reveal-chip {
   animation: pop 0.3s ease-out;
 }
+
+.fan-card {
+  /* Horizontal swipes scroll the fan; press-hold then drag moves the card. */
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fan-card.drag-src {
+  opacity: 0.35;
+}
+
+.zone-slot.drop-target {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 18px var(--accent);
+  transform: scale(1.03);
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  transform: translate(-50%, -70%) scale(1.12) rotate(-3deg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  padding: 6px 12px 6px 6px;
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+}
+
+.drag-ghost img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.drag-ghost strong {
+  font-size: 20px;
+}
