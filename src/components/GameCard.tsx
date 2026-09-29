@@ -12,19 +12,16 @@ export function GameCard({
   displayName,
   selected,
   dimmed,
-  placed,
 }: {
   flavor: Flavor;
   power?: number;
   displayName?: string;
   selected?: boolean;
   dimmed?: boolean;
-  placed?: boolean;
 }) {
   const classes = ['game-card', `flavor-${flavor.id}`, `line-${flavor.line}`];
   if (selected) classes.push('selected');
   if (dimmed) classes.push('dimmed');
-  if (placed) classes.push('is-placed');
 
   const label = displayName || flavor.name;
 
@@ -46,11 +43,6 @@ export function GameCard({
       <div className="name-plate">
         <span>{label}</span>
       </div>
-      {placed ? (
-        <div className="placed-overlay">
-          <span>PLACED</span>
-        </div>
-      ) : null}
     </article>
   );
 }

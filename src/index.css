@@ -4,21 +4,14 @@
   --text-muted: #8492a6;
   --bg: #090b10;
   --card-bg: #11151f;
-  --card-surface: #161b26;
   --border: #1e2636;
   --border-light: #2d384c;
   --code-bg: #141822;
 
   /* V7 Brand Core */
   --accent: #e61e2b;
-  --accent-hover: #ff2a38;
   --accent-bg: rgba(230, 30, 43, 0.16);
   --accent-border: rgba(230, 30, 43, 0.55);
-  --silver: #e2e8f0;
-  --silver-dim: #94a3b8;
-
-  --social-bg: rgba(255, 255, 255, 0.06);
-  --shadow: rgba(0, 0, 0, 0.5) 0 10px 20px -3px, rgba(0, 0, 0, 0.3) 0 4px 8px -2px;
 
   --sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
   --heading: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;

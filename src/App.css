@@ -33,10 +33,6 @@
   flex-direction: row-reverse;
 }
 
-.demo.rtl .turn-banner-right {
-  flex-direction: row-reverse;
-}
-
 /* ==========================================================================
    HEADER — V7 BRAND LOGO & TAGLINE
    ========================================================================== */
@@ -821,31 +817,6 @@
   border-radius: 4px;
   padding: 1px 5px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
-
-/* Hidden Opponent Card Back (NO flavor art, NO Power leaks) */
-.lane-card-mini.card-back {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(230, 30, 43, 0.25) 0%, #0c0f16 80%),
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 3px,
-      rgba(255, 255, 255, 0.05) 3px,
-      rgba(255, 255, 255, 0.05) 4px
-    );
-  justify-content: center;
-  border-color: rgba(230, 30, 43, 0.5);
-  box-shadow: inset 0 0 10px rgba(230, 30, 43, 0.25), 0 2px 6px rgba(0, 0, 0, 0.7);
-}
-
-.lane-card-mini.card-back span {
-  font-size: 16px;
-  font-weight: 900;
-  color: #ff4d58;
-  text-shadow: 0 0 8px rgba(230, 30, 43, 0.9);
-  position: relative;
-  z-index: 1;
 }
 
 .lane-card-mini.recallable {

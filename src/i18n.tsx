@@ -19,10 +19,6 @@ export interface Translations {
   quickPlayBadge: string;
   quickPlayDesc: string;
   quickPlayBtn: string;
-  rankedTitle: string;
-  rankedBadge: string;
-  rankedDesc: string;
-  rankedBtn: string;
   rankedNote: string;
   exitMatch: string;
   // Lookaway
@@ -36,24 +32,16 @@ export interface Translations {
   of3: string;
   tapToPlaceHint: string;
   tapZoneToPlace: string;
-  dropCardsHere: string;
   placeAtLeast1: string;
   lockIn: string;
   cardsPlaced: string;
   yourHand: string;
   cardsAvailable: string;
   cardsHidden: string;
-  noneYet: string;
   recall: string;
   // Zones
-  zoneCool: string;
-  zoneCoolTag: string;
   zoneCoolRule: string;
-  zoneParty: string;
-  zonePartyTag: string;
   zonePartyRule: string;
-  zoneEnergy: string;
-  zoneEnergyTag: string;
   zoneEnergyRule: string;
   // Reveal & Result on board
   roundRevealed: string;
@@ -63,8 +51,6 @@ export interface Translations {
   matchDrawn: string;
   rematch: string;
   returnToMenu: string;
-  winningZone: string;
-  tiedZone: string;
   // Deck
   deckTitle: string;
   deckFull: string;
@@ -99,10 +85,6 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     quickPlayBadge: 'Casual • Single Match',
     quickPlayDesc: 'Instant showdown with 6 unique cans dealt to each player. Fast 3-round battle (~90s).',
     quickPlayBtn: 'Play Quick Match',
-    rankedTitle: 'Ranked Online PvP',
-    rankedBadge: 'Online • 2 Devices',
-    rankedDesc: 'Ranked requires two phones and your custom deck. Best-of-3 series over the network.',
-    rankedBtn: 'Online Ranked (Coming in Phase 3)',
     rankedNote: 'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
     exitMatch: 'Exit Match',
     // Lookaway
@@ -116,24 +98,16 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     of3: 'of 3',
     tapToPlaceHint: 'Tap a card then tap a zone, or drag directly',
     tapZoneToPlace: '✨ Tap a zone to deploy selected card',
-    dropCardsHere: 'Drop card or tap zone',
     placeAtLeast1: 'Deploy at least 1 card (0/2 placed)',
     lockIn: 'Lock In Placement',
     cardsPlaced: 'placed',
     yourHand: 'Your Hand',
     cardsAvailable: 'cards available',
     cardsHidden: "'s hidden cards in play:",
-    noneYet: 'None placed yet',
     recall: '↩ Return',
     // Zones
-    zoneCool: 'COOL',
-    zoneCoolTag: 'Stay Frosty',
     zoneCoolRule: 'Lowest Power card gets +1',
-    zoneParty: 'PARTY',
-    zonePartyTag: 'The More The Merrier',
     zonePartyRule: 'Most cards placed gets +1 to zone total',
-    zoneEnergy: 'ENERGY',
-    zoneEnergyTag: 'Second Wind',
     zoneEnergyRule: 'Fewer cards placed gets +1 Power each',
     // Reveal & Result on board
     roundRevealed: 'Round Revealed!',
@@ -143,8 +117,6 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'Match Drawn!',
     rematch: 'Rematch',
     returnToMenu: 'Back to Arena Menu',
-    winningZone: 'leads zone',
-    tiedZone: 'Tied',
     // Deck
     deckTitle: 'Battle Deck',
     deckFull: 'Deck full (6 cards) — tap a slot to remove one first.',
@@ -188,10 +160,6 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     quickPlayBadge: 'لعب محلي • مباراة واحدة',
     quickPlayDesc: 'مواجهة فورية بـ 6 كروت عشوائية لكل لاعب. 3 جولات مليئة بالإثارة والسرعة (~90 ثانية).',
     quickPlayBtn: 'العب الآن',
-    rankedTitle: 'المصنف أونلاين (PvP)',
-    rankedBadge: 'أونلاين • عبر جهازين',
-    rankedDesc: 'المباريات المصنفة تعتمد على تشكيلتك الخاصة وتلعب أونلاين عبر هاتفين بنظام الأفضل من 3.',
-    rankedBtn: 'أونلاين مصنف (قريباً في المرحلة 3)',
     rankedNote: 'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',
     exitMatch: 'إنهاء المباراة',
     // Lookaway
@@ -205,24 +173,16 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     of3: 'من 3',
     tapToPlaceHint: 'اضغط على كارت ثم اختر المنطقة لإنزاله، أو اسحبه مباشرة',
     tapZoneToPlace: '✨ اضغط على المنطقة لإنزال الكارت المختار',
-    dropCardsHere: 'أسقط الكارت هنا أو اضغط',
     placeAtLeast1: 'أنزل كارت واحد على الأقل (0/2 تم إنزالها)',
     lockIn: 'تأكيد النزول',
     cardsPlaced: 'كروت تم إنزالها',
     yourHand: 'يدك الحالية',
     cardsAvailable: 'كروت متاحة',
     cardsHidden: 'كروت غير مكشوفة لـ',
-    noneYet: 'لم يضع كروت بعد',
     recall: '↩ استرجاع لليد',
     // Zones
-    zoneCool: 'COOL منعش',
-    zoneCoolTag: 'ثلج وانتعاش (Stay Frosty)',
     zoneCoolRule: 'الكارت صاحب القوة الأقل يحصل على +1',
-    zoneParty: 'PARTY حفلة',
-    zonePartyTag: 'أجواء الاحتفال (The More The Merrier)',
     zonePartyRule: 'اللاعب الأكثر كروت في المنطقة يحصل على +1',
-    zoneEnergy: 'ENERGY طاقة',
-    zoneEnergyTag: 'طاقة متجددة (Second Wind)',
     zoneEnergyRule: 'اللاعب الأقل كروت هنا يحصل كل كارت له على +1',
     // Reveal & Result on board
     roundRevealed: 'كشف الجولة!',
@@ -232,8 +192,6 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'تعادل في المباراة!',
     rematch: 'مباراة جديدة',
     returnToMenu: 'العودة للساحة الرئيسية',
-    winningZone: 'متصدر',
-    tiedZone: 'تعادل',
     // Deck
     deckTitle: 'تشكيلة المعركة',
     deckFull: 'التشكيلة مكتملة (6 كروت) — اضغط على كارت لإزالته أولاً.',
