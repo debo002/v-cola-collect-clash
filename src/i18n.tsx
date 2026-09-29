@@ -1,0 +1,314 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+export type Language = 'en' | 'ar';
+
+export interface Translations {
+  appTitle: string;
+  appSubtitle: string;
+  tabPlay: string;
+  tabDeck: string;
+  // Arena
+  arenaTitle: string;
+  arenaSubtitle: string;
+  playerProfiles: string;
+  playerProfilesNote: string;
+  player1Name: string;
+  player2Name: string;
+  // Modes
+  quickPlayTitle: string;
+  quickPlayBadge: string;
+  quickPlayDesc: string;
+  quickPlayBtn: string;
+  rankedTitle: string;
+  rankedBadge: string;
+  rankedDesc: string;
+  rankedBtn: string;
+  rankedNote: string;
+  exitMatch: string;
+  // Lookaway
+  passTo: string;
+  lookAway: string;
+  showCards: string;
+  imPlayer: string;
+  // In-turn
+  turnBanner: string;
+  roundOf: string;
+  of3: string;
+  tapToPlaceHint: string;
+  tapZoneToPlace: string;
+  dropCardsHere: string;
+  placeAtLeast1: string;
+  lockIn: string;
+  cardsPlaced: string;
+  yourHand: string;
+  cardsAvailable: string;
+  cardsHidden: string;
+  noneYet: string;
+  recall: string;
+  // Zones
+  zoneCool: string;
+  zoneCoolTag: string;
+  zoneCoolRule: string;
+  zoneParty: string;
+  zonePartyTag: string;
+  zonePartyRule: string;
+  zoneEnergy: string;
+  zoneEnergyTag: string;
+  zoneEnergyRule: string;
+  // Reveal & Result on board
+  roundRevealed: string;
+  scoresAtEnd: string;
+  nextRound: string;
+  winsTheMatch: string;
+  matchDrawn: string;
+  rematch: string;
+  returnToMenu: string;
+  winningZone: string;
+  tiedZone: string;
+  // Deck
+  deckTitle: string;
+  deckFull: string;
+  deckUniqueOnly: string;
+  clearDeck: string;
+  resetTo0: string;
+  noCansTitle: string;
+  noCansDesc: string;
+  flavorsToUnlock: string;
+  tapOwnedToAdd: string;
+  inDeck: string;
+  comingPhase2: string;
+  // Flavors map
+  flavors: Record<string, string>;
+}
+
+export const TRANSLATIONS: Record<Language, Translations> = {
+  en: {
+    appTitle: 'V Cola: Collect & Clash',
+    appSubtitle: 'From Egypt to the World • 1v1 Tactical Battle',
+    tabPlay: 'Play',
+    tabDeck: 'Deck',
+    // Arena
+    arenaTitle: 'Battle Arena',
+    arenaSubtitle: '1v1 Tactical Showdown — Control 2 of 3 Zones',
+    playerProfiles: 'Player Profiles (Local Pass & Play)',
+    playerProfilesNote: 'Enter player names for pass-and-play. Device is handed over between turns.',
+    player1Name: 'Player 1 Name',
+    player2Name: 'Player 2 Name',
+    // Modes
+    quickPlayTitle: 'Quick Play',
+    quickPlayBadge: 'Casual • Single Match',
+    quickPlayDesc: 'Instant showdown with 6 unique cans dealt to each player. Fast 3-round battle (~90s).',
+    quickPlayBtn: 'Play Quick Match',
+    rankedTitle: 'Ranked Online PvP',
+    rankedBadge: 'Online • 2 Devices',
+    rankedDesc: 'Ranked requires two phones and your custom deck. Best-of-3 series over the network.',
+    rankedBtn: 'Online Ranked (Coming in Phase 3)',
+    rankedNote: 'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
+    exitMatch: 'Exit Match',
+    // Lookaway
+    passTo: 'Pass the phone to',
+    lookAway: 'look away! Secret placement phase for',
+    showCards: 'Reveal My Hand',
+    imPlayer: "I'm",
+    // In-turn
+    turnBanner: "'s Turn",
+    roundOf: 'Round',
+    of3: 'of 3',
+    tapToPlaceHint: 'Tap a card then tap a zone, or drag directly',
+    tapZoneToPlace: '✨ Tap a zone to deploy selected card',
+    dropCardsHere: 'Drop card or tap zone',
+    placeAtLeast1: 'Deploy at least 1 card (0/2 placed)',
+    lockIn: 'Lock In Placement',
+    cardsPlaced: 'placed',
+    yourHand: 'Your Hand',
+    cardsAvailable: 'cards available',
+    cardsHidden: "'s hidden cards in play:",
+    noneYet: 'None placed yet',
+    recall: '↩ Return',
+    // Zones
+    zoneCool: 'COOL',
+    zoneCoolTag: 'Stay Frosty',
+    zoneCoolRule: 'Lowest Power card gets +1',
+    zoneParty: 'PARTY',
+    zonePartyTag: 'The More The Merrier',
+    zonePartyRule: 'Most cards placed gets +1 to zone total',
+    zoneEnergy: 'ENERGY',
+    zoneEnergyTag: 'Second Wind',
+    zoneEnergyRule: 'Fewer cards placed gets +1 Power each',
+    // Reveal & Result on board
+    roundRevealed: 'Round Revealed!',
+    scoresAtEnd: 'Zone bonuses are calculated after Round 3',
+    nextRound: 'Next Round (Round',
+    winsTheMatch: 'Wins the Match! 👑',
+    matchDrawn: 'Match Drawn!',
+    rematch: 'Rematch',
+    returnToMenu: 'Back to Arena Menu',
+    winningZone: 'leads zone',
+    tiedZone: 'Tied',
+    // Deck
+    deckTitle: 'Battle Deck',
+    deckFull: 'Deck full (6 cards) — tap a slot to remove one first.',
+    deckUniqueOnly: 'Unique flavors only — this flavor is already in your deck!',
+    clearDeck: 'Clear Deck',
+    resetTo0: 'Reset to 0 cans',
+    noCansTitle: '📦 No Cans in Collection',
+    noCansDesc: 'Your collection currently has 0 cans.',
+    flavorsToUnlock: 'V7 Egyptian Flavors to Unlock',
+    tapOwnedToAdd: 'Tap owned cans to add to your battle deck (Unique flavors only)',
+    inDeck: 'In Deck',
+    comingPhase2: 'Coming in Phase 2',
+    flavors: {
+      'v-cola': 'V Cola',
+      'v-diet-cola': 'V Diet Cola',
+      'v-lemon': 'V Lemon',
+      'pink-lemonade': 'Pink Lemonade',
+      'cream-soda': 'Cream Soda',
+      'pomegranate': 'Pomegranate',
+      'blueberry': 'Blueberry',
+      'lemon-mint': 'Lemon Mint',
+      'pina-colada': 'Pina Colada',
+      'v7-apple-malt': 'V7 Apple Malt',
+      'v7-pineapple-malt': 'V7 Pineapple Malt',
+    },
+  },
+  ar: {
+    appTitle: 'V كولا: اجمع وتحدى',
+    appSubtitle: 'من مصر للعالم • لعبة بطاقات تكتيكية 1 ضد 1',
+    tabPlay: 'العب',
+    tabDeck: 'التشكيلة',
+    // Arena
+    arenaTitle: 'ساحة التحدي',
+    arenaSubtitle: 'مواجهة تكتيكية 1 ضد 1 — سيطر على منطقتين من أصل 3',
+    playerProfiles: 'الملفات الشخصية (تمرير الهاتف)',
+    playerProfilesNote: 'سجل اسم اللاعبين لمشاركة الهاتف في المباريات المحلية. يتم تمرير الهاتف بين الجولات.',
+    player1Name: 'اسم اللاعب الأول',
+    player2Name: 'اسم اللاعب الثاني',
+    // Modes
+    quickPlayTitle: 'مباراة سريعة',
+    quickPlayBadge: 'لعب محلي • مباراة واحدة',
+    quickPlayDesc: 'مواجهة فورية بـ 6 كروت عشوائية لكل لاعب. 3 جولات مليئة بالإثارة والسرعة (~90 ثانية).',
+    quickPlayBtn: 'العب الآن',
+    rankedTitle: 'المصنف أونلاين (PvP)',
+    rankedBadge: 'أونلاين • عبر جهازين',
+    rankedDesc: 'المباريات المصنفة تعتمد على تشكيلتك الخاصة وتلعب أونلاين عبر هاتفين بنظام الأفضل من 3.',
+    rankedBtn: 'أونلاين مصنف (قريباً في المرحلة 3)',
+    rankedNote: 'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',
+    exitMatch: 'إنهاء المباراة',
+    // Lookaway
+    passTo: 'مرر الهاتف إلى',
+    lookAway: 'غمض عينك! حان دور إنزال الكروت في سرية لـ',
+    showCards: 'عرض كروتي',
+    imPlayer: 'أنا',
+    // In-turn
+    turnBanner: 'دور',
+    roundOf: 'الجولة',
+    of3: 'من 3',
+    tapToPlaceHint: 'اضغط على كارت ثم اختر المنطقة لإنزاله، أو اسحبه مباشرة',
+    tapZoneToPlace: '✨ اضغط على المنطقة لإنزال الكارت المختار',
+    dropCardsHere: 'أسقط الكارت هنا أو اضغط',
+    placeAtLeast1: 'أنزل كارت واحد على الأقل (0/2 تم إنزالها)',
+    lockIn: 'تأكيد النزول',
+    cardsPlaced: 'كروت تم إنزالها',
+    yourHand: 'يدك الحالية',
+    cardsAvailable: 'كروت متاحة',
+    cardsHidden: 'كروت غير مكشوفة لـ',
+    noneYet: 'لم يضع كروت بعد',
+    recall: '↩ استرجاع لليد',
+    // Zones
+    zoneCool: 'COOL منعش',
+    zoneCoolTag: 'ثلج وانتعاش (Stay Frosty)',
+    zoneCoolRule: 'الكارت صاحب القوة الأقل يحصل على +1',
+    zoneParty: 'PARTY حفلة',
+    zonePartyTag: 'أجواء الاحتفال (The More The Merrier)',
+    zonePartyRule: 'اللاعب الأكثر كروت في المنطقة يحصل على +1',
+    zoneEnergy: 'ENERGY طاقة',
+    zoneEnergyTag: 'طاقة متجددة (Second Wind)',
+    zoneEnergyRule: 'اللاعب الأقل كروت هنا يحصل كل كارت له على +1',
+    // Reveal & Result on board
+    roundRevealed: 'كشف الجولة!',
+    scoresAtEnd: 'مكافآت المناطق ونقاطها تحتسب بنهاية الجولة 3',
+    nextRound: 'الجولة القادمة (جولة',
+    winsTheMatch: 'يفوز بالمباراة! 👑',
+    matchDrawn: 'تعادل في المباراة!',
+    rematch: 'مباراة جديدة',
+    returnToMenu: 'العودة للساحة الرئيسية',
+    winningZone: 'متصدر',
+    tiedZone: 'تعادل',
+    // Deck
+    deckTitle: 'تشكيلة المعركة',
+    deckFull: 'التشكيلة مكتملة (6 كروت) — اضغط على كارت لإزالته أولاً.',
+    deckUniqueOnly: 'نكهات فريدة فقط — هذه النكهة موجودة بالفعل في تشكيلتك!',
+    clearDeck: 'مسح التشكيلة',
+    resetTo0: 'إعادة ضبط إلى 0 كان',
+    noCansTitle: '📦 لا توجد كانات في مجموعتك',
+    noCansDesc: 'مجموعتك خالية حالياً (0 كان).',
+    flavorsToUnlock: 'نكهات V7 المتوفرة في مصر',
+    tapOwnedToAdd: 'اضغط على الكروت المملوكة لإضافتها لتشكيلتك (نكهات غير مكررة)',
+    inDeck: 'بالتشكيلة',
+    comingPhase2: 'قريباً في المرحلة 2',
+    flavors: {
+      'v-cola': 'في كولا',
+      'v-diet-cola': 'في كولا دايت',
+      'v-lemon': 'في ليمون',
+      'pink-lemonade': 'بينك ليمونيد',
+      'cream-soda': 'كريم صودا',
+      'pomegranate': 'رمان',
+      'blueberry': 'بلوبيري',
+      'lemon-mint': 'ليمون نعناع',
+      'pina-colada': 'بينا كولادا',
+      'v7-apple-malt': 'V7 شعير تفاح',
+      'v7-pineapple-malt': 'V7 شعير أناناس',
+    },
+  },
+};
+
+interface I18nContextType {
+  lang: Language;
+  setLang: (lang: Language) => void;
+  t: Translations;
+  isRTL: boolean;
+}
+
+const I18nContext = createContext<I18nContextType>({
+  lang: 'en',
+  setLang: () => {},
+  t: TRANSLATIONS.en,
+  isRTL: false,
+});
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('vcola_lang');
+      return saved === 'ar' || saved === 'en' ? saved : 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  function setLang(next: Language) {
+    setLangState(next);
+    try {
+      localStorage.setItem('vcola_lang', next);
+    } catch {
+      // Ignore
+    }
+  }
+
+  const isRTL = lang === 'ar';
+
+  useEffect(() => {
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+  }, [lang, isRTL]);
+
+  return (
+    <I18nContext.Provider value={{ lang, setLang, t: TRANSLATIONS[lang], isRTL }}>
+      {children}
+    </I18nContext.Provider>
+  );
+}
+
+export function useI18n(): I18nContextType {
+  return useContext(I18nContext);
+}

@@ -1,20 +1,30 @@
 :root {
-  --text: #c9c2cc;
-  --text-h: #f5f0f2;
-  --bg: #171218;
-  --border: #352a33;
-  --code-bg: #241c24;
-  --accent: #d42b25;
-  --accent-bg: rgba(212, 43, 37, 0.15);
-  --accent-border: rgba(212, 43, 37, 0.5);
-  --social-bg: rgba(255, 255, 255, 0.06);
-  --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  --text: #cbd5e1;
+  --text-h: #ffffff;
+  --text-muted: #8492a6;
+  --bg: #090b10;
+  --card-bg: #11151f;
+  --card-surface: #161b26;
+  --border: #1e2636;
+  --border-light: #2d384c;
+  --code-bg: #141822;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* V7 Brand Core */
+  --accent: #e61e2b;
+  --accent-hover: #ff2a38;
+  --accent-bg: rgba(230, 30, 43, 0.16);
+  --accent-border: rgba(230, 30, 43, 0.55);
+  --silver: #e2e8f0;
+  --silver-dim: #94a3b8;
+
+  --social-bg: rgba(255, 255, 255, 0.06);
+  --shadow: rgba(0, 0, 0, 0.5) 0 10px 20px -3px, rgba(0, 0, 0, 0.3) 0 4px 8px -2px;
+
+  --sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
+  --heading: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: dark;
   color: var(--text);
@@ -23,10 +33,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 #root {
@@ -39,17 +45,21 @@
   flex-direction: column;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at 50% 0%, rgba(212, 43, 37, 0.12) 0%, transparent 60%), var(--bg);
+    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(230, 30, 43, 0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 40% at 50% 115%, rgba(0, 135, 204, 0.16) 0%, transparent 60%),
+    #090b10;
 }
 
 body {
   margin: 0;
+  background: #06070a;
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--heading);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-h);
 }
 
@@ -59,7 +69,7 @@ p {
 
 code {
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 135%;
   padding: 4px 8px;
   border-radius: 4px;

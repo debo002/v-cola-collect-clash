@@ -50,11 +50,20 @@ describe('quick play hand', () => {
     expect(hand.every((card) => card.loaner)).toBe(true);
   });
 
-  it('respects duplicate copies (same flavor twice needs count 2)', () => {
+  it('never deals duplicate cans — 6 distinct flavors, loaners fill uniquely', () => {
     let c = emptyCollection();
     for (let i = 0; i < 6; i++) c = addCopy(c, 'pomegranate');
     const hand = buildQuickPlayHand(c, zero);
-    expect(hand.every((card) => card.flavor === 'pomegranate' && !card.loaner)).toBe(true);
+    const flavors = hand.map((card) => card.flavor);
+    expect(new Set(flavors).size).toBe(HAND_SIZE);
+    expect(hand.filter((card) => !card.loaner)).toHaveLength(1);
+    expect(hand.filter((card) => card.loaner)).toHaveLength(5);
+  });
+
+  it('deals 6 distinct owned flavors with no loaners on a full collection', () => {
+    const hand = buildQuickPlayHand(fullCollection(), zero);
+    expect(new Set(hand.map((card) => card.flavor)).size).toBe(HAND_SIZE);
+    expect(hand.every((card) => !card.loaner)).toBe(true);
   });
 });
 

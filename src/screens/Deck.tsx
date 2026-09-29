@@ -1,38 +1,43 @@
 import { useState } from 'react';
-import { FLAVORS } from '../game/cards';
-import { countOf, type Collection } from '../game/collection';
+import { FLAVORS, getFlavorById } from '../game/cards';
+import { countOf, totalCopies, type Collection } from '../game/collection';
 import { HAND_SIZE } from '../game/hands';
 import type { FlavorId } from '../game/types';
-import { getFlavorById } from '../game/cards';
 import { GameCard } from '../components/GameCard';
+import { useI18n } from '../i18n';
 
 /**
  * Custom battle deck: tap inventory cards to fill 6 slots.
- * Picks must be owned (duplicates need matching copy counts).
+ * Each flavor must be UNIQUE in the deck (no duplicates allowed).
  * Empty slots auto-fill at match start — nothing stored but the picks.
  */
 export function Deck({
   collection,
   picks,
   onChange,
+  onResetCollection,
 }: {
   collection: Collection;
   picks: FlavorId[];
   onChange: (picks: FlavorId[]) => void;
+  onResetCollection?: () => void;
 }) {
+  const { t } = useI18n();
   const [notice, setNotice] = useState('');
-
-  function copiesPicked(id: string): number {
-    return picks.filter((p) => p === id).length;
-  }
+  const totalOwned = totalCopies(collection);
 
   function add(id: FlavorId) {
     if (picks.length >= HAND_SIZE) {
-      setNotice(`Deck is full (${HAND_SIZE} cards) — tap a slot to remove one first.`);
+      setNotice(t.deckFull);
       return;
     }
-    if (copiesPicked(id) >= countOf(collection, id)) {
-      setNotice('Not enough owned copies — unlock more in Scan first.');
+    // Only unique flavors allowed in a deck!
+    if (picks.includes(id)) {
+      setNotice(t.deckUniqueOnly);
+      return;
+    }
+    if (countOf(collection, id) <= 0) {
+      setNotice(t.noCansDesc);
       return;
     }
     setNotice('');
@@ -45,30 +50,49 @@ export function Deck({
   }
 
   return (
-    <section aria-label="Battle deck">
+    <section aria-label="Battle deck" className="deck-container">
       <div className="section-head">
         <h2>
-          Deck ({picks.length}/{HAND_SIZE})
+          {t.deckTitle} ({picks.length}/{HAND_SIZE})
         </h2>
-        {picks.length > 0 ? (
-          <button type="button" className="btn" onClick={() => onChange([])}>
-            Clear
-          </button>
-        ) : null}
+        <div className="section-actions">
+          {picks.length > 0 ? (
+            <button type="button" className="btn btn-secondary" onClick={() => onChange([])}>
+              {t.clearDeck}
+            </button>
+          ) : null}
+          {totalOwned > 0 && onResetCollection ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                if (window.confirm('Reset collection to 0 cans?')) {
+                  onResetCollection();
+                  onChange([]);
+                }
+              }}
+            >
+              {t.resetTo0}
+            </button>
+          ) : null}
+        </div>
       </div>
+
       <div className="deck-slots">
         {Array.from({ length: HAND_SIZE }, (_, i) => {
           const id = picks[i];
           const flavor = id ? getFlavorById(id) : undefined;
+          const displayName = flavor ? t.flavors[flavor.id] || flavor.name : '';
           return flavor ? (
             <button
               key={i}
               type="button"
               className="deck-slot filled"
               onClick={() => removeAt(i)}
-              aria-label={`Remove ${flavor.name} from deck`}
+              aria-label={`Remove ${displayName} from deck`}
+              title="Click to remove from deck"
             >
-              <GameCard flavor={flavor} />
+              <GameCard flavor={flavor} displayName={displayName} />
             </button>
           ) : (
             <div key={i} className="deck-slot empty" aria-hidden="true">
@@ -77,31 +101,52 @@ export function Deck({
           );
         })}
       </div>
+
       {notice ? (
         <p className="notice" role="status">
           {notice}
         </p>
       ) : null}
-      <h2 className="deck-pick-head">Tap owned cards to add them</h2>
+
+      {totalOwned === 0 ? (
+        <div className="empty-collection-box">
+          <h3>{t.noCansTitle}</h3>
+          <p className="demo-note">{t.noCansDesc}</p>
+        </div>
+      ) : null}
+
+      <h3 className="deck-pick-head">
+        {totalOwned === 0 ? t.flavorsToUnlock : t.tapOwnedToAdd}
+      </h3>
+
       <div className="card-grid">
         {FLAVORS.map((flavor) => {
           const owned = countOf(collection, flavor.id);
-          const used = copiesPicked(flavor.id);
-          const available = owned - used > 0;
+          const alreadyInDeck = picks.includes(flavor.id);
+          const available = owned > 0 && !alreadyInDeck;
+          const displayName = t.flavors[flavor.id] || flavor.name;
+
           return (
             <button
               key={flavor.id}
               type="button"
-              className="deck-pick"
+              data-flavor={flavor.id}
+              className={`deck-pick${alreadyInDeck ? ' in-deck' : ''}`}
               disabled={!available}
               onClick={() => add(flavor.id)}
-              aria-label={`Add ${flavor.name} to deck (owns ${owned})`}
+              aria-label={`${displayName} (owns ${owned})${alreadyInDeck ? ' - In deck' : ''}`}
             >
-              <GameCard flavor={flavor} dimmed={!available} />
-              <span className="deck-count">
-                ×{owned}
-                {used > 0 ? ` (${used} in deck)` : ''}
-              </span>
+              <GameCard
+                flavor={flavor}
+                displayName={displayName}
+                dimmed={!available || alreadyInDeck}
+              />
+              <div className="deck-meta-row">
+                <span className="deck-count">×{owned}</span>
+                {alreadyInDeck ? (
+                  <span className="deck-in-badge">✓ {t.inDeck}</span>
+                ) : null}
+              </div>
             </button>
           );
         })}

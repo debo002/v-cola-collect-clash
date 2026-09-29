@@ -5,8 +5,8 @@ import type { FlavorId } from './types';
 
 /**
  * 6-card hand assembly (design doc §5, match-entry modes).
- * Quick Play: random 6 from owned copies, loaners fill the gap.
- * Custom/Ranked: manual picks (count-aware) + auto-fill, then loaners.
+ * Quick Play: 6 DISTINCT flavors — owned first, then loaners for the gap.
+ * No duplicate cans, ever. Custom: manual picks (count-aware) + auto-fill.
  */
 export const HAND_SIZE = 6;
 
@@ -43,10 +43,26 @@ function fillWithLoaners(hand: HandCard[], rng: Rng): HandCard[] {
 }
 
 export function buildQuickPlayHand(collection: Collection, rng: Rng = Math.random): HandCard[] {
-  const picked = shuffled(ownedPool(collection), rng)
-    .slice(0, HAND_SIZE)
-    .map((flavor): HandCard => ({ flavor, loaner: false, power: rollPower(rng) }));
-  return shuffled(fillWithLoaners(picked, rng), rng);
+  const hand: HandCard[] = [];
+  const owned = FLAVOR_IDS.filter((id) => countOf(collection, id) > 0);
+  const take = (id: FlavorId, loaner: boolean) => {
+    if (hand.length < HAND_SIZE && !hand.some((c) => c.flavor === id)) {
+      hand.push({ flavor: id, loaner, power: rollPower(rng) });
+    }
+  };
+  // Owned flavors first, unique
+  for (const id of shuffled(owned, rng)) {
+    take(id, false);
+  }
+  // Loaners for remaining slots - distinct from owned and each other
+  for (const id of shuffled(
+    FLAVOR_IDS.filter((id) => !hand.some((c) => c.flavor === id)),
+    rng
+  )) {
+    take(id, true);
+  }
+  // If collection empty, still deal 6 unique loaners
+  return shuffled(hand, rng);
 }
 
 export function buildCustomHand(
