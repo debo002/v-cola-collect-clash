@@ -62,6 +62,7 @@ export interface Translations {
   flavorsToUnlock: string;
   tapOwnedToAdd: string;
   inDeck: string;
+  starterPackBtn: string;
   comingPhase2: string;
   // Flavors map
   flavors: Record<string, string>;
@@ -128,6 +129,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     flavorsToUnlock: 'V7 Egyptian Flavors to Unlock',
     tapOwnedToAdd: 'Tap owned cans to add to your battle deck (Unique flavors only)',
     inDeck: 'In Deck',
+    starterPackBtn: '🎁 Get Starter Pack (all 11 flavors)',
     comingPhase2: 'Coming in Phase 2',
     flavors: {
       'v-cola': 'V Cola',
@@ -203,6 +205,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     flavorsToUnlock: 'نكهات V7 المتوفرة في مصر',
     tapOwnedToAdd: 'اضغط على الكروت المملوكة لإضافتها لتشكيلتك (نكهات غير مكررة)',
     inDeck: 'بالتشكيلة',
+    starterPackBtn: '🎁 احصل على حزمة البداية (كل النكهات الـ11)',
     comingPhase2: 'قريباً في المرحلة 2',
     flavors: {
       'v-cola': 'في كولا',

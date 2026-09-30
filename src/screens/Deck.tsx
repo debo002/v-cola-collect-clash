@@ -16,11 +16,13 @@ export function Deck({
   picks,
   onChange,
   onResetCollection,
+  onStarterPack,
 }: {
   collection: Collection;
   picks: FlavorId[];
   onChange: (picks: FlavorId[]) => void;
   onResetCollection?: () => void;
+  onStarterPack?: () => void;
 }) {
   const { t } = useI18n();
   const [notice, setNotice] = useState('');
@@ -112,6 +114,11 @@ export function Deck({
         <div className="empty-collection-box">
           <h3>{t.noCansTitle}</h3>
           <p className="demo-note">{t.noCansDesc}</p>
+          {onStarterPack ? (
+            <button type="button" className="btn btn-primary" onClick={onStarterPack}>
+              {t.starterPackBtn}
+            </button>
+          ) : null}
         </div>
       ) : null}
 

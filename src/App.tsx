@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { assetUrl } from './components/assetPaths';
-import type { Collection } from './game/collection';
-import { clearCollection, loadCollection } from './storage/collectionStore';
+import { addCopy, type Collection } from './game/collection';
+import { FLAVOR_IDS } from './game/cards';
+import { clearCollection, loadCollection, saveCollection } from './storage/collectionStore';
 import { loadDeck, saveDeck } from './storage/deckStore';
 import { DEFAULT_PLAYERS, loadPlayers, savePlayers, type Players } from './storage/playersStore';
 import type { FlavorId } from './game/types';
@@ -49,6 +50,14 @@ function MainApp() {
     setCollection({});
     setDeck([]);
     await saveDeck([]);
+  }
+
+  /** Starter pack: 1 copy of each flavor for empty collections. */
+  function handleStarterPack() {
+    const base = collection ?? {};
+    const next = FLAVOR_IDS.reduce((acc, id) => addCopy(acc, id), base);
+    setCollection(next);
+    saveCollection(next).catch(() => {});
   }
 
   if (!collection) {
@@ -111,6 +120,7 @@ function MainApp() {
           picks={deck}
           onChange={updateDeck}
           onResetCollection={handleResetCollection}
+          onStarterPack={handleStarterPack}
         />
       ) : null}
 
