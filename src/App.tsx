@@ -7,6 +7,7 @@ import { loadDeck, saveDeck } from './storage/deckStore';
 import { DEFAULT_PLAYERS, loadPlayers, savePlayers, type Players } from './storage/playersStore';
 import type { FlavorId } from './game/types';
 import { Deck } from './screens/Deck';
+import { DeckIcon, PlayIcon } from './components/icons';
 import { QuickPlay } from './screens/QuickPlay';
 import { I18nProvider, useI18n } from './i18n';
 import './App.css';
@@ -73,6 +74,10 @@ function MainApp() {
     { id: 'deck', label: t.tabDeck },
   ];
 
+  function tabIcon(id: Tab) {
+    return id === 'play' ? <PlayIcon size={20} /> : <DeckIcon size={20} />;
+  }
+
   return (
     <main className={`demo${isRTL ? ' rtl' : ''}`}>
       {/* Top App Header (Hidden during active match to keep full game immersion) */}
@@ -135,7 +140,8 @@ function MainApp() {
               aria-current={tab === tabItem.id ? 'page' : undefined}
               onClick={() => setTab(tabItem.id)}
             >
-              {tabItem.label}
+              <span className="tab-icon">{tabIcon(tabItem.id)}</span>
+              <span className="tab-label">{tabItem.label}</span>
             </button>
           ))}
         </nav>

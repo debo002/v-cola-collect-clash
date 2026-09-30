@@ -1,58 +1,110 @@
+/* V Cola: Collect & Clash — global tokens + phone shell (Step 1) */
+
 :root {
+  /* Spec tokens — use only these for new UI */
+  --ink: #0b0e18;
+  --ink-2: #151a29;
+  --v-red: #e61e2b;
+  --v-red-deep: #a30f19;
+  --cool: #2bb3ff;
+  --party: #ff3d9a;
+  --energy: #ffb020;
+  --gold: #ffd54a;
+  --good: #5dff9a;
+  --bad: #ff6b73;
+
+  /* Shape family */
+  --r-card: 12px;
+  --r-btn: 16px;
+  --r-lane: 18px;
+
+  /* Type */
+  --display: 'Lilita One', 'Cairo', system-ui, sans-serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', 'Cairo', 'Noto Sans Arabic', Roboto, sans-serif;
+  --heading: 'Lilita One', 'Cairo', system-ui, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  /* Legacy aliases (migrating off these; kept so old App.css stays playable) */
   --text: #cbd5e1;
   --text-h: #ffffff;
   --text-muted: #8492a6;
-  --bg: #090b10;
-  --card-bg: #11151f;
-  --border: #1e2636;
+  --bg: var(--ink);
+  --card-bg: var(--ink-2);
+  --border: #242d44;
   --border-light: #2d384c;
   --code-bg: #141822;
-
-  /* V7 Brand Core */
-  --accent: #e61e2b;
+  --accent: var(--v-red);
   --accent-bg: rgba(230, 30, 43, 0.16);
   --accent-border: rgba(230, 30, 43, 0.55);
-
-  --sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
-  --heading: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, system-ui, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
 
   font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: dark;
   color: var(--text);
-  background: var(--bg);
+  background: var(--ink);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
-  width: 760px;
-  max-width: 100%;
-  margin: 0 auto;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  background:
-    radial-gradient(ellipse 90% 45% at 50% -10%, rgba(230, 30, 43, 0.22) 0%, transparent 65%),
-    radial-gradient(ellipse 70% 40% at 50% 115%, rgba(0, 135, 204, 0.16) 0%, transparent 60%),
-    #090b10;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  background: #06070a;
+}
+
+/* Display face for titles, numbers, buttons, card names. Arabic falls back to Cairo. */
+h1,
+h2,
+h3,
+.display,
+button.btn,
+.pillar-score,
+.power-val,
+.timer {
+  font-family: var(--heading);
+  font-weight: 400;
+  letter-spacing: 0.02em;
 }
 
 body {
-  margin: 0;
   background: #06070a;
+}
+
+/* Centered phone-width column on desktop; full-bleed on phones. */
+#root {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--ink);
+  position: relative;
+}
+
+/* Subtle outer gutter on larger screens so the phone column reads as a device. */
+@media (min-width: 520px) {
+  body {
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230, 30, 43, 0.12) 0%, transparent 70%),
+      #04050a;
+  }
+
+  #root {
+    border-inline: 1px solid #232c44;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+  }
 }
 
 h1,
 h2,
 h3 {
   font-family: var(--heading);
-  font-weight: 700;
   color: var(--text-h);
 }
 
@@ -68,4 +120,31 @@ code {
   border-radius: 4px;
   color: var(--text-h);
   background: var(--code-bg);
+}
+
+/*
+ * Reduced motion (nuanced per demo requirements):
+ * Keep short tactile transitions (<=150ms), card pop + flip.
+ * Kill only ambient loops, stagger, count-up, glow pulses, shakes.
+ * Reveal code must also skip stagger timers when this matches.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .fizz-layer,
+  .menu-bubbles,
+  .bob,
+  .glow-pulse,
+  .lock-btn:not(.disabled),
+  .snap-lane-column.drop-ready,
+  .lane-drop-prompt,
+  .timer.urgent,
+  .confetti-piece {
+    animation: none !important;
+  }
+
+  .reveal-stagger,
+  .count-up,
+  .lane-flash,
+  .shake {
+    animation: none !important;
+  }
 }

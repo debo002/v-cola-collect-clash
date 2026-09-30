@@ -64,8 +64,22 @@ export interface Translations {
   inDeck: string;
   starterPackBtn: string;
   comingPhase2: string;
+  mute: string;
+  unmute: string;
   // Flavors map
   flavors: Record<string, string>;
+}
+
+/**
+ * Tiny {name} interpolator for whole-sentence strings.
+ * Keeps each localized sentence grammatically whole — no possessive fragments.
+ */
+export function fmt(template: string, vars: Record<string, string | number>): string {
+  let out = template;
+  for (const [key, value] of Object.entries(vars)) {
+    out = out.split(`{${key}}`).join(String(value));
+  }
+  return out;
 }
 
 export const TRANSLATIONS: Record<Language, Translations> = {
@@ -134,6 +148,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     inDeck: 'In Deck',
     starterPackBtn: '🎁 Get Starter Pack (all 11 flavors)',
     comingPhase2: 'Coming in Phase 2',
+    mute: 'Mute sound',
+    unmute: 'Unmute sound',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -213,6 +229,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     inDeck: 'بالتشكيلة',
     starterPackBtn: '🎁 احصل على حزمة البداية (كل النكهات الـ11)',
     comingPhase2: 'قريباً في المرحلة 2',
+    mute: 'كتم الصوت',
+    unmute: 'تشغيل الصوت',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',
