@@ -506,21 +506,66 @@
   line-height: 1.4;
 }
 
-/* Top bar during active match */
+/* Top bar during active match — slim, pips left, icon button right */
 .game-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px;
-  background: rgba(10, 13, 20, 0.5);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2px 2px 2px 6px;
+  background: var(--ink);
+  border: none;
+  flex-shrink: 0;
 }
 
 .game-topbar-info {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.round-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.round-pips .pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2b3550;
+  border: 1.5px solid #3b4763;
+}
+
+.round-pips .pip.done {
+  background: var(--good);
+  border-color: var(--good);
+}
+
+.round-pips .pip.on {
+  background: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(255, 213, 74, 0.7);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--ink-2);
+  border: 2px solid #2b3550;
+  border-bottom-width: 4px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: transform 80ms ease-out;
+}
+
+.icon-btn:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
 }
 
 .game-mode-badge {
@@ -535,12 +580,88 @@
 }
 
 .game-round-indicator {
-  font-size: 13px;
-  font-weight: 800;
+  font-family: var(--heading);
+  font-size: 15px;
   color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
 }
 
-/* Player area banner plates */
+/* Match shell: never scrolls, fills the viewport */
+.arena-section {
+  flex: 1;
+  min-height: 0;
+}
+
+.battlefield-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Circular timer ring */
+.timer-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.timer-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.timer-ring .ring-track {
+  fill: none;
+  stroke: #2b3550;
+  stroke-width: 3.5;
+}
+
+.timer-ring .ring-fill {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+}
+
+.timer-ring .ring-num {
+  font-family: var(--heading);
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.timer-ring.urgent .ring-fill {
+  stroke: var(--v-red);
+}
+
+.timer-ring.urgent .ring-num {
+  color: #ff8a8a;
+}
+
+.timer-ring.urgent {
+  animation: lowTimePulse 600ms infinite alternate ease-in-out;
+}
+
+@keyframes lowTimePulse {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.12);
+  }
+}
+
+/* Player area banner plates — one line each */
 .arena-player-plate {
   display: flex;
   align-items: center;
@@ -572,19 +693,27 @@
 
 .player-meta {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .player-tag {
-  font-size: 13px;
-  font-weight: 800;
+  font-family: var(--heading);
+  font-size: 15px;
   color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player-status {
   font-size: 11px;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .timer {
@@ -625,22 +754,26 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  min-height: 310px;
+  flex: 1;
+  min-height: 0;
 }
 
 .snap-lane-column {
-  border-radius: 14px;
+  border-radius: var(--r-lane);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 6px 4px;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
   cursor: pointer;
   background: var(--card-bg);
-  border: 1.5px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--border);
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.55);
+  min-height: 0;
 }
 
 /* Zone 1: COOL — V Cola / Super Soda Ice Chill Theme */
@@ -758,22 +891,131 @@
     inset 0 0 14px rgba(255, 215, 0, 0.25);
 }
 
-/* Strips inside each lane */
+/* Strips inside each lane — mini cards in a wrapping row */
 .lane-cards-strip {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 4px;
-  min-height: 80px;
+  min-height: 64px;
   align-items: center;
   justify-content: center;
+  align-content: center;
+  flex: 1;
 }
 
 .lane-cards-strip.foe-strip {
-  justify-content: flex-start;
+  align-content: flex-start;
 }
 
 .lane-cards-strip.player-strip {
-  justify-content: flex-end;
+  align-content: flex-end;
+}
+
+/* Board mini card: ~46px wide, same GameCard identity */
+.lane-mini-card {
+  position: relative;
+  width: 46px;
+  flex: 0 0 46px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.lane-mini-card.recallable {
+  cursor: pointer;
+}
+
+.recall-x {
+  position: absolute;
+  top: -8px;
+  inset-inline-end: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* Card pop into lane — 250ms spring-ish */
+.pop-in {
+  animation: cardPop 250ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes cardPop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Short shake on the hand after a rejected third placement */
+.shake-once {
+  animation: handShake 300ms ease-out;
+}
+
+@keyframes handShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-6px);
+  }
+
+  50% {
+    transform: translateX(6px);
+  }
+
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+/* While a card is selected or dragged, lanes pulse; hovered lane pops */
+.battlefield-container.armed .snap-lane-column {
+  animation: lanePulse 1.2s infinite alternate ease-in-out;
+}
+
+.snap-lane-column.drop-target {
+  animation: none;
+  transform: scale(1.04);
+}
+
+/* Toast notice, not a paragraph */
+.toast-notice {
+  position: fixed;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(440px, 92vw);
+  width: max-content;
+  background: rgba(11, 14, 24, 0.96);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  text-align: center;
+  z-index: 60;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
 }
 
 /* Central Zone Pillar Tower */
@@ -787,23 +1029,49 @@
   gap: 2px;
 }
 
+@keyframes lanePulse {
+  from {
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.55);
+  }
+
+  to {
+    box-shadow:
+      0 5px 0 rgba(0, 0, 0, 0.55),
+      0 0 14px rgba(255, 213, 74, 0.45);
+  }
+}
+
 .pillar-score {
-  font-size: 15px;
-  font-weight: 900;
-  min-width: 20px;
+  font-family: var(--heading);
+  font-size: 17px;
+  min-width: 22px;
   text-align: center;
   color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8);
   font-variant-numeric: tabular-nums;
 }
 
+/* Leading = green, trailing = red, tied = white */
 .lane-zone-pillar.p-leading .player-score {
-  color: #4ade80;
-  text-shadow: 0 0 8px rgba(74, 222, 128, 0.8);
+  color: var(--good);
+  text-shadow: 0 0 8px rgba(93, 255, 154, 0.8);
+}
+
+.lane-zone-pillar.p-leading .foe-score {
+  color: var(--bad);
 }
 
 .lane-zone-pillar.foe-leading .foe-score {
-  color: #f87171;
-  text-shadow: 0 0 8px rgba(248, 113, 113, 0.8);
+  color: var(--good);
+  text-shadow: 0 0 8px rgba(93, 255, 154, 0.8);
+}
+
+.lane-zone-pillar.foe-leading .player-score {
+  color: var(--bad);
+}
+
+.lane-zone-pillar.lane-tied .pillar-score {
+  color: #fff;
 }
 
 .pillar-body {
@@ -817,8 +1085,21 @@
 }
 
 .pillar-icon {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
+}
+
+.snap-lane-column.zone-cool .pillar-icon {
+  color: var(--cool);
+}
+
+.snap-lane-column.zone-party .pillar-icon {
+  color: var(--party);
+}
+
+.snap-lane-column.zone-energy .pillar-icon {
+  color: var(--energy);
 }
 
 .pillar-name {
@@ -933,6 +1214,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .hand-header {
@@ -1416,8 +1699,9 @@
 }
 
 .winner-crown {
-  font-size: 40px;
-  filter: drop-shadow(0 2px 8px rgba(255, 215, 0, 0.7));
+  display: inline-flex;
+  color: var(--gold);
+  filter: drop-shadow(0 2px 8px rgba(255, 213, 74, 0.7));
 }
 
 .winner-title {

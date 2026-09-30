@@ -136,15 +136,16 @@ code {
   .lock-btn:not(.disabled),
   .snap-lane-column.drop-ready,
   .lane-drop-prompt,
-  .timer.urgent,
-  .confetti-piece {
+  .timer-ring.urgent,
+  .confetti-piece,
+  .shake-once,
+  .battlefield-container.armed .snap-lane-column {
     animation: none !important;
   }
 
   .reveal-stagger,
   .count-up,
-  .lane-flash,
-  .shake {
+  .lane-flash {
     animation: none !important;
   }
 }

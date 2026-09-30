@@ -39,6 +39,14 @@ export interface Translations {
   cardsAvailable: string;
   cardsHidden: string;
   recall: string;
+  // Placing board (whole sentences, {name}/{placed} interpolated via fmt)
+  turnTitle: string;
+  oppStrip: string;
+  lockInCount: string;
+  needOne: string;
+  onlyTwo: string;
+  roundN: string;
+  takeBack: string;
   // Zones
   zoneCoolRule: string;
   zonePartyRule: string;
@@ -47,6 +55,8 @@ export interface Translations {
   roundRevealed: string;
   scoresAtEnd: string;
   nextRound: string;
+  wonMajority: string;
+  allTied: string;
   winsTheMatch: string;
   matchDrawn: string;
   rematch: string;
@@ -115,14 +125,21 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundOf: 'Round',
     of3: 'of 3',
     tapToPlaceHint: 'Tap a card then tap a zone, or drag directly',
-    tapZoneToPlace: '✨ Tap a zone to deploy selected card',
+    tapZoneToPlace: 'Tap a zone to place the selected can',
     placeAtLeast1: 'Deploy at least 1 card (0/2 placed)',
     lockIn: 'Lock In Placement',
     cardsPlaced: 'placed',
     yourHand: 'Your Hand',
     cardsAvailable: 'cards available',
     cardsHidden: "'s hidden cards in play:",
-    recall: '↩ Return',
+    recall: 'Take back',
+    turnTitle: '{name} — place 1 or 2 cans',
+    oppStrip: '{name} • waiting for their turn',
+    lockInCount: 'Lock in ({placed}/2)',
+    needOne: 'Place at least 1 can to lock in',
+    onlyTwo: 'Only 2 cans per round — tap a placed can to take it back',
+    roundN: 'Round {n} of 3',
+    takeBack: 'Take back {name}',
     // Zones
     zoneCoolRule: 'Lowest Power card gets +1',
     zonePartyRule: 'Most cards placed gets +1 to zone total',
@@ -131,7 +148,9 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundRevealed: 'Round Revealed!',
     scoresAtEnd: 'Zone bonuses are calculated after Round 3',
     nextRound: 'Next Round (Round',
-    winsTheMatch: 'Wins the Match! 👑',
+    wonMajority: '{name} won the majority of zones!',
+    allTied: 'Every zone was tied!',
+    winsTheMatch: 'Wins the Match!',
     matchDrawn: 'Match Drawn!',
     rematch: 'Rematch',
     returnToMenu: 'Back to Arena Menu',
@@ -196,14 +215,21 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundOf: 'الجولة',
     of3: 'من 3',
     tapToPlaceHint: 'اضغط على كارت ثم اختر المنطقة لإنزاله، أو اسحبه مباشرة',
-    tapZoneToPlace: '✨ اضغط على المنطقة لإنزال الكارت المختار',
+    tapZoneToPlace: 'اضغط على المنطقة لإنزال الكارت المختار',
     placeAtLeast1: 'أنزل كارت واحد على الأقل (0/2 تم إنزالها)',
     lockIn: 'تأكيد النزول',
     cardsPlaced: 'كروت تم إنزالها',
     yourHand: 'يدك الحالية',
     cardsAvailable: 'كروت متاحة',
     cardsHidden: 'كروت غير مكشوفة لـ',
-    recall: '↩ استرجاع لليد',
+    recall: 'استرجاع',
+    turnTitle: '{name} — ضع كانًا أو كانين',
+    oppStrip: '{name} • بانتظار دوره',
+    lockInCount: 'تأكيد ({placed}/2)',
+    needOne: 'ضع كانًا واحدًا على الأقل للتأكيد',
+    onlyTwo: 'كانان فقط في الجولة — اضغط على كان موضوع لاسترجاعه',
+    roundN: 'الجولة {n} من 3',
+    takeBack: 'استرجاع {name}',
     // Zones
     zoneCoolRule: 'الكارت صاحب القوة الأقل يحصل على +1',
     zonePartyRule: 'اللاعب الأكثر كروت في المنطقة يحصل على +1',
@@ -212,7 +238,9 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundRevealed: 'كشف الجولة!',
     scoresAtEnd: 'مكافآت المناطق ونقاطها تحتسب بنهاية الجولة 3',
     nextRound: 'الجولة القادمة (جولة',
-    winsTheMatch: 'يفوز بالمباراة! 👑',
+    wonMajority: '{name} فاز بأغلبية المناطق!',
+    allTied: 'كل المناطق تعادلت!',
+    winsTheMatch: 'يفوز بالمباراة!',
     matchDrawn: 'تعادل في المباراة!',
     rematch: 'مباراة جديدة',
     returnToMenu: 'العودة للساحة الرئيسية',

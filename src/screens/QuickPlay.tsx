@@ -23,9 +23,10 @@ import { scoreMatch, type ZoneResult } from '../game/scoring';
 import type { Flavor } from '../game/types';
 import type { Players } from '../storage/playersStore';
 import { ZONES } from '../game/zones';
-import { assetUrl, flavorImageUrl } from '../components/assetPaths';
+import { assetUrl } from '../components/assetPaths';
 import { GameCard } from '../components/GameCard';
-import { useI18n } from '../i18n';
+import { CoolIcon, CrownIcon, EnergyIcon, ExitIcon, PartyIcon } from '../components/icons';
+import { fmt, useI18n } from '../i18n';
 
 type Stage = 'idle' | 'passA' | 'placeA' | 'passB' | 'placeB' | 'roundReveal' | 'matchOver';
 
@@ -56,6 +57,54 @@ function flavorOf(flavorId: string): Flavor | undefined {
   return getFlavorById(flavorId);
 }
 
+function ZoneIcon({ zoneId, size = 18 }: { zoneId: string; size?: number }) {
+  if (zoneId === 'cool') return <CoolIcon size={size} />;
+  if (zoneId === 'party') return <PartyIcon size={size} />;
+  return <EnergyIcon size={size} />;
+}
+
+/** Circular timer ring that drains as seconds run out. Red under 5s. */
+function TimerRing({ seconds, total }: { seconds: number; total: number }) {
+  const r = 11;
+  const c = 2 * Math.PI * r;
+  const frac = Math.max(0, Math.min(1, seconds / total));
+  const urgent = seconds <= 5;
+  return (
+    <span
+      className={`timer-ring${urgent ? ' urgent' : ''}`}
+      role="timer"
+      aria-label={`${seconds}s`}
+    >
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r={r} className="ring-track" />
+        <circle
+          cx="16"
+          cy="16"
+          r={r}
+          className="ring-fill"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - frac)}
+        />
+      </svg>
+      <span className="ring-num">{seconds}</span>
+    </span>
+  );
+}
+
+/** Round pips: 3 dots, current lit. Takes the display round (reveal-safe). */
+function RoundPips({ current, total = 3 }: { current: number; total?: number }) {
+  return (
+    <span className="round-pips" aria-label={`Round ${current} of ${total}`}>
+      {Array.from({ length: total }, (_, i) => (
+        <span
+          key={i}
+          className={`pip${i + 1 === current ? ' on' : ''}${i + 1 < current ? ' done' : ''}`}
+        />
+      ))}
+    </span>
+  );
+}
+
 export function QuickPlay({
   collection,
   players,
@@ -72,6 +121,7 @@ export function QuickPlay({
   const [stage, setStage] = useState<Stage>('idle');
   const [seconds, setSeconds] = useState(TIMER_SECONDS);
   const [notice, setNotice] = useState('');
+  const [shakeKey, setShakeKey] = useState(0);
   const [results, setResults] = useState<ZoneResult[] | null>(null);
   const [winner, setWinner] = useState<Player | null>(null);
   const timedOut = useRef(false);
@@ -106,6 +156,13 @@ export function QuickPlay({
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, seconds, match]);
+
+  // Toast notices auto-dismiss so they never pile up over the board
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(''), 2200);
+    return () => window.clearTimeout(id);
+  }, [notice]);
 
   function advance(locked: MatchState, by: Player) {
     if (bothLocked(locked)) {
@@ -168,7 +225,9 @@ export function QuickPlay({
       map.set(handIndex, zone);
     } else {
       if (map.size >= MAX_PLACE) {
-        setNotice(t.deckFull);
+        // Third placement: short shake on the hand + toast, not a paragraph
+        setShakeKey((k) => k + 1);
+        setNotice(t.onlyTwo);
         return;
       }
       map.set(handIndex, zone);
@@ -197,19 +256,32 @@ export function QuickPlay({
     }
   }
 
+  // match.round already advanced past the just-revealed round, so the
+  // indicator must show round-1 during reveal / matchOver (logic untouched).
+  const displayRound =
+    !match || stage === 'idle'
+      ? 1
+      : stage === 'roundReveal' || stage === 'matchOver'
+        ? Math.max(1, match.round - 1)
+        : match.round;
+
   return (
     <section aria-label="Play" className="arena-section">
-      {/* Top Header during Game */}
+      {/* Slim top bar during match: round pips left, exit icon right */}
       {stage !== 'idle' && (
         <div className="game-topbar">
           <div className="game-topbar-info">
-            <span className="game-mode-badge">{t.quickPlayTitle}</span>
-            <span className="game-round-indicator">
-              {t.roundOf} {match ? match.round : 1} {t.of3}
-            </span>
+            <RoundPips current={displayRound} />
+            <span className="game-round-indicator">{fmt(t.roundN, { n: displayRound })}</span>
           </div>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={endMatch}>
-            {t.exitMatch}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={endMatch}
+            aria-label={t.exitMatch}
+            title={t.exitMatch}
+          >
+            <ExitIcon size={18} />
           </button>
         </div>
       )}
@@ -314,6 +386,7 @@ export function QuickPlay({
           names={names}
           seconds={seconds}
           isRevealing={false}
+          shakeKey={shakeKey}
           onPlace={(i, z) => placeOne(player, i, z)}
           onUnplace={(i) => unplace(player, i)}
           onLock={() => lock(player)}
@@ -365,7 +438,7 @@ export function QuickPlay({
       ) : null}
 
       {notice ? (
-        <p className="notice" role="status">
+        <p className="toast-notice" role="status">
           {notice}
         </p>
       ) : null}
@@ -389,6 +462,7 @@ function SnapBattlefield({
   isMatchOver,
   results,
   winner,
+  shakeKey,
   onPlace,
   onUnplace,
   onLock,
@@ -404,6 +478,7 @@ function SnapBattlefield({
   isMatchOver?: boolean;
   results?: ZoneResult[] | null;
   winner?: Player | null;
+  shakeKey?: number;
   onPlace?: (handIndex: number, zone: string) => void;
   onUnplace?: (handIndex: number) => void;
   onLock?: () => void;
@@ -522,6 +597,7 @@ function SnapBattlefield({
 
   const placedCount = map.size;
   const canLock = placedCount >= MIN_PLACE;
+  const armed = !isRevealing && (selected !== null || drag !== null);
 
   // Zone tips map for rules
   const zoneRules: Record<string, string> = {
@@ -531,14 +607,13 @@ function SnapBattlefield({
   };
 
   return (
-    <div className="battlefield-container">
-      {/* Opponent Area (Top) */}
+    <div className={`battlefield-container${armed ? ' armed' : ''}`}>
+      {/* Opponent strip: one line */}
       <div className="arena-player-plate opponent-plate">
-        <div className="avatar-chip">👤</div>
         <div className="player-meta">
           <strong className="player-tag">{names[foe]}</strong>
           <span className="player-status">
-            {isRevealing ? t.roundRevealed : `${t.cardsHidden} ${names[foe]}`}
+            {isRevealing ? t.roundRevealed : fmt(t.oppStrip, { name: names[foe] })}
           </span>
         </div>
       </div>
@@ -620,15 +695,19 @@ function SnapBattlefield({
                   if (!flavor) return null;
 
                   return (
-                    <div key={`foe-${idx}`} className="lane-card-mini face-up animate-flip">
-                      <img src={flavorImageUrl(flavor)} alt={flavor.name} />
-                      <span className="lane-card-power">{item.card.power}</span>
+                    <div key={`foe-${idx}`} className="lane-mini-card animate-flip">
+                      <GameCard
+                        flavor={flavor}
+                        power={item.card.power ?? undefined}
+                        displayName={t.flavors[flavor.id] || flavor.name}
+                        size="board"
+                      />
                     </div>
                   );
                 })}
               </div>
 
-              {/* Central Zone Pillar — V7 Product Display Tower */}
+              {/* Center band: zone icon, name, rule, live scores */}
               <div
                 className={`lane-zone-pillar${
                   isWinning ? ' p-leading' : isLosing ? ' foe-leading' : isTied ? ' lane-tied' : ''
@@ -637,7 +716,7 @@ function SnapBattlefield({
                 <div className="pillar-score foe-score">{foePower}</div>
                 <div className="pillar-body">
                   <span className="pillar-icon">
-                    {z.id === 'cool' ? '❄️' : z.id === 'party' ? '🎉' : '⚡'}
+                    <ZoneIcon zoneId={z.id} size={18} />
                   </span>
                   <strong className="pillar-name">{z.name}</strong>
                   <span className="pillar-rule">{zoneRules[z.id]}</span>
@@ -652,23 +731,43 @@ function SnapBattlefield({
                   const flavor = hc ? flavorOf(hc.flavor) : undefined;
                   if (!flavor || !hc) return null;
                   const canRecall = !isRevealing && item.isCurrentRound;
+                  const displayName = t.flavors[flavor.id] || flavor.name;
+
+                  if (!canRecall) {
+                    return (
+                      <div key={idx} className="lane-mini-card">
+                        <GameCard
+                          flavor={flavor}
+                          power={hc.power}
+                          displayName={displayName}
+                          size="board"
+                        />
+                      </div>
+                    );
+                  }
 
                   return (
-                    <div
+                    <button
                       key={idx}
-                      className={`lane-card-mini face-up flavor-${flavor.id}${canRecall ? ' recallable' : ''}`}
+                      type="button"
+                      className="lane-mini-card pop-in recallable"
                       onClick={(e) => {
-                        if (canRecall && onUnplace) {
-                          e.stopPropagation();
-                          onUnplace(item.card.handIndex);
-                        }
+                        e.stopPropagation();
+                        onUnplace?.(item.card.handIndex);
                       }}
-                      title={canRecall ? 'Click to recall to hand' : flavor.name}
+                      title={t.recall}
+                      aria-label={fmt(t.takeBack, { name: displayName })}
                     >
-                      <img src={flavorImageUrl(flavor)} alt={flavor.name} />
-                      <span className="lane-card-power">{hc.power}</span>
-                      {canRecall && <span className="recall-chip">{t.recall}</span>}
-                    </div>
+                      <GameCard
+                        flavor={flavor}
+                        power={hc.power}
+                        displayName={displayName}
+                        size="board"
+                      />
+                      <span className="recall-x" aria-hidden="true">
+                        ×
+                      </span>
+                    </button>
                   );
                 })}
 
@@ -679,19 +778,15 @@ function SnapBattlefield({
         })}
       </div>
 
-      {/* Active Player Area (Bottom) */}
+      {/* Your bar: name + circular timer ring */}
       <div className="arena-player-plate player-plate">
         <div className="player-meta">
           <strong className="player-tag">{names[player]}</strong>
           <span className="player-status">
-            {isRevealing ? '' : `${t.turnBanner} • ${visibleCards.length} ${t.cardsAvailable}`}
+            {isRevealing ? '' : fmt(t.turnTitle, { name: names[player] })}
           </span>
         </div>
-        {!isRevealing && (
-          <span className={seconds <= 5 ? 'timer urgent' : 'timer'} aria-live="polite">
-            {seconds}s
-          </span>
-        )}
+        {!isRevealing && <TimerRing seconds={seconds} total={TIMER_SECONDS} />}
       </div>
 
       {/* Hand: ONLY shows cards not currently placed! */}
@@ -706,7 +801,12 @@ function SnapBattlefield({
             </span>
           </div>
 
-          <div className="hand-fan" role="group" aria-label={t.yourHand}>
+          <div
+            key={shakeKey}
+            className={`hand-fan${shakeKey > 0 ? ' shake-once' : ''}`}
+            role="group"
+            aria-label={t.yourHand}
+          >
             {visibleCards.map(({ card: hc, index: i }) => {
               const flavor = flavorOf(hc.flavor);
               if (!flavor) return null;
@@ -743,9 +843,7 @@ function SnapBattlefield({
             disabled={!canLock}
             onClick={onLock}
           >
-            {canLock
-              ? `${t.lockIn} (${placedCount}/${MAX_PLACE} ${t.cardsPlaced})`
-              : t.placeAtLeast1}
+            {canLock ? fmt(t.lockInCount, { placed: placedCount }) : t.needOne}
           </button>
         </div>
       ) : null}
@@ -755,34 +853,32 @@ function SnapBattlefield({
         <div className="reveal-overlay-banner">
           {isMatchOver ? (
             <div className="reveal-content-card match-over-card">
-              <div className="winner-crown">👑</div>
+              <div className="winner-crown">
+                <CrownIcon size={36} />
+              </div>
               <h3 className="winner-title">
-                {winner ? `${names[winner]} ${t.winsTheMatch}` : t.matchDrawn}
+                {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}
               </h3>
-              <p className="winner-subtitle">
-                {winner
-                  ? `${names[winner]} won the majority of zones!`
-                  : 'All zones tied or drawn!'}
-              </p>
+              <p className="winner-subtitle">{winner ? t.winsTheMatch : t.allTied}</p>
               <div className="reveal-actions-row">
                 <button type="button" className="btn btn-primary btn-lg" onClick={onRematch}>
-                  ⚔️ {t.rematch}
+                  {t.rematch}
                 </button>
                 <button type="button" className="btn btn-secondary btn-lg" onClick={onReturnMenu}>
-                  🏠 {t.returnToMenu}
+                  {t.returnToMenu}
                 </button>
               </div>
             </div>
           ) : (
             <div className="reveal-content-card round-revealed-card">
-              <h3 className="round-revealed-title">⚡ {t.roundRevealed}</h3>
+              <h3 className="round-revealed-title">{t.roundRevealed}</h3>
               <p className="round-revealed-note">{t.scoresAtEnd}</p>
               <button
                 type="button"
                 className="btn btn-primary btn-lg lock-btn"
                 onClick={onNextRound}
               >
-                {t.nextRound} {match.round}) ➔
+                {t.nextRound} {match.round})
               </button>
             </div>
           )}
