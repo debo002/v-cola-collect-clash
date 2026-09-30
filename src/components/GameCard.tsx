@@ -12,18 +12,24 @@ export function GameCard({
   displayName,
   selected,
   dimmed,
+  size,
 }: {
   flavor: Flavor;
   power?: number;
   displayName?: string;
   selected?: boolean;
   dimmed?: boolean;
+  size?: 'hand' | 'board';
 }) {
   const classes = ['game-card', `flavor-${flavor.id}`, `line-${flavor.line}`];
   if (selected) classes.push('selected');
   if (dimmed) classes.push('dimmed');
+  if (size) classes.push(`card-${size}`);
 
   const label = displayName || flavor.name;
+  // Long names auto-shrink instead of wrapping mid-word.
+  if (label.length > 14) classes.push('long-name');
+  if (label.length > 18) classes.push('xlong-name');
 
   return (
     <article className={classes.join(' ')} aria-label={label}>
