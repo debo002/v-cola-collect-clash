@@ -30,3 +30,7 @@ docs/V_COLA_DESIGN.md
 docs/IMPLEMENTATION_PLAN.md
 docs/HUMAN_TODO.md
 docs/ASSET_REQUESTS.md
+
+# Local verification screenshots — never commit
+screenshots*/
+preview.log
