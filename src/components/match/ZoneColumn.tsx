@@ -2,6 +2,7 @@ import { getFlavorById } from '../../game/cards';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 import { CoolIcon, EnergyIcon, PartyIcon } from '../icons';
+import type { StripCard } from './boardUtils';
 
 export function ZoneIcon({ zoneId, size = 20 }: { zoneId: string; size?: number }) {
   if (zoneId === 'cool') return <CoolIcon size={size} />;
@@ -9,19 +10,17 @@ export function ZoneIcon({ zoneId, size = 20 }: { zoneId: string; size?: number 
   return <EnergyIcon size={size} />;
 }
 
-export interface StripCard {
-  key: string;
-  handIndex: number;
-  flavorId: string;
-  /** Null = hidden (never rendered with a value). */
-  power: number | null;
-  recallable: boolean;
-}
-
 /**
- * One zone column: foe strip (top) / header + live scores (middle) /
+ * One zone column: foe strip (top) / header + scores (middle) /
  * mine strip (bottom). Strips are horizontal overlap rows so 6 cards
  * per side fit with no scrolling. Density shrinks cards when crowded.
+ *
+ * Resolution hooks (all optional, inert during placing):
+ * - pulseKeys/chipKeys: StripCard keys getting the bonus pulse / +1 chip
+ * - verdict: winner badge pinned to the column corner (null hides it)
+ * - stagger: reveal stagger delay base ms (index × 60ms added per card)
+ * - mini: compact density for the resolution panel
+ * - zoneChip: floating +1 on a pillar score (zone-level Party bonus)
  */
 export function ZoneColumn({
   zoneId,
@@ -36,6 +35,12 @@ export function ZoneColumn({
   spotlight,
   dimmed,
   victory,
+  verdict,
+  pulseKeys,
+  chipKeys,
+  stagger,
+  mini,
+  zoneChip,
   tapPrompt,
   onZoneClick,
   onRecall,
@@ -52,6 +57,12 @@ export function ZoneColumn({
   spotlight: boolean;
   dimmed: boolean;
   victory: boolean;
+  verdict?: string | null;
+  pulseKeys?: ReadonlySet<string>;
+  chipKeys?: ReadonlySet<string>;
+  stagger?: number | null;
+  mini?: boolean;
+  zoneChip?: 'mine' | 'foe' | null;
   tapPrompt: string | null;
   onZoneClick: (zoneId: string) => void;
   onRecall: (handIndex: number) => void;
@@ -67,11 +78,63 @@ export function ZoneColumn({
           : 'tied';
   const density = (n: number) => (n <= 2 ? 'roomy' : n <= 4 ? 'snug' : 'crowded');
 
+  const renderMini = (c: StripCard, side: 'foe' | 'mine', idx: number) => {
+    const flavor = getFlavorById(c.flavorId);
+    if (!flavor) return null;
+    const displayName = t.flavors[flavor.id] || flavor.name;
+    const pulsed = pulseKeys?.has(c.key) ?? false;
+    const chipped = chipKeys?.has(c.key) ?? false;
+    const delay = stagger != null ? { animationDelay: `${stagger + idx * 60}ms` } : undefined;
+    const inner = (
+      <GameCard
+        flavor={flavor}
+        power={c.power ?? undefined}
+        displayName={displayName}
+        size="board"
+      />
+    );
+    const cls = `strip-mini${pulsed ? ' bonus-pulse' : ''}${stagger != null ? (side === 'foe' ? ' animate-flip' : ' pop-in') : ''}`;
+    const chip = chipped ? (
+      <span className="plus-chip" aria-hidden="true">
+        +1
+      </span>
+    ) : null;
+    if (side === 'mine' && c.recallable) {
+      return (
+        <button
+          key={c.key}
+          type="button"
+          className={`${cls} recallable pop-in`}
+          style={delay}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRecall(c.handIndex);
+          }}
+          title={t.recall}
+          aria-label={fmt(t.takeBack, { name: displayName })}
+        >
+          {inner}
+          {chip}
+          <span className="recall-x" aria-hidden="true">
+            ×
+          </span>
+        </button>
+      );
+    }
+    return (
+      <div key={c.key} className={cls} style={delay}>
+        {inner}
+        {chip}
+      </div>
+    );
+  };
+
   return (
     <div
       data-zone={zoneId}
       className={
         `zone-col zone-${zoneId}` +
+        (mini ? ' mini-col' : '') +
         (dropReady ? ' drop-ready' : '') +
         (dropTarget ? ' drop-target' : '') +
         (spotlight ? ' spotlight' : '') +
@@ -90,13 +153,18 @@ export function ZoneColumn({
       }}
     >
       <div className={`strip foe-strip density-${density(foeCards.length)}`}>
-        {foeCards.map((c) => (
-          <StripMini key={c.key} card={c} />
-        ))}
+        {foeCards.map((c, i) => renderMini(c, 'foe', i))}
       </div>
 
       <div className={`zone-pillar lead-${leading}`}>
-        <span className="pillar-score foe-score">{foeScore}</span>
+        <span className="pillar-score foe-score">
+          {foeScore}
+          {zoneChip === 'foe' ? (
+            <span className="plus-chip" aria-hidden="true">
+              +1
+            </span>
+          ) : null}
+        </span>
         <div className="pillar-body">
           <span className="pillar-icon">
             <ZoneIcon zoneId={zoneId} size={20} />
@@ -104,56 +172,26 @@ export function ZoneColumn({
           <strong className="pillar-name">{zoneName}</strong>
           <span className="pillar-rule">{zoneRule}</span>
         </div>
-        <span className="pillar-score player-score">{myScore}</span>
+        <span className="pillar-score player-score">
+          {myScore}
+          {zoneChip === 'mine' ? (
+            <span className="plus-chip" aria-hidden="true">
+              +1
+            </span>
+          ) : null}
+        </span>
       </div>
+      {verdict ? (
+        <div className="verdict-badge" role="status">
+          {verdict}
+        </div>
+      ) : null}
 
       <div className={`strip my-strip density-${density(myCards.length)}`}>
-        {myCards.map((c) => (
-          <StripMini key={c.key} card={c} onRecall={c.recallable ? onRecall : undefined} />
-        ))}
+        {myCards.map((c, i) => renderMini(c, 'mine', i))}
       </div>
 
       {tapPrompt ? <div className="lane-drop-prompt">+ {tapPrompt}</div> : null}
     </div>
   );
-
-  function StripMini({
-    card,
-    onRecall,
-  }: {
-    card: StripCard;
-    onRecall?: (handIndex: number) => void;
-  }) {
-    const flavor = getFlavorById(card.flavorId);
-    if (!flavor) return null;
-    const displayName = t.flavors[flavor.id] || flavor.name;
-    const inner = (
-      <GameCard
-        flavor={flavor}
-        power={card.power ?? undefined}
-        displayName={displayName}
-        size="board"
-      />
-    );
-    if (onRecall) {
-      return (
-        <button
-          type="button"
-          className="strip-mini recallable pop-in"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRecall(card.handIndex);
-          }}
-          title={t.recall}
-          aria-label={fmt(t.takeBack, { name: displayName })}
-        >
-          {inner}
-          <span className="recall-x" aria-hidden="true">
-            ×
-          </span>
-        </button>
-      );
-    }
-    return <div className="strip-mini">{inner}</div>;
-  }
 }

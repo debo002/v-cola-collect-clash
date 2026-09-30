@@ -1367,6 +1367,208 @@
 }
 
 /* ==========================================================================
+   EFFECT RESOLUTION SEQUENCE — spotlight / dim / pulse / +1 chips
+   ========================================================================== */
+
+.resolution-main {
+  padding: var(--space-sm);
+}
+
+.resolution-panel {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  cursor: pointer;
+}
+
+.resolution-banner {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+  background: rgba(15, 19, 28, 0.96);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 6px 8px 6px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+  cursor: default;
+  min-height: 64px;
+  box-sizing: border-box;
+}
+
+.resolution-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.35;
+}
+
+.skip-btn {
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding: 8px 18px;
+}
+
+.resolution-panel .zones-row {
+  flex: 1;
+  min-height: 0;
+}
+
+.resolution-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.zone-col.spotlight {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 28px rgba(255, 255, 255, 0.5);
+}
+
+.zone-col.dimmed-zone {
+  opacity: 0.38;
+  filter: saturate(0.6);
+}
+
+/* Mini columns inside the resolution panel (banner takes top space) */
+.mini-col .strip-mini {
+  width: 44px;
+}
+.mini-col .strip-mini + .strip-mini {
+  margin-inline-start: -16px;
+}
+.mini-col .density-snug .strip-mini {
+  width: 38px;
+}
+.mini-col .density-snug .strip-mini + .strip-mini {
+  margin-inline-start: -17px;
+}
+.mini-col .density-crowded .strip-mini {
+  width: 32px;
+}
+.mini-col .density-crowded .strip-mini + .strip-mini {
+  margin-inline-start: -17px;
+}
+.mini-col .pillar-score {
+  font-size: 18px;
+  min-width: 24px;
+}
+.mini-col .pillar-name {
+  font-size: 11px;
+}
+.mini-col .pillar-rule {
+  font-size: 10px;
+}
+
+/* Bonus pulse on affected cards (zone-color glow via currentColor zones) */
+.strip-mini.bonus-pulse .game-card {
+  animation: bonusPulse 700ms infinite alternate ease-in-out;
+  border-color: var(--gold) !important;
+}
+
+@keyframes bonusPulse {
+  from {
+    box-shadow: 0 0 0 2px var(--gold);
+    transform: scale(1);
+  }
+  to {
+    box-shadow:
+      0 0 0 3px var(--gold),
+      0 0 18px rgba(255, 213, 74, 0.9);
+    transform: scale(1.06);
+  }
+}
+
+/* Floating +1 chip (card ticks + Party zone-total ticks) */
+.plus-chip {
+  position: absolute;
+  top: -14px;
+  inset-inline-end: -6px;
+  z-index: 4;
+  background: var(--gold);
+  color: #111;
+  font-family: var(--heading);
+  font-size: 15px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+  animation: chipFloat 900ms ease-out;
+  white-space: nowrap;
+}
+
+.pillar-score {
+  position: relative;
+}
+
+.pillar-score .plus-chip {
+  top: -18px;
+  inset-inline-end: -14px;
+}
+
+@keyframes chipFloat {
+  0% {
+    transform: translateY(6px) scale(0.7);
+    opacity: 0;
+  }
+  30% {
+    transform: translateY(0) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-4px) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Winner / tie badge pinned to the column corner (no layout shift) */
+.verdict-badge {
+  position: absolute;
+  top: 4px;
+  inset-inline-start: 4px;
+  z-index: 5;
+  font-size: 11px;
+  font-weight: 900;
+  color: #111;
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  max-width: calc(100% - 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  animation: cardPop 250ms var(--motion-ease, cubic-bezier(0.2, 1.4, 0.4, 1));
+}
+
+/* Round 1-2 reveal: flip + stagger (short, end state identical) */
+.animate-flip {
+  animation: flipCard 400ms ease-out backwards;
+}
+
+@keyframes flipCard {
+  0% {
+    transform: rotateY(90deg) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
    V7 CARD STYLING — GROUND TRUTH PER-FLAVOR CAN PALETTES (unchanged)
    ========================================================================== */
 

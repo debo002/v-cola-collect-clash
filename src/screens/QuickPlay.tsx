@@ -15,7 +15,7 @@ import {
   type Player,
 } from '../game/match';
 import { matchWinner } from '../game/series';
-import { scoreMatch, type ZoneResult } from '../game/scoring';
+import { explainMatch, scoreMatch, type ZoneExplanation, type ZoneResult } from '../game/scoring';
 import type { Players } from '../storage/playersStore';
 import { Stage } from '../components/Stage';
 import { Board } from '../components/match/Board';
@@ -51,6 +51,8 @@ export function QuickPlay({
   const [shakeKey, setShakeKey] = useState(0);
   const [results, setResults] = useState<ZoneResult[] | null>(null);
   const [winner, setWinner] = useState<Player | null>(null);
+  const [explanations, setExplanations] = useState<ZoneExplanation[] | null>(null);
+  const [resolutionDone, setResolutionDone] = useState(false);
   const timedOut = useRef(false);
 
   const player = activePlayer(stage);
@@ -109,6 +111,8 @@ export function QuickPlay({
       const scored = scoreMatch(revealed);
       setResults(scored);
       setWinner(matchWinner(scored));
+      setExplanations(explainMatch(revealed));
+      setResolutionDone(false);
       setStage('matchOver');
     } else {
       setStage('roundReveal');
@@ -124,6 +128,8 @@ export function QuickPlay({
     }
     setResults(null);
     setWinner(null);
+    setExplanations(null);
+    setResolutionDone(false);
     setNotice('');
     setStage('passA');
   }
@@ -132,6 +138,8 @@ export function QuickPlay({
     setMatch(null);
     setResults(null);
     setWinner(null);
+    setExplanations(null);
+    setResolutionDone(false);
     setNotice('');
     setStage('idle');
   }
@@ -189,11 +197,12 @@ export function QuickPlay({
   }
 
   // match.round already advanced past the just-revealed round, so the
-  // indicator must show round-1 during reveal / matchOver (logic untouched).
+  // indicator shows round-1 during round reveal. At match over the round
+  // does NOT advance (stays 3), so it shows match.round (logic untouched).
   const displayRound =
     !match || stage === 'idle'
       ? 1
-      : stage === 'roundReveal' || stage === 'matchOver'
+      : stage === 'roundReveal'
         ? Math.max(1, match.round - 1)
         : match.round;
 
@@ -278,6 +287,9 @@ export function QuickPlay({
             isMatchOver={stage === 'matchOver'}
             results={results}
             winner={winner}
+            explanations={explanations}
+            resolutionDone={resolutionDone}
+            onResolutionDone={() => setResolutionDone(true)}
             shakeKey={0}
             onPlace={() => {}}
             onUnplace={() => {}}

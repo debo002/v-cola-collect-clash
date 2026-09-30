@@ -71,6 +71,18 @@ export interface Translations {
   noHistory: string;
   rotateTitle: string;
   rotateDesc: string;
+  // Effect resolution sequence (whole sentences via fmt)
+  resSkip: string;
+  resTapFaster: string;
+  resCool: string;
+  resCoolNone: string;
+  resEmpty: string;
+  resParty: string;
+  resPartyNone: string;
+  resEnergy: string;
+  resEnergyNone: string;
+  resTakesZone: string;
+  resTiedZone: string;
   // Deck
   deckTitle: string;
   deckFull: string;
@@ -174,6 +186,18 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     noHistory: 'No rounds yet',
     rotateTitle: 'Rotate your device',
     rotateDesc: 'V Cola: Collect & Clash plays in landscape.',
+    // Effect resolution sequence (whole sentences via fmt)
+    resSkip: 'Skip',
+    resTapFaster: 'Tap to speed up',
+    resCool: 'STAY FROSTY: {name}\u2019s {power} is the lone lowest (+1)',
+    resCoolNone: 'STAY FROSTY: no bonus — tied lowest',
+    resEmpty: 'No bonus: empty zone',
+    resParty: 'PARTY: {name} has more cans here ({a} vs {b}), +1 to the total',
+    resPartyNone: 'PARTY: no bonus — equal cans',
+    resEnergy: 'ENERGY: {name} has fewer cans here ({a} vs {b}), +1 on each of their cans',
+    resEnergyNone: 'ENERGY: no bonus — equal cans',
+    resTakesZone: '{name} takes {zone}',
+    resTiedZone: 'Tied zone',
     // Deck
     deckTitle: 'Battle Deck',
     deckFull: 'Deck full (6 cards) — tap a slot to remove one first.',
@@ -273,6 +297,18 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     noHistory: 'لا جولات بعد',
     rotateTitle: 'دوّر جهازك',
     rotateDesc: 'تُلعب V كولا: اجمع وتحدى في الوضع الأفقي.',
+    // Effect resolution sequence (whole sentences via fmt)
+    resSkip: 'تخطي',
+    resTapFaster: 'اضغط للتسريع',
+    resCool: 'STAY FROSTY: {name} الأقل بقوة {power} منفردًا (+1)',
+    resCoolNone: 'STAY FROSTY: لا مكافأة — تعادل الأقل',
+    resEmpty: 'لا مكافأة — منطقة فارغة',
+    resParty: 'PARTY: {name} لديه كروت أكثر هنا ({a} مقابل {b})، +1 للمجموع',
+    resPartyNone: 'PARTY: لا مكافأة — تساوي الكروت',
+    resEnergy: 'ENERGY: {name} لديه كروت أقل هنا ({a} مقابل {b})، +1 لكل كارت',
+    resEnergyNone: 'ENERGY: لا مكافأة — تساوي الكروت',
+    resTakesZone: '{name} يفوز بمنطقة {zone}',
+    resTiedZone: 'تعادل',
     // Deck
     deckTitle: 'تشكيلة المعركة',
     deckFull: 'التشكيلة مكتملة (6 كروت) — اضغط على كارت لإزالته أولاً.',

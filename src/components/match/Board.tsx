@@ -8,15 +8,16 @@ import {
   type MatchState,
   type Player,
 } from '../../game/match';
-import type { ZoneResult } from '../../game/scoring';
+import type { ZoneExplanation, ZoneResult } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 import { CrownIcon } from '../icons';
 import { useStageScale } from '../Stage';
-import { allUsedIndices, placedMap } from './boardUtils';
+import { allUsedIndices, buildZoneViews, placedMap, type StripCard } from './boardUtils';
 import { Hand } from './Hand';
-import { ZoneColumn, ZoneIcon, type StripCard } from './ZoneColumn';
+import { ResolutionOverlay } from './ResolutionOverlay';
+import { ZoneColumn, ZoneIcon } from './ZoneColumn';
 
 export interface LastRoundLine {
   zoneId: string;
@@ -49,6 +50,9 @@ export function Board({
   onNextRound,
   onRematch,
   onReturnMenu,
+  explanations,
+  resolutionDone,
+  onResolutionDone,
 }: {
   match: MatchState;
   player: Player;
@@ -58,6 +62,10 @@ export function Board({
   isMatchOver?: boolean;
   results?: ZoneResult[] | null;
   winner?: Player | null;
+  /** Match-over only: pure explainZone data drives the resolution sequence. */
+  explanations?: readonly ZoneExplanation[] | null;
+  resolutionDone?: boolean;
+  onResolutionDone?: () => void;
   shakeKey: number;
   onPlace: (handIndex: number, zone: string) => void;
   onUnplace: (handIndex: number) => void;
@@ -195,54 +203,22 @@ export function Board({
   const lastRoundIdx = isRevealing ? displayRound - 1 : displayRound - 2;
   const lastLines: LastRoundLine[] = [];
 
+  // Shared strip builder (hidden-info rule inside): foe current-round
+  // picks are skipped entirely unless revealing.
+  const rawViews = buildZoneViews(match, player, foe, {
+    foeVisible: isRevealing,
+    recallable: !isRevealing,
+  });
   for (const z of ZONES) {
-    const foeCards: StripCard[] = [];
-    const myCards: StripCard[] = [];
-    let myScore = 0;
-    let foeScore = 0;
-
-    match.boards.forEach((board, bi) => {
-      const side = board[z.id];
-      if (!side) return;
-      const isCurrent = bi === match.round - 1;
-      for (const c of side[player]) {
-        const hc = match.hands[player][c.handIndex];
-        const flavor = hc ? getFlavorById(hc.flavor) : undefined;
-        if (!flavor || !hc) continue;
-        myCards.push({
-          key: `m-${bi}-${c.handIndex}`,
-          handIndex: c.handIndex,
-          flavorId: hc.flavor,
-          power: hc.power,
-          recallable: !isRevealing && isCurrent,
-        });
-        myScore += hc.power;
-      }
-      for (const c of side[foe]) {
-        // Pass-and-play fairness: foe current-round picks stay fully hidden
-        // during a placing turn — not even rendered, and never scored.
-        if (!isRevealing && isCurrent) continue;
-        const flavor = getFlavorById(c.flavor);
-        if (!flavor) continue;
-        foeCards.push({
-          key: `f-${bi}-${c.handIndex}`,
-          handIndex: c.handIndex,
-          flavorId: c.flavor,
-          power: c.power,
-          recallable: false,
-        });
-        if (c.power != null) foeScore += c.power;
-      }
-    });
-
+    const raw = rawViews.get(z.id);
+    if (!raw) continue;
+    // If the match is over and scored, show official totals.
     const zResult = results?.find((r) => r.zoneId === z.id);
-    if (zResult) {
-      myScore = zResult.totals[player];
-      foeScore = zResult.totals[foe];
-    }
+    const myScore = zResult ? zResult.totals[player] : raw.myBase;
+    const foeScore = zResult ? zResult.totals[foe] : raw.foeBase;
     views.set(z.id, {
-      foeCards,
-      myCards,
+      foeCards: raw.foeCards,
+      myCards: raw.myCards,
       foeScore,
       myScore,
       leader: myScore === foeScore ? null : myScore > foeScore ? player : foe,
@@ -269,6 +245,24 @@ export function Board({
   // on-screen px (stage px × scale) to match the board cards.
   const ghostFlavor =
     drag !== null ? getFlavorById(hand[drag.handIndex]?.flavor ?? '') : undefined;
+
+  // Match-over resolution sequence replaces rails/zones until done/skipped,
+  // then the board falls through to the existing match-result screen.
+  if (isMatchOver && explanations && explanations.length > 0 && !resolutionDone) {
+    return (
+      <div className="board">
+        <div className="match-main resolution-main">
+          <ResolutionOverlay
+            match={match}
+            player={player}
+            names={names}
+            explanations={explanations}
+            onDone={() => onResolutionDone?.()}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="board">
@@ -321,7 +315,7 @@ export function Board({
       </aside>
 
       <div className="zones-row">
-        {ZONES.map((z) => {
+        {ZONES.map((z, zi) => {
           const v = views.get(z.id);
           if (!v) return null;
           const zResult = results?.find((r) => r.zoneId === z.id);
@@ -340,6 +334,7 @@ export function Board({
               spotlight={false}
               dimmed={false}
               victory={zResult?.winner === player}
+              stagger={isRevealing && !isMatchOver ? zi * 120 : null}
               tapPrompt={!isRevealing && effectiveSelected !== null ? t.tapZoneToPlace : null}
               onZoneClick={handleZoneClick}
               onRecall={(i) => onUnplace(i)}

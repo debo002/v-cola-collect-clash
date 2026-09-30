@@ -75,3 +75,159 @@ export function scoreMatch(state: MatchState): ZoneResult[] {
   if (state.phase !== 'complete') throw new RangeError('Zones are scored after round 3 only');
   return ZONES.map((zone) => scoreZone(state, zone.id));
 }
+
+/**
+ * Resolution explainer (pure, React/DOM-free). Returns the same numbers as
+ * scoreZone plus ORDERED adjustments the UI animates one by one:
+ * Cool → card-level +1 on the lone lowest; Party → zone-level +1 on the
+ * bigger side; Energy → card-level +1 on every card of the smaller side.
+ * Ties/empty zones carry a no-bonus reason and zero adjustments.
+ *
+ * cardRef uses {owner, round, handIndex} because cards are collected across
+ * all 3 rounds' boards — the UI maps it back to the rendered card element.
+ */
+export interface ZoneCardRef {
+  readonly owner: Player;
+  /** 0-based index into state.boards. */
+  readonly round: number;
+  readonly handIndex: number;
+}
+
+export type ZoneTarget = { readonly kind: 'card'; readonly ref: ZoneCardRef } | { readonly kind: 'zone' };
+
+export type ExplainReason =
+  | 'stay-frosty'
+  | 'more-merrier'
+  | 'second-wind'
+  | 'none-tied-lowest'
+  | 'none-equal'
+  | 'none-empty';
+
+export interface ZoneAdjustment {
+  /** Null for no-bonus markers (from === to === 0, contributes nothing). */
+  readonly owner: Player | null;
+  readonly target: ZoneTarget;
+  readonly from: number;
+  readonly to: number;
+  readonly reason: ExplainReason;
+  /** Card counts per side — banner copy interpolates these. */
+  readonly counts: Readonly<Record<Player, number>>;
+}
+
+export interface ZoneExplanation extends ZoneResult {
+  readonly adjustments: readonly ZoneAdjustment[];
+  /** Set for ties/empty zones (adjustments is empty then). */
+  readonly noBonus: ExplainReason | null;
+}
+
+interface Identified {
+  owner: Player;
+  power: number;
+  round: number;
+  handIndex: number;
+}
+
+function collectIdentified(state: MatchState, zoneId: string): Identified[] {
+  const cards: Identified[] = [];
+  state.boards.forEach((board, round) => {
+    const side = board[zoneId];
+    if (!side) throw new RangeError(`Unknown zone: ${zoneId}`);
+    for (const owner of ['A', 'B'] as const) {
+      for (const card of side[owner] as readonly PlacedCard[]) {
+        if (card.power == null) throw new RangeError('Cannot score before round 3 reveal');
+        cards.push({ owner, power: card.power, round, handIndex: card.handIndex });
+      }
+    }
+  });
+  return cards;
+}
+
+export function explainZone(state: MatchState, zoneId: string): ZoneExplanation {
+  const zone = ZONES.find((z) => z.id === zoneId);
+  if (!zone) throw new RangeError(`Unknown zone: ${zoneId}`);
+  const result = scoreZone(state, zoneId);
+  const cards = collectIdentified(state, zoneId);
+  const counts: Record<Player, number> = {
+    A: cards.filter((c) => c.owner === 'A').length,
+    B: cards.filter((c) => c.owner === 'B').length,
+  };
+
+  const adjustments: ZoneAdjustment[] = [];
+  let noBonus: ExplainReason | null = null;
+
+  if (cards.length === 0) {
+    noBonus = 'none-empty';
+  } else if (zone.effect === 'stay-frosty') {
+    const lowest = Math.min(...cards.map((c) => c.power));
+    const coldest = cards.filter((c) => c.power === lowest);
+    if (coldest.length === 1) {
+      const c = coldest[0] as Identified;
+      adjustments.push({
+        owner: c.owner,
+        target: { kind: 'card', ref: { owner: c.owner, round: c.round, handIndex: c.handIndex } },
+        from: c.power,
+        to: c.power + 1,
+        reason: 'stay-frosty',
+        counts,
+      });
+    } else {
+      noBonus = 'none-tied-lowest';
+    }
+  } else if (zone.effect === 'more-the-merrier') {
+    if (counts.A > counts.B) {
+      adjustments.push({
+        owner: 'A',
+        target: { kind: 'zone' },
+        from: result.base.A,
+        to: result.base.A + 1,
+        reason: 'more-merrier',
+        counts,
+      });
+    } else if (counts.B > counts.A) {
+      adjustments.push({
+        owner: 'B',
+        target: { kind: 'zone' },
+        from: result.base.B,
+        to: result.base.B + 1,
+        reason: 'more-merrier',
+        counts,
+      });
+    } else {
+      noBonus = 'none-equal';
+    }
+  } else {
+    if (counts.A < counts.B) {
+      for (const c of cards.filter((c) => c.owner === 'A')) {
+        adjustments.push({
+          owner: 'A',
+          target: { kind: 'card', ref: { owner: 'A', round: c.round, handIndex: c.handIndex } },
+          from: c.power,
+          to: c.power + 1,
+          reason: 'second-wind',
+          counts,
+        });
+      }
+    } else if (counts.B < counts.A) {
+      for (const c of cards.filter((c) => c.owner === 'B')) {
+        adjustments.push({
+          owner: 'B',
+          target: { kind: 'card', ref: { owner: 'B', round: c.round, handIndex: c.handIndex } },
+          from: c.power,
+          to: c.power + 1,
+          reason: 'second-wind',
+          counts,
+        });
+      }
+    } else {
+      noBonus = 'none-equal';
+    }
+  }
+
+  return { ...result, adjustments, noBonus };
+}
+
+/** Explain every zone in board order (Cool → Party → Energy). */
+export function explainMatch(state: MatchState): ZoneExplanation[] {
+  if (state.phase !== 'complete') throw new RangeError('Zones are scored after round 3 only');
+  return ZONES.map((zone) => explainZone(state, zone.id));
+}
