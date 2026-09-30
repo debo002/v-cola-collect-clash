@@ -63,6 +63,14 @@ export interface Translations {
   matchDrawn: string;
   rematch: string;
   returnToMenu: string;
+  // Title screen + rails + rotate gate
+  mainMenu: string;
+  railStandings: string;
+  railLastRound: string;
+  railRules: string;
+  noHistory: string;
+  rotateTitle: string;
+  rotateDesc: string;
   // Deck
   deckTitle: string;
   deckFull: string;
@@ -158,6 +166,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'Match Drawn!',
     rematch: 'Rematch',
     returnToMenu: 'Back to Arena Menu',
+    // Title screen + rails + rotate gate
+    mainMenu: 'Main Menu',
+    railStandings: 'Standings',
+    railLastRound: 'Last round',
+    railRules: 'Zone rules',
+    noHistory: 'No rounds yet',
+    rotateTitle: 'Rotate your device',
+    rotateDesc: 'V Cola: Collect & Clash plays in landscape.',
     // Deck
     deckTitle: 'Battle Deck',
     deckFull: 'Deck full (6 cards) — tap a slot to remove one first.',
@@ -249,6 +265,14 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'تعادل في المباراة!',
     rematch: 'مباراة جديدة',
     returnToMenu: 'العودة للساحة الرئيسية',
+    // Title screen + rails + rotate gate
+    mainMenu: 'القائمة الرئيسية',
+    railStandings: 'الترتيب',
+    railLastRound: 'الجولة الماضية',
+    railRules: 'قواعد المناطق',
+    noHistory: 'لا جولات بعد',
+    rotateTitle: 'دوّر جهازك',
+    rotateDesc: 'تُلعب V كولا: اجمع وتحدى في الوضع الأفقي.',
     // Deck
     deckTitle: 'تشكيلة المعركة',
     deckFull: 'التشكيلة مكتملة (6 كروت) — اضغط على كارت لإزالته أولاً.',

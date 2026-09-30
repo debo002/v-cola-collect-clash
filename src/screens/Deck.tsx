@@ -17,12 +17,14 @@ export function Deck({
   onChange,
   onResetCollection,
   onStarterPack,
+  onBack,
 }: {
   collection: Collection;
   picks: FlavorId[];
   onChange: (picks: FlavorId[]) => void;
   onResetCollection?: () => void;
   onStarterPack?: () => void;
+  onBack?: () => void;
 }) {
   const { t } = useI18n();
   const [notice, setNotice] = useState('');
@@ -58,6 +60,11 @@ export function Deck({
           {t.deckTitle} ({picks.length}/{HAND_SIZE})
         </h2>
         <div className="section-actions">
+          {onBack ? (
+            <button type="button" className="btn btn-secondary" onClick={onBack}>
+              {t.mainMenu}
+            </button>
+          ) : null}
           {picks.length > 0 ? (
             <button type="button" className="btn btn-secondary" onClick={() => onChange([])}>
               {t.clearDeck}
