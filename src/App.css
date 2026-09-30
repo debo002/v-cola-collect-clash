@@ -490,7 +490,8 @@
 }
 
 .lookaway-icon {
-  font-size: 44px;
+  display: inline-flex;
+  color: var(--gold);
 }
 
 .lookaway strong {
@@ -891,37 +892,107 @@
     inset 0 0 14px rgba(255, 215, 0, 0.25);
 }
 
-/* Strips inside each lane — mini cards in a wrapping row */
+/* Strips inside each lane — minis stack vertically, overlapping */
 .lane-cards-strip {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 64px;
+  flex-direction: column;
+  gap: 0;
+  min-height: 40px;
   align-items: center;
   justify-content: center;
   align-content: center;
   flex: 1;
+  min-height: 0;
+  overflow: visible;
 }
 
 .lane-cards-strip.foe-strip {
-  align-content: flex-start;
+  justify-content: flex-start;
 }
 
 .lane-cards-strip.player-strip {
-  align-content: flex-end;
+  justify-content: flex-end;
 }
 
-/* Board mini card: ~46px wide, same GameCard identity */
+/* Board mini card: big enough to read can + power at a glance.
+   Density tiers shrink only when a lane gets crowded. */
 .lane-mini-card {
   position: relative;
-  width: 46px;
-  flex: 0 0 46px;
+  width: 60px;
+  flex: 0 0 auto;
   background: none;
   border: none;
   padding: 0;
   font: inherit;
   color: inherit;
+}
+
+.lane-cards-strip .lane-mini-card + .lane-mini-card {
+  margin-top: -42px;
+}
+
+.lane-cards-strip.density-snug .lane-mini-card {
+  width: 52px;
+}
+
+.lane-cards-strip.density-snug .lane-mini-card + .lane-mini-card {
+  margin-top: -46px;
+}
+
+.lane-cards-strip.density-crowded {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.lane-cards-strip.density-crowded .lane-mini-card {
+  width: 44px;
+}
+
+.lane-cards-strip.density-crowded .lane-mini-card + .lane-mini-card {
+  margin-top: 0;
+}
+
+/* Short viewports: compress pillar + minis so lanes never clip */
+@media (max-height: 700px) {
+  .snap-lane-column {
+    padding: 3px 3px;
+  }
+
+  .lane-zone-pillar {
+    padding: 1px 3px;
+    margin: 1px 0;
+  }
+
+  .pillar-rule {
+    display: none;
+  }
+
+  .pillar-score {
+    font-size: 13px;
+    min-width: 18px;
+  }
+
+  .pillar-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .pillar-name {
+    font-size: 9px;
+  }
+
+  .lane-mini-card {
+    width: 44px;
+  }
+
+  .lane-cards-strip .lane-mini-card + .lane-mini-card {
+    margin-top: -34px;
+  }
+
+  .hand-fan {
+    padding: 18px 4px 6px;
+  }
 }
 
 .lane-mini-card.recallable {
@@ -1018,15 +1089,16 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
 }
 
-/* Central Zone Pillar Tower */
+/* Central Zone Pillar Tower — vertical: foe score above, you below */
 .lane-zone-pillar {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   border-radius: 9px;
-  padding: 4px 4px;
-  margin: 4px 0;
-  gap: 2px;
+  padding: 3px 4px;
+  margin: 3px 0;
+  gap: 0;
 }
 
 @keyframes lanePulse {
@@ -1079,9 +1151,9 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  flex: 1;
+  width: 100%;
   overflow: hidden;
-  gap: 1px;
+  gap: 0;
 }
 
 .pillar-icon {
@@ -1110,10 +1182,10 @@
 }
 
 .pillar-rule {
-  font-size: 8px;
+  font-size: 8.5px;
   color: var(--text-muted);
-  line-height: 1.15;
-  max-width: 95%;
+  line-height: 1.2;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1220,15 +1292,17 @@
 
 .hand-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
   padding: 0 4px;
 }
 
 .hand-title {
-  font-size: 13px;
-  font-weight: 800;
+  font-family: var(--heading);
+  font-size: 16px;
   color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
 }
 
 .hand-tip {
@@ -1238,6 +1312,7 @@
 
 .hand-fan {
   --hand-card-w: clamp(76px, 21vw, 88px);
+  --fan-overlap: 0.35;
   display: flex;
   justify-content: center;
   align-items: flex-end;
@@ -1260,9 +1335,20 @@
   -webkit-user-select: none;
 }
 
-/* ~35% overlap so 6×76px+ cards fit in ~344px at 360px width */
+/* Overlap scales with count: 6 cards stack tight, 4 or fewer spread out */
+.hand-fan.count-1,
+.hand-fan.count-2,
+.hand-fan.count-3,
+.hand-fan.count-4 {
+  --fan-overlap: 0.08;
+}
+
+.hand-fan.count-5 {
+  --fan-overlap: 0.22;
+}
+
 .fan-card + .fan-card {
-  margin-inline-start: calc(var(--hand-card-w) * -0.35);
+  margin-inline-start: calc(var(--hand-card-w) * var(--fan-overlap) * -1);
 }
 
 /* Fanned arc */
@@ -1364,7 +1450,7 @@
 .power-gem {
   position: absolute;
   top: -9px;
-  inset-inline-end: -9px;
+  inset-inline-start: -9px;
   z-index: 3;
   width: 30px;
   height: 30px;
@@ -1377,10 +1463,6 @@
   box-shadow:
     0 3px 0 rgba(0, 0, 0, 0.55),
     0 2px 6px rgba(0, 0, 0, 0.7);
-}
-
-.demo.rtl .power-gem {
-  inset-inline-end: -9px;
 }
 
 .power-val {
@@ -1455,14 +1537,14 @@
 }
 
 .game-card.card-board .power-gem {
-  width: 24px;
-  height: 24px;
-  top: -7px;
-  inset-inline-end: -7px;
+  width: 26px;
+  height: 26px;
+  top: -8px;
+  inset-inline-start: -8px;
 }
 
 .game-card.card-board .power-val {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .game-card.card-board .name-plate {

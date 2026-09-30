@@ -47,6 +47,8 @@ export interface Translations {
   onlyTwo: string;
   roundN: string;
   takeBack: string;
+  oppWaiting: string;
+  yourTurnHint: string;
   // Zones
   zoneCoolRule: string;
   zonePartyRule: string;
@@ -140,10 +142,12 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlyTwo: 'Only 2 cans per round — tap a placed can to take it back',
     roundN: 'Round {n} of 3',
     takeBack: 'Take back {name}',
+    oppWaiting: 'waiting for their turn',
+    yourTurnHint: 'place 1 or 2 cans',
     // Zones
-    zoneCoolRule: 'Lowest Power card gets +1',
-    zonePartyRule: 'Most cards placed gets +1 to zone total',
-    zoneEnergyRule: 'Fewer cards placed gets +1 Power each',
+    zoneCoolRule: 'Lowest Power +1',
+    zonePartyRule: 'Most cards +1',
+    zoneEnergyRule: 'Fewer cards +1 each',
     // Reveal & Result on board
     roundRevealed: 'Round Revealed!',
     scoresAtEnd: 'Zone bonuses are calculated after Round 3',
@@ -230,10 +234,12 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlyTwo: 'كانان فقط في الجولة — اضغط على كان موضوع لاسترجاعه',
     roundN: 'الجولة {n} من 3',
     takeBack: 'استرجاع {name}',
+    oppWaiting: 'بانتظار دوره',
+    yourTurnHint: 'ضع كانًا أو كانين',
     // Zones
-    zoneCoolRule: 'الكارت صاحب القوة الأقل يحصل على +1',
-    zonePartyRule: 'اللاعب الأكثر كروت في المنطقة يحصل على +1',
-    zoneEnergyRule: 'اللاعب الأقل كروت هنا يحصل كل كارت له على +1',
+    zoneCoolRule: 'الأقل قوة +1',
+    zonePartyRule: 'الأكثر كروت +1',
+    zoneEnergyRule: 'الأقل كروت +1 لكل كارت',
     // Reveal & Result on board
     roundRevealed: 'كشف الجولة!',
     scoresAtEnd: 'مكافآت المناطق ونقاطها تحتسب بنهاية الجولة 3',

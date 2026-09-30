@@ -25,7 +25,14 @@ import type { Players } from '../storage/playersStore';
 import { ZONES } from '../game/zones';
 import { assetUrl } from '../components/assetPaths';
 import { GameCard } from '../components/GameCard';
-import { CoolIcon, CrownIcon, EnergyIcon, ExitIcon, PartyIcon } from '../components/icons';
+import {
+  CoolIcon,
+  CrownIcon,
+  EnergyIcon,
+  ExitIcon,
+  PartyIcon,
+  PhoneIcon,
+} from '../components/icons';
 import { fmt, useI18n } from '../i18n';
 
 type Stage = 'idle' | 'passA' | 'placeA' | 'passB' | 'placeB' | 'roundReveal' | 'matchOver';
@@ -342,7 +349,7 @@ export function QuickPlay({
                 className="btn btn-primary btn-lg mode-action-btn"
                 onClick={startQuickPlay}
               >
-                ⚡ {t.quickPlayBtn}
+                {t.quickPlayBtn}
               </button>
             </div>
           </div>
@@ -357,7 +364,9 @@ export function QuickPlay({
       {/* Lookaway Handoff Screen for Player A */}
       {match && stage === 'passA' ? (
         <div className="lookaway" role="alert">
-          <div className="lookaway-icon">📱</div>
+          <div className="lookaway-icon">
+            <PhoneIcon size={44} />
+          </div>
           <strong>
             {t.passTo} {names.A}
           </strong>
@@ -396,7 +405,9 @@ export function QuickPlay({
       {/* Lookaway Handoff Screen for Player B */}
       {match && stage === 'passB' ? (
         <div className="lookaway" role="alert">
-          <div className="lookaway-icon">📱</div>
+          <div className="lookaway-icon">
+            <PhoneIcon size={44} />
+          </div>
           <strong>
             {t.passTo} {names.B}
           </strong>
@@ -612,9 +623,7 @@ function SnapBattlefield({
       <div className="arena-player-plate opponent-plate">
         <div className="player-meta">
           <strong className="player-tag">{names[foe]}</strong>
-          <span className="player-status">
-            {isRevealing ? t.roundRevealed : fmt(t.oppStrip, { name: names[foe] })}
-          </span>
+          <span className="player-status">{isRevealing ? t.roundRevealed : t.oppWaiting}</span>
         </div>
       </div>
 
@@ -668,6 +677,23 @@ function SnapBattlefield({
           const isWinning = pPower > foePower;
           const isLosing = foePower > pPower;
           const isTied = pPower === foePower && (pPower > 0 || foePower > 0);
+          // Density tier keeps minis readable normally, compact when crowded.
+          // A full lane (5+ cards both sides) goes compact on both strips.
+          const laneCrowded = foeCards.length + pCards.length >= 5;
+          const foeTier = laneCrowded
+            ? 'crowded'
+            : foeCards.length <= 2
+              ? 'roomy'
+              : foeCards.length <= 4
+                ? 'snug'
+                : 'crowded';
+          const ownTier = laneCrowded
+            ? 'crowded'
+            : pCards.length <= 2
+              ? 'roomy'
+              : pCards.length <= 4
+                ? 'snug'
+                : 'crowded';
 
           return (
             <div
@@ -679,7 +705,7 @@ function SnapBattlefield({
               onClick={() => handleZoneClick(z.id)}
             >
               {/* Opponent side of this lane (Top) */}
-              <div className="lane-cards-strip foe-strip">
+              <div className={`lane-cards-strip foe-strip density-${foeTier}`}>
                 {foeCards.map((item, idx) => {
                   // Pass-and-play fairness: during a placing turn the opponent's
                   // current-round picks stay fully hidden — not even a face-down
@@ -707,7 +733,7 @@ function SnapBattlefield({
                 })}
               </div>
 
-              {/* Center band: zone icon, name, rule, live scores */}
+              {/* Center band: zone icon, name, rule, live scores (foe above, you below) */}
               <div
                 className={`lane-zone-pillar${
                   isWinning ? ' p-leading' : isLosing ? ' foe-leading' : isTied ? ' lane-tied' : ''
@@ -725,7 +751,7 @@ function SnapBattlefield({
               </div>
 
               {/* Active Player side of this lane (Bottom) */}
-              <div className="lane-cards-strip player-strip">
+              <div className={`lane-cards-strip player-strip density-${ownTier}`}>
                 {pCards.map((item, idx) => {
                   const hc = hand[item.card.handIndex];
                   const flavor = hc ? flavorOf(hc.flavor) : undefined;
@@ -782,9 +808,7 @@ function SnapBattlefield({
       <div className="arena-player-plate player-plate">
         <div className="player-meta">
           <strong className="player-tag">{names[player]}</strong>
-          <span className="player-status">
-            {isRevealing ? '' : fmt(t.turnTitle, { name: names[player] })}
-          </span>
+          <span className="player-status">{isRevealing ? '' : t.yourTurnHint}</span>
         </div>
         {!isRevealing && <TimerRing seconds={seconds} total={TIMER_SECONDS} />}
       </div>
@@ -803,7 +827,7 @@ function SnapBattlefield({
 
           <div
             key={shakeKey}
-            className={`hand-fan${shakeKey > 0 ? ' shake-once' : ''}`}
+            className={`hand-fan count-${Math.min(visibleCards.length, 6)}${shakeKey > 0 ? ' shake-once' : ''}`}
             role="group"
             aria-label={t.yourHand}
           >
