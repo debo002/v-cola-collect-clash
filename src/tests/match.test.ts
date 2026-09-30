@@ -40,8 +40,8 @@ describe('match setup', () => {
     expect(() => createMatch(makeHand().slice(0, 5), makeHand())).toThrow(RangeError);
   });
 
-  it('uses the approved 20-second turn timer (spec §5 said 12s)', () => {
-    expect(TIMER_SECONDS).toBe(20);
+  it('uses the approved 60-second turn timer (spec §5 said 12s)', () => {
+    expect(TIMER_SECONDS).toBe(60);
   });
 
   it('tracks all 6 cards as unused at the start', () => {

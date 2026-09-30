@@ -112,7 +112,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     quickPlayTitle: 'Quick Play',
     quickPlayBadge: 'Casual • Single Match',
     quickPlayDesc:
-      'Instant showdown with 6 unique cans dealt to each player. Fast 3-round battle (~90s).',
+      'Instant showdown with 6 unique cans dealt to each player. Relaxed 3-round battle (~4 min).',
     quickPlayBtn: 'Play Quick Match',
     rankedNote:
       'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
@@ -203,8 +203,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     // Modes
     quickPlayTitle: 'مباراة سريعة',
     quickPlayBadge: 'لعب محلي • مباراة واحدة',
-    quickPlayDesc:
-      'مواجهة فورية بـ 6 كروت عشوائية لكل لاعب. 3 جولات مليئة بالإثارة والسرعة (~90 ثانية).',
+    quickPlayDesc: 'مواجهة بـ 6 كروت عشوائية لكل لاعب. 3 جولات على مهل (~4 دقائق).',
     quickPlayBtn: 'العب الآن',
     rankedNote:
       'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',

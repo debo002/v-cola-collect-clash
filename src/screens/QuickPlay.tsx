@@ -70,12 +70,12 @@ function ZoneIcon({ zoneId, size = 18 }: { zoneId: string; size?: number }) {
   return <EnergyIcon size={size} />;
 }
 
-/** Circular timer ring that drains as seconds run out. Red under 5s. */
+/** Circular timer ring that drains as seconds run out. Red under 10s. */
 function TimerRing({ seconds, total }: { seconds: number; total: number }) {
   const r = 11;
   const c = 2 * Math.PI * r;
   const frac = Math.max(0, Math.min(1, seconds / total));
-  const urgent = seconds <= 5;
+  const urgent = seconds <= 10;
   return (
     <span
       className={`timer-ring${urgent ? ' urgent' : ''}`}

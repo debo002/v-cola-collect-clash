@@ -15,7 +15,8 @@ export const MIN_PLACE = 1;
 export const MAX_PLACE = 2;
 // Approved override (2026-09-27): spec §5 says a 12s flat timer; Abdullah
 // raised it to 20s after playtesting — too fast to read the board on a phone.
-export const TIMER_SECONDS = 20;
+// Relaxed override (2026-09-30): domino-style think time — 60s flat per turn.
+export const TIMER_SECONDS = 60;
 
 export type Player = 'A' | 'B';
 export type ZoneId = string;
@@ -235,7 +236,7 @@ export function revealRound(state: MatchState): MatchState {
 }
 
 /**
- * Timeout (12s flat): auto-place one random unused card into a random zone,
+ * Timeout (60s flat): auto-place one random unused card into a random zone,
  * then lock in. With nothing left unused, just locks in.
  */
 export function autoPlaceForTimeout(
