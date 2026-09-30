@@ -295,7 +295,10 @@ export function QuickPlay({
           <button
             type="button"
             className="btn btn-primary btn-lg"
-            onClick={(e) => { e.stopPropagation(); setStage('placeA'); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setStage('placeA');
+            }}
           >
             {t.imPlayer} {names.A} — {t.showCards}
           </button>
@@ -330,7 +333,10 @@ export function QuickPlay({
           <button
             type="button"
             className="btn btn-primary btn-lg"
-            onClick={(e) => { e.stopPropagation(); setStage('placeB'); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setStage('placeB');
+            }}
           >
             {t.imPlayer} {names.B} — {t.showCards}
           </button>
@@ -628,9 +634,7 @@ function SnapBattlefield({
                   isWinning ? ' p-leading' : isLosing ? ' foe-leading' : isTied ? ' lane-tied' : ''
                 }`}
               >
-                <div className="pillar-score foe-score">
-                  {foePower}
-                </div>
+                <div className="pillar-score foe-score">{foePower}</div>
                 <div className="pillar-body">
                   <span className="pillar-icon">
                     {z.id === 'cool' ? '❄️' : z.id === 'party' ? '🎉' : '⚡'}
@@ -638,9 +642,7 @@ function SnapBattlefield({
                   <strong className="pillar-name">{z.name}</strong>
                   <span className="pillar-rule">{zoneRules[z.id]}</span>
                 </div>
-                <div className="pillar-score player-score">
-                  {pPower}
-                </div>
+                <div className="pillar-score player-score">{pPower}</div>
               </div>
 
               {/* Active Player side of this lane (Bottom) */}
@@ -670,11 +672,7 @@ function SnapBattlefield({
                   );
                 })}
 
-                {isDropReady && (
-                  <div className="lane-drop-prompt">
-                    + {t.tapZoneToPlace}
-                  </div>
-                )}
+                {isDropReady && <div className="lane-drop-prompt">+ {t.tapZoneToPlace}</div>}
               </div>
             </div>
           );
@@ -686,9 +684,7 @@ function SnapBattlefield({
         <div className="player-meta">
           <strong className="player-tag">{names[player]}</strong>
           <span className="player-status">
-            {isRevealing
-              ? ''
-              : `${t.turnBanner} • ${visibleCards.length} ${t.cardsAvailable}`}
+            {isRevealing ? '' : `${t.turnBanner} • ${visibleCards.length} ${t.cardsAvailable}`}
           </span>
         </div>
         {!isRevealing && (
@@ -779,11 +775,13 @@ function SnapBattlefield({
             </div>
           ) : (
             <div className="reveal-content-card round-revealed-card">
-              <h3 className="round-revealed-title">
-                ⚡ {t.roundRevealed}
-              </h3>
+              <h3 className="round-revealed-title">⚡ {t.roundRevealed}</h3>
               <p className="round-revealed-note">{t.scoresAtEnd}</p>
-              <button type="button" className="btn btn-primary btn-lg lock-btn" onClick={onNextRound}>
+              <button
+                type="button"
+                className="btn btn-primary btn-lg lock-btn"
+                onClick={onNextRound}
+              >
                 {t.nextRound} {match.round}) ➔
               </button>
             </div>
@@ -804,7 +802,9 @@ function SnapBattlefield({
           <GameCard
             flavor={flavorOf(hand[drag.handIndex].flavor)!}
             power={hand[drag.handIndex].power}
-            displayName={t.flavors[hand[drag.handIndex].flavor] || flavorOf(hand[drag.handIndex].flavor)!.name}
+            displayName={
+              t.flavors[hand[drag.handIndex].flavor] || flavorOf(hand[drag.handIndex].flavor)!.name
+            }
           />
         </div>
       )}

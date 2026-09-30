@@ -122,9 +122,7 @@ export function Deck({
         </div>
       ) : null}
 
-      <h3 className="deck-pick-head">
-        {totalOwned === 0 ? t.flavorsToUnlock : t.tapOwnedToAdd}
-      </h3>
+      <h3 className="deck-pick-head">{totalOwned === 0 ? t.flavorsToUnlock : t.tapOwnedToAdd}</h3>
 
       <div className="card-grid">
         {FLAVORS.map((flavor) => {
@@ -150,9 +148,7 @@ export function Deck({
               />
               <div className="deck-meta-row">
                 <span className="deck-count">×{owned}</span>
-                {alreadyInDeck ? (
-                  <span className="deck-in-badge">✓ {t.inDeck}</span>
-                ) : null}
+                {alreadyInDeck ? <span className="deck-in-badge">✓ {t.inDeck}</span> : null}
               </div>
             </button>
           );

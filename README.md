@@ -28,8 +28,6 @@ src/components/  # React UI building blocks
 src/screens/     # mobile-first screens (Play, Deck)
 src/i18n.tsx     # English + Arabic strings (single Translations table)
 src/tests/       # Vitest tests for game logic
-```
-src/tests/       # Vitest tests for game logic
 docs/            # local-only specs (gitignored, never committed)
 ```
 

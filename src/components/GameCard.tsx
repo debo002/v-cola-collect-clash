@@ -37,7 +37,9 @@ export function GameCard({
           src={flavorImageUrl(flavor)}
           alt={label}
           loading="lazy"
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = 'none';
+          }}
         />
       </div>
       <div className="name-plate">

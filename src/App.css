@@ -213,7 +213,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 4px 14px rgba(230, 30, 43, 0.5);
   }
   50% {
@@ -241,7 +242,11 @@
 .arena-hero {
   text-align: center;
   padding: 16px 10px 14px;
-  background: radial-gradient(circle at 50% 30%, rgba(230, 30, 43, 0.15) 0%, rgba(10, 13, 20, 0.6) 80%);
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(230, 30, 43, 0.15) 0%,
+    rgba(10, 13, 20, 0.6) 80%
+  );
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
@@ -578,8 +583,13 @@
 }
 
 @keyframes timerPulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.1); box-shadow: 0 0 10px rgba(255, 59, 48, 0.8); }
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
+  }
 }
 
 /* ==========================================================================
@@ -615,7 +625,9 @@
     radial-gradient(ellipse at 50% 0%, rgba(0, 135, 204, 0.22) 0%, transparent 60%),
     linear-gradient(180deg, #07192b 0%, #030d17 100%);
   border-color: #0087cc;
-  box-shadow: inset 0 0 24px rgba(0, 135, 204, 0.2), 0 4px 12px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 0 24px rgba(0, 135, 204, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .snap-lane-column.zone-cool .pillar-name {
@@ -639,7 +651,9 @@
     radial-gradient(ellipse at 50% 0%, rgba(197, 0, 122, 0.22) 0%, transparent 60%),
     linear-gradient(180deg, #24051a 0%, #10020c 100%);
   border-color: #c5007a;
-  box-shadow: inset 0 0 24px rgba(197, 0, 122, 0.2), 0 4px 12px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 0 24px rgba(197, 0, 122, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .snap-lane-column.zone-party .pillar-name {
@@ -663,7 +677,9 @@
     radial-gradient(ellipse at 50% 0%, rgba(245, 166, 35, 0.22) 0%, transparent 60%),
     linear-gradient(180deg, #241300 0%, #110900 100%);
   border-color: #f5a623;
-  box-shadow: inset 0 0 24px rgba(245, 166, 35, 0.2), 0 4px 12px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 0 24px rgba(245, 166, 35, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
 .snap-lane-column.zone-energy .pillar-name {
@@ -684,24 +700,38 @@
 /* Drop hover / selection targets */
 .snap-lane-column.drop-ready {
   border-color: #ffd875;
-  box-shadow: 0 0 0 2px #ffd875, 0 0 16px rgba(255, 216, 117, 0.4);
+  box-shadow:
+    0 0 0 2px #ffd875,
+    0 0 16px rgba(255, 216, 117, 0.4);
   animation: readyPulse 1.2s infinite alternate;
 }
 
 @keyframes readyPulse {
-  from { box-shadow: 0 0 0 2px #ffd875, 0 0 8px rgba(255, 216, 117, 0.3); }
-  to   { box-shadow: 0 0 0 3px #ffd875, 0 0 22px rgba(255, 216, 117, 0.7); }
+  from {
+    box-shadow:
+      0 0 0 2px #ffd875,
+      0 0 8px rgba(255, 216, 117, 0.3);
+  }
+  to {
+    box-shadow:
+      0 0 0 3px #ffd875,
+      0 0 22px rgba(255, 216, 117, 0.7);
+  }
 }
 
 .snap-lane-column.drop-target {
   border-color: #fff !important;
-  box-shadow: 0 0 0 2px #fff, 0 0 24px rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 24px rgba(255, 255, 255, 0.85) !important;
   transform: scale(1.02);
 }
 
 .snap-lane-column.lane-victory {
   border-color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.55), inset 0 0 14px rgba(255, 215, 0, 0.25);
+  box-shadow:
+    0 0 20px rgba(255, 215, 0, 0.55),
+    inset 0 0 14px rgba(255, 215, 0, 0.25);
 }
 
 /* Strips inside each lane */
@@ -962,7 +992,9 @@
 
 .game-card.selected {
   border-color: #ffd875 !important;
-  box-shadow: 0 0 0 2px #ffd875, 0 8px 24px rgba(255, 216, 117, 0.6) !important;
+  box-shadow:
+    0 0 0 2px #ffd875,
+    0 8px 24px rgba(255, 216, 117, 0.6) !important;
 }
 
 .game-card.dimmed {
@@ -982,7 +1014,9 @@
   justify-content: center;
   background: linear-gradient(135deg, #e61e2b 0%, #9e1019 100%);
   border: 1.5px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
 .demo.rtl .power-gem {
@@ -1046,7 +1080,9 @@
 /* 1. V Cola — Deep navy/blue with silver */
 .flavor-v-cola.game-card {
   border-color: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(29, 78, 216, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(29, 78, 216, 0.3);
 }
 .flavor-v-cola .game-art {
   background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #0a1329 75%);
@@ -1062,7 +1098,9 @@
 /* 2. V Diet Cola — Silver/white with blue accent */
 .flavor-v-diet-cola.game-card {
   border-color: #94a3b8;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(148, 163, 184, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(148, 163, 184, 0.3);
 }
 .flavor-v-diet-cola .game-art {
   background: radial-gradient(circle at 50% 30%, #475569 0%, #0f172a 75%);
@@ -1078,7 +1116,9 @@
 /* 3. V Lemon — Vibrant green */
 .flavor-v-lemon.game-card {
   border-color: #16a34a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(22, 163, 74, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(22, 163, 74, 0.3);
 }
 .flavor-v-lemon .game-art {
   background: radial-gradient(circle at 50% 30%, #15803d 0%, #052e16 75%);
@@ -1090,7 +1130,9 @@
 /* 4. Pink Lemonade — Pink/magenta */
 .flavor-pink-lemonade.game-card {
   border-color: #ec4899;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(236, 72, 153, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(236, 72, 153, 0.3);
 }
 .flavor-pink-lemonade .game-art {
   background: radial-gradient(circle at 50% 30%, #be185d 0%, #500724 75%);
@@ -1102,7 +1144,9 @@
 /* 5. Cream Soda — Warm gold/tan */
 .flavor-cream-soda.game-card {
   border-color: #d97706;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(217, 119, 6, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(217, 119, 6, 0.3);
 }
 .flavor-cream-soda .game-art {
   background: radial-gradient(circle at 50% 30%, #b45309 0%, #451a03 75%);
@@ -1114,7 +1158,9 @@
 /* 6. Pomegranate — Deep red */
 .flavor-pomegranate.game-card {
   border-color: #dc2626;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(220, 38, 38, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(220, 38, 38, 0.3);
 }
 .flavor-pomegranate .game-art {
   background: radial-gradient(circle at 50% 30%, #991b1b 0%, #450a0a 75%);
@@ -1126,7 +1172,9 @@
 /* 7. Blueberry — Blue/purple */
 .flavor-blueberry.game-card {
   border-color: #6366f1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(99, 102, 241, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(99, 102, 241, 0.3);
 }
 .flavor-blueberry .game-art {
   background: radial-gradient(circle at 50% 30%, #4338ca 0%, #1e1b4b 75%);
@@ -1138,7 +1186,9 @@
 /* 8. Lemon Mint — Light green/teal */
 .flavor-lemon-mint.game-card {
   border-color: #0d9488;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(13, 148, 136, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(13, 148, 136, 0.3);
 }
 .flavor-lemon-mint .game-art {
   background: radial-gradient(circle at 50% 30%, #0f766e 0%, #042f2e 75%);
@@ -1150,7 +1200,9 @@
 /* 9. Pina Colada — Yellow/cream */
 .flavor-pina-colada.game-card {
   border-color: #eab308;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(234, 179, 8, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(234, 179, 8, 0.3);
 }
 .flavor-pina-colada .game-art {
   background: radial-gradient(circle at 50% 30%, #ca8a04 0%, #422006 75%);
@@ -1162,7 +1214,9 @@
 /* 10. V7 Apple Malt — Amber/gold */
 .flavor-v7-apple-malt.game-card {
   border-color: #c2410c;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(194, 65, 12, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(194, 65, 12, 0.3);
 }
 .flavor-v7-apple-malt .game-art {
   background: radial-gradient(circle at 50% 30%, #9a3412 0%, #3d1308 75%);
@@ -1174,7 +1228,9 @@
 /* 11. V7 Pineapple Malt — Yellow/gold */
 .flavor-v7-pineapple-malt.game-card {
   border-color: #d97706;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(217, 119, 6, 0.3);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(217, 119, 6, 0.3);
 }
 .flavor-v7-pineapple-malt .game-art {
   background: radial-gradient(circle at 50% 30%, #a16207 0%, #3f2205 75%);
@@ -1224,7 +1280,9 @@
   background: rgba(15, 19, 28, 0.95);
   backdrop-filter: blur(14px);
   border: 2px solid #ffd875;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85), 0 0 24px rgba(255, 216, 117, 0.3);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.85),
+    0 0 24px rgba(255, 216, 117, 0.3);
   border-radius: 18px;
   padding: 20px 16px;
   text-align: center;

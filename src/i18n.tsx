@@ -78,15 +78,18 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     arenaTitle: 'Battle Arena',
     arenaSubtitle: '1v1 Tactical Showdown — Control 2 of 3 Zones',
     playerProfiles: 'Player Profiles (Local Pass & Play)',
-    playerProfilesNote: 'Enter player names for pass-and-play. Device is handed over between turns.',
+    playerProfilesNote:
+      'Enter player names for pass-and-play. Device is handed over between turns.',
     player1Name: 'Player 1 Name',
     player2Name: 'Player 2 Name',
     // Modes
     quickPlayTitle: 'Quick Play',
     quickPlayBadge: 'Casual • Single Match',
-    quickPlayDesc: 'Instant showdown with 6 unique cans dealt to each player. Fast 3-round battle (~90s).',
+    quickPlayDesc:
+      'Instant showdown with 6 unique cans dealt to each player. Fast 3-round battle (~90s).',
     quickPlayBtn: 'Play Quick Match',
-    rankedNote: 'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
+    rankedNote:
+      'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
     exitMatch: 'Exit Match',
     // Lookaway
     passTo: 'Pass the phone to',
@@ -137,8 +140,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       'v-lemon': 'V Lemon',
       'pink-lemonade': 'Pink Lemonade',
       'cream-soda': 'Cream Soda',
-      'pomegranate': 'Pomegranate',
-      'blueberry': 'Blueberry',
+      pomegranate: 'Pomegranate',
+      blueberry: 'Blueberry',
       'lemon-mint': 'Lemon Mint',
       'pina-colada': 'Pina Colada',
       'v7-apple-malt': 'V7 Apple Malt',
@@ -154,15 +157,18 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     arenaTitle: 'ساحة التحدي',
     arenaSubtitle: 'مواجهة تكتيكية 1 ضد 1 — سيطر على منطقتين من أصل 3',
     playerProfiles: 'الملفات الشخصية (تمرير الهاتف)',
-    playerProfilesNote: 'سجل اسم اللاعبين لمشاركة الهاتف في المباريات المحلية. يتم تمرير الهاتف بين الجولات.',
+    playerProfilesNote:
+      'سجل اسم اللاعبين لمشاركة الهاتف في المباريات المحلية. يتم تمرير الهاتف بين الجولات.',
     player1Name: 'اسم اللاعب الأول',
     player2Name: 'اسم اللاعب الثاني',
     // Modes
     quickPlayTitle: 'مباراة سريعة',
     quickPlayBadge: 'لعب محلي • مباراة واحدة',
-    quickPlayDesc: 'مواجهة فورية بـ 6 كروت عشوائية لكل لاعب. 3 جولات مليئة بالإثارة والسرعة (~90 ثانية).',
+    quickPlayDesc:
+      'مواجهة فورية بـ 6 كروت عشوائية لكل لاعب. 3 جولات مليئة بالإثارة والسرعة (~90 ثانية).',
     quickPlayBtn: 'العب الآن',
-    rankedNote: 'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',
+    rankedNote:
+      'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',
     exitMatch: 'إنهاء المباراة',
     // Lookaway
     passTo: 'مرر الهاتف إلى',
@@ -213,8 +219,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
       'v-lemon': 'في ليمون',
       'pink-lemonade': 'بينك ليمونيد',
       'cream-soda': 'كريم صودا',
-      'pomegranate': 'رمان',
-      'blueberry': 'بلوبيري',
+      pomegranate: 'رمان',
+      blueberry: 'بلوبيري',
       'lemon-mint': 'ليمون نعناع',
       'pina-colada': 'بينا كولادا',
       'v7-apple-malt': 'V7 شعير تفاح',
