@@ -23,11 +23,12 @@ Other scripts: `npm run lint`, `npm run format`, `npm run typecheck`.
 
 ```
 src/game/        # framework-agnostic TS: rules, placement, reveal, scoring (no React/DOM)
-src/storage/     # Phase 1: IndexedDB collection persistence (stub for now)
-src/scanning/    # Phase 2 stubs only — no ZXing / TF.js yet
+src/storage/     # IndexedDB persistence: collection, deck, player names
 src/components/  # React UI building blocks
-src/screens/     # mobile-first screens
-src/hooks/       # React hooks
+src/screens/     # mobile-first screens (Play, Deck)
+src/i18n.tsx     # English + Arabic strings (single Translations table)
+src/tests/       # Vitest tests for game logic
+```
 src/tests/       # Vitest tests for game logic
 docs/            # local-only specs (gitignored, never committed)
 ```

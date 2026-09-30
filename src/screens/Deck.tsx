@@ -89,7 +89,7 @@ export function Deck({
             <button
               key={i}
               type="button"
-              className="deck-slot filled"
+              className="deck-slot"
               onClick={() => removeAt(i)}
               aria-label={`Remove ${displayName} from deck`}
               title="Click to remove from deck"

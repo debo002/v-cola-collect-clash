@@ -1,0 +1,19 @@
+{
+  "name": "V Cola: Collect & Clash",
+  "short_name": "V Cola",
+  "description": "1v1 collectible card battle — local pass-and-play",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#090b10",
+  "theme_color": "#e61e2b",
+  "dir": "ltr",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "assets/cards/v7-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
