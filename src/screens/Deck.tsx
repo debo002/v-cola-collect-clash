@@ -4,6 +4,7 @@ import { countOf, totalCopies, type Collection } from '../game/collection';
 import { HAND_SIZE } from '../game/hands';
 import type { FlavorId } from '../game/types';
 import { GameCard } from '../components/GameCard';
+import { DeckIcon } from '../components/icons';
 import { useI18n } from '../i18n';
 
 /**
@@ -119,6 +120,9 @@ export function Deck({
 
       {totalOwned === 0 ? (
         <div className="empty-collection-box">
+          <span className="empty-box-icon" aria-hidden="true">
+            <DeckIcon size={28} />
+          </span>
           <h3>{t.noCansTitle}</h3>
           <p className="demo-note">{t.noCansDesc}</p>
           {onStarterPack ? (

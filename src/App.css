@@ -638,6 +638,10 @@
   transform: scale(1.02);
 }
 
+.zone-col:active {
+  transform: scale(0.99);
+}
+
 .zone-col.lane-victory {
   border-color: #ffd700;
   box-shadow:
@@ -969,6 +973,11 @@
 .fan-card.selected {
   transform: translateY(-10px) scale(1.12);
   z-index: 10;
+}
+
+/* Hover brightens without moving layout (no jitter, stable bounds) */
+.fan-card:hover .game-card {
+  filter: brightness(1.15);
 }
 
 .fan-card.dragging {
@@ -1347,6 +1356,11 @@
   align-items: center;
 }
 
+.empty-box-icon {
+  display: inline-flex;
+  color: var(--gold);
+}
+
 .empty-collection-box h3 {
   margin: 0;
   font-size: 17px;
@@ -1555,6 +1569,12 @@
 /* Round 1-2 reveal: flip + stagger (short, end state identical) */
 .animate-flip {
   animation: flipCard 400ms ease-out backwards;
+}
+
+/* Power number pops in on the same stagger beat as its card */
+.reveal-pop .power-gem {
+  animation: cardPop 250ms var(--motion-ease, cubic-bezier(0.2, 1.4, 0.4, 1)) backwards;
+  animation-delay: var(--pop-delay, 0ms);
 }
 
 @keyframes flipCard {

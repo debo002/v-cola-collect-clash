@@ -3,6 +3,7 @@ import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 import { CoolIcon, EnergyIcon, PartyIcon } from '../icons';
 import type { StripCard } from './boardUtils';
+import type { CSSProperties } from 'react';
 
 export function ZoneIcon({ zoneId, size = 20 }: { zoneId: string; size?: number }) {
   if (zoneId === 'cool') return <CoolIcon size={size} />;
@@ -84,7 +85,11 @@ export function ZoneColumn({
     const displayName = t.flavors[flavor.id] || flavor.name;
     const pulsed = pulseKeys?.has(c.key) ?? false;
     const chipped = chipKeys?.has(c.key) ?? false;
-    const delay = stagger != null ? { animationDelay: `${stagger + idx * 60}ms` } : undefined;
+    const staggerMs = stagger != null ? stagger + idx * 60 : null;
+    const delay =
+      staggerMs != null
+        ? ({ animationDelay: `${staggerMs}ms`, '--pop-delay': `${staggerMs}ms` } as CSSProperties)
+        : undefined;
     const inner = (
       <GameCard
         flavor={flavor}
@@ -93,7 +98,7 @@ export function ZoneColumn({
         size="board"
       />
     );
-    const cls = `strip-mini${pulsed ? ' bonus-pulse' : ''}${stagger != null ? (side === 'foe' ? ' animate-flip' : ' pop-in') : ''}`;
+    const cls = `strip-mini${pulsed ? ' bonus-pulse' : ''}${staggerMs != null ? (side === 'foe' ? ' animate-flip reveal-pop' : ' pop-in reveal-pop') : ''}`;
     const chip = chipped ? (
       <span className="plus-chip" aria-hidden="true">
         +1

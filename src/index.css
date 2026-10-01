@@ -199,7 +199,14 @@ input:focus-visible,
   .timer-ring.urgent,
   .confetti-piece,
   .shake-once,
-  .board .zone-col {
+  .zone-col,
+  .strip-mini.bonus-pulse .game-card,
+  .plus-chip,
+  .animate-flip,
+  .pop-in,
+  .reveal-pop .power-gem,
+  .reveal-overlay-banner,
+  .verdict-badge {
     animation: none !important;
   }
 
