@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 
 /**
@@ -40,8 +33,7 @@ function viewportSize(): { w: number; h: number } {
 export function tryLockLandscape(): void {
   try {
     const orient = window.screen?.orientation as
-      | { lock?: (o: string) => Promise<void> }
-      | undefined;
+      { lock?: (o: string) => Promise<void> } | undefined;
     orient?.lock?.('landscape')?.catch(() => {});
   } catch {
     // Silently ignore — unsupported browsers just stay unlocked.

@@ -93,15 +93,11 @@ export interface ZoneCardRef {
   readonly handIndex: number;
 }
 
-export type ZoneTarget = { readonly kind: 'card'; readonly ref: ZoneCardRef } | { readonly kind: 'zone' };
+export type ZoneTarget =
+  { readonly kind: 'card'; readonly ref: ZoneCardRef } | { readonly kind: 'zone' };
 
 export type ExplainReason =
-  | 'stay-frosty'
-  | 'more-merrier'
-  | 'second-wind'
-  | 'none-tied-lowest'
-  | 'none-equal'
-  | 'none-empty';
+  'stay-frosty' | 'more-merrier' | 'second-wind' | 'none-tied-lowest' | 'none-equal' | 'none-empty';
 
 export interface ZoneAdjustment {
   /** Null for no-bonus markers (from === to === 0, contributes nothing). */

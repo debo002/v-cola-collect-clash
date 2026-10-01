@@ -115,6 +115,7 @@ export function ZoneColumn({
             e.stopPropagation();
             onRecall(c.handIndex);
           }}
+          onDragStart={(e) => e.preventDefault()}
           title={t.recall}
           aria-label={fmt(t.takeBack, { name: displayName })}
         >

@@ -9,7 +9,12 @@ import { ZoneColumn } from './ZoneColumn';
 type Phase = 'count' | 'reason' | 'apply' | 'verdict';
 
 const DUR: Record<Phase, number> = { count: 600, reason: 1000, apply: 1000, verdict: 700 };
-const NEXT: Record<Phase, Phase | null> = { count: 'reason', reason: 'apply', apply: 'verdict', verdict: null };
+const NEXT: Record<Phase, Phase | null> = {
+  count: 'reason',
+  reason: 'apply',
+  apply: 'verdict',
+  verdict: null,
+};
 
 function keyOf(player: Player, owner: Player, round: number, handIndex: number): string {
   return `${owner === player ? 'm' : 'f'}-${round}-${handIndex}`;
@@ -202,7 +207,9 @@ export function ResolutionOverlay({
   }
 
   const withTick = (cards: StripCard[]): StripCard[] =>
-    tick.size === 0 ? cards : cards.map((c) => (tick.has(c.key) ? { ...c, power: tick.get(c.key) } : c));
+    tick.size === 0
+      ? cards
+      : cards.map((c) => (tick.has(c.key) ? { ...c, power: tick.get(c.key) } : c));
 
   const banner = active ? bannerFor(active) : null;
 

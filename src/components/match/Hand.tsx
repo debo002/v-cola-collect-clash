@@ -63,10 +63,16 @@ export function Hand({
                 onPointerMove={onCardPointerMove}
                 onPointerUp={onCardPointerUp}
                 onPointerCancel={onCardPointerCancel}
+                onDragStart={(e) => e.preventDefault()}
                 aria-label={`${displayName}, power ${hc.power}`}
                 aria-pressed={isSelected}
               >
-                <GameCard flavor={flavor} power={hc.power} displayName={displayName} selected={isSelected} />
+                <GameCard
+                  flavor={flavor}
+                  power={hc.power}
+                  displayName={displayName}
+                  selected={isSelected}
+                />
               </button>
             );
           })}

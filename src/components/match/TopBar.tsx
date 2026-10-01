@@ -23,7 +23,11 @@ export function TimerRing({ seconds, total }: { seconds: number; total: number }
   const frac = Math.max(0, Math.min(1, seconds / total));
   const urgent = seconds <= 10;
   return (
-    <span className={`timer-ring${urgent ? ' urgent' : ''}`} role="timer" aria-label={`${seconds}s`}>
+    <span
+      className={`timer-ring${urgent ? ' urgent' : ''}`}
+      role="timer"
+      aria-label={`${seconds}s`}
+    >
       <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
         <circle cx="16" cy="16" r={r} className="ring-track" />
         <circle

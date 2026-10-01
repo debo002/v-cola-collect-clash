@@ -43,6 +43,7 @@ export function GameCard({
           src={flavorImageUrl(flavor)}
           alt={label}
           loading="lazy"
+          draggable={false}
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = 'none';
           }}
