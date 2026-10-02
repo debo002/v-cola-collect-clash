@@ -20,7 +20,9 @@ npm run smoke               # Run the Playwright match smoke flow (with preview 
 
 ## Match flow
 
-Quick Play starts with player setup, then passes the device between players. Each player plans cards in a zone and locks in; both players' placements are revealed after both lock in. After the third round, the game runs the zone-resolution sequence, shows the match review, and lets players tap a zone to replay its resolution. Players can rematch or return to the menu.
+Quick Play starts with player setup, then passes the device between players. Each player plans cards in a zone and locks in; both players' placements are revealed after both lock in. The `?` help sheet explains the match, zones, combos, card effects, tags, and board indicators without changing the match. After the third round, the game runs the zone-resolution sequence, shows the match review, and lets players tap a zone to replay its resolution. Players can rematch or return to the menu.
+
+The Cola pair applies -1 only when those are the side's exact cards in a zone; adding V Lemon completes the +2 Cola trio, with other cards allowed. The Lemon trio (V Lemon, Lemon Mint, Pink Lemonade) adds its lowest base power again, also with other cards allowed. Cream Soda cancels both sides' card effects and the zone bonus in its zone. The detailed current rules are in [docs/V_COLA_DESIGN.md](docs/V_COLA_DESIGN.md).
 
 The Deck screen lets players manage a deck, but that deck does not currently start a Custom match. Ranked play is not implemented.
 
