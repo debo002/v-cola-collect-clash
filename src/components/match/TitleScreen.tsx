@@ -54,7 +54,9 @@ export function TitleScreen({
           <DeckIcon size={22} />
           {t.tabDeck}
         </button>
-        <button type="button" className="btn btn-secondary btn-xl" onClick={onCustomGame}>{t.customGame}</button>
+        <button type="button" className="btn btn-secondary btn-xl" onClick={onCustomGame}>
+          {t.customGame}
+        </button>
         <QuickGuide menu />
         <div className="lang-switcher" role="group" aria-label="Language">
           <button

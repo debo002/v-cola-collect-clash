@@ -62,11 +62,20 @@ export function Hand({
     <div className="hand-row">
       {drawPileCount !== undefined ? (
         <div className="draw-pile-wrap">
-          <button type="button" className={`draw-pile${drawsRemaining > 0 ? ' draw-ready' : ''}`} disabled={drawsRemaining <= 0 || drawPileCount <= 0 || drawAnimating} onClick={onDraw} aria-label={t.drawOne} title={t.drawOne}>
+          <button
+            type="button"
+            className={`draw-pile${drawsRemaining > 0 ? ' draw-ready' : ''}`}
+            disabled={drawsRemaining <= 0 || drawPileCount <= 0 || drawAnimating}
+            onClick={onDraw}
+            aria-label={t.drawOne}
+            title={t.drawOne}
+          >
             <span className="draw-pile-mark">V7</span>
             <span className="draw-pile-tap">{t.drawOne}</span>
           </button>
-          <span className="draw-pile-count">{fmt(t.drawPileCount, { remaining: drawsRemaining, count: drawPileCount })}</span>
+          <span className="draw-pile-count">
+            {fmt(t.drawPileCount, { remaining: drawsRemaining, count: drawPileCount })}
+          </span>
         </div>
       ) : null}
       <div className="hand-main">

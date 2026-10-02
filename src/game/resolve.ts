@@ -88,7 +88,11 @@ function winnerOf(totals: Record<Player, number>): Player | null {
   return totals.A > totals.B ? 'A' : 'B';
 }
 
-export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX, effectsEnabled = true): ResolveResult {
+export function resolveZone(
+  zone: ZoneInput,
+  ctx: ResolveContext = EMPTY_CTX,
+  effectsEnabled = true
+): ResolveResult {
   const sides: readonly Player[] = ['A', 'B'];
   const base: Record<Player, number> = {
     A: sumBase(zone.cards.A),

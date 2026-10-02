@@ -245,8 +245,16 @@ export function ZoneColumn({
 
       <div className={`zone-pillar lead-${leading}`}>
         <div className="pillar-score-line player-score-line" aria-label={t.helpChips}>
-          <span className="pillar-score player-score" key={`m-${myScore}`}>{myScore}</span>
-          {zoneEffectChips?.filter((chip) => chip.side === 'mine').map((chip) => <span className="zone-effect-chip mine" key={chip.key}>{chip.label}</span>)}
+          <span className="pillar-score player-score" key={`m-${myScore}`}>
+            {myScore}
+          </span>
+          {zoneEffectChips
+            ?.filter((chip) => chip.side === 'mine')
+            .map((chip) => (
+              <span className="zone-effect-chip mine" key={chip.key}>
+                {chip.label}
+              </span>
+            ))}
         </div>
         <div className="pillar-body">
           <span className="pillar-icon">
@@ -261,8 +269,16 @@ export function ZoneColumn({
           ) : null}
         </div>
         <div className="pillar-score-line foe-score-line" aria-label={t.helpChips}>
-          <span className="pillar-score foe-score" key={`f-${foeScore}`}>{foeScore}</span>
-          {zoneEffectChips?.filter((chip) => chip.side === 'foe').map((chip) => <span className="zone-effect-chip foe" key={chip.key}>{chip.label}</span>)}
+          <span className="pillar-score foe-score" key={`f-${foeScore}`}>
+            {foeScore}
+          </span>
+          {zoneEffectChips
+            ?.filter((chip) => chip.side === 'foe')
+            .map((chip) => (
+              <span className="zone-effect-chip foe" key={chip.key}>
+                {chip.label}
+              </span>
+            ))}
         </div>
       </div>
 

@@ -65,10 +65,19 @@ function emptyBoards(): Board[] {
   return Array.from({ length: ROUNDS }, () => emptyBoard());
 }
 
-export function createMatch(handA: readonly HandCard[], handB: readonly HandCard[], config?: GameConfig): MatchState {
+export function createMatch(
+  handA: readonly HandCard[],
+  handB: readonly HandCard[],
+  config?: GameConfig
+): MatchState {
   const drawStart = config?.dealing === 'draw-per-round';
-  if ((!config && (handA.length !== 6 || handB.length !== 6)) || (config && !drawStart && (handA.length < 3 || handB.length < 3))) {
-    throw new RangeError(config ? 'Each player needs at least 3 cards' : 'Each player must bring exactly 6 cards');
+  if (
+    (!config && (handA.length !== 6 || handB.length !== 6)) ||
+    (config && !drawStart && (handA.length < 3 || handB.length < 3))
+  ) {
+    throw new RangeError(
+      config ? 'Each player needs at least 3 cards' : 'Each player must bring exactly 6 cards'
+    );
   }
   return {
     round: 1,
@@ -82,8 +91,10 @@ export function createMatch(handA: readonly HandCard[], handB: readonly HandCard
 
 /** Add a card drawn from the configured per-player deck to the persistent match hand. */
 export function addDrawnCard(state: MatchState, player: Player, card: HandCard): MatchState {
-  if (state.phase !== 'placing' || state.locks[player]) throw new RangeError('Cannot draw during this turn');
-  if (state.hands[player].some((held) => held.flavor === card.flavor)) throw new RangeError('Card already in hand');
+  if (state.phase !== 'placing' || state.locks[player])
+    throw new RangeError('Cannot draw during this turn');
+  if (state.hands[player].some((held) => held.flavor === card.flavor))
+    throw new RangeError('Card already in hand');
   return { ...state, hands: { ...state.hands, [player]: [...state.hands[player], card] } };
 }
 

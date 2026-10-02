@@ -67,8 +67,15 @@ export function buildQuickPlayHand(collection: Collection, rng: Rng = Math.rando
 }
 
 /** Apply match-only power overrides to an already built hand; card data stays immutable. */
-export function applyGameConfig(hand: readonly HandCard[], config: GameConfig, rng: Rng = Math.random): HandCard[] {
-  return hand.map((card) => ({ ...card, power: config.power === 'fixed' ? (config.fixedPower[card.flavor] ?? 3) : rollPower(rng) }));
+export function applyGameConfig(
+  hand: readonly HandCard[],
+  config: GameConfig,
+  rng: Rng = Math.random
+): HandCard[] {
+  return hand.map((card) => ({
+    ...card,
+    power: config.power === 'fixed' ? (config.fixedPower[card.flavor] ?? 3) : rollPower(rng),
+  }));
 }
 
 export function buildCustomHand(

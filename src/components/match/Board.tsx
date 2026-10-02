@@ -160,7 +160,10 @@ export function Board({
       if (targetZone) {
         // Third-card guard mirrors tap: shake + toast instead of placing.
         const alreadyPlaced = placedMap(match, player);
-        if (!alreadyPlaced.has(state.handIndex) && alreadyPlaced.size >= (match.maxPlacedPerRound ?? MAX_PLACE)) {
+        if (
+          !alreadyPlaced.has(state.handIndex) &&
+          alreadyPlaced.size >= (match.maxPlacedPerRound ?? MAX_PLACE)
+        ) {
           onTooMany();
         } else {
           onPlace(state.handIndex, targetZone);
@@ -320,8 +323,8 @@ export function Board({
                 myCards={v.myCards}
                 foeScore={v.foeScore}
                 myScore={v.myScore}
-          dropReady={!isRevealing && !drawingRequired && effectiveSelected !== null}
-          dropTarget={!isRevealing && !drawingRequired && hoverZone === z.id}
+                dropReady={!isRevealing && !drawingRequired && effectiveSelected !== null}
+                dropTarget={!isRevealing && !drawingRequired && hoverZone === z.id}
                 spotlight={false}
                 dimmed={false}
                 victory={zResult?.winner === player}
@@ -342,8 +345,16 @@ export function Board({
           draggingIndex={drag?.handIndex ?? null}
           shakeKey={shakeKey}
           handTitle={`${t.yourHand} (${visibleCards.length})`}
-          handTip={drawingRequired ? t.drawTapHint : effectiveSelected !== null ? t.tapZoneToPlace : t.tapToPlaceHint}
-          lockLabel={canLock ? fmt(t.lockInCount, { placed: placedCount, max: maxPlaced }) : t.needOne}
+          handTip={
+            drawingRequired
+              ? t.drawTapHint
+              : effectiveSelected !== null
+                ? t.tapZoneToPlace
+                : t.tapToPlaceHint
+          }
+          lockLabel={
+            canLock ? fmt(t.lockInCount, { placed: placedCount, max: maxPlaced }) : t.needOne
+          }
           canLock={canLock}
           drawPileCount={drawPileCount}
           drawsRemaining={drawsRemaining}
