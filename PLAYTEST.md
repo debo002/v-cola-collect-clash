@@ -32,4 +32,3 @@ Check the landscape stage at its minimum, typical, and maximum design widths as 
 ## Known issues
 
 None currently recorded. If you find one, note the viewport, language, and round/phase.
-

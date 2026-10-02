@@ -274,11 +274,28 @@ export function Board({
             const zResult = results?.find((r) => r.zoneId === z.id);
             const myHi = getSideHighlight(v.myCards.map((c) => c.flavorId as FlavorId));
             const foeHi = getSideHighlight(v.foeCards.map((c) => c.flavorId as FlavorId));
-            const cancelled = isCreamCancelled(v.myCards.map((c) => c.flavorId as FlavorId), v.foeCards.map((c) => c.flavorId as FlavorId));
-            const zoneEffectChips = cancelled ? [] : [
-              ...myHi.completed.filter((e) => e.group !== 'citrus').map((e, i) => ({ key: `m-${e.group}-${i}`, side: 'mine' as const, label: e.chip })),
-              ...foeHi.completed.filter((e) => e.group !== 'citrus').map((e, i) => ({ key: `f-${e.group}-${i}`, side: 'foe' as const, label: e.chip })),
-            ];
+            const cancelled = isCreamCancelled(
+              v.myCards.map((c) => c.flavorId as FlavorId),
+              v.foeCards.map((c) => c.flavorId as FlavorId)
+            );
+            const zoneEffectChips = cancelled
+              ? []
+              : [
+                  ...myHi.completed
+                    .filter((e) => e.group !== 'citrus')
+                    .map((e, i) => ({
+                      key: `m-${e.group}-${i}`,
+                      side: 'mine' as const,
+                      label: e.chip,
+                    })),
+                  ...foeHi.completed
+                    .filter((e) => e.group !== 'citrus')
+                    .map((e, i) => ({
+                      key: `f-${e.group}-${i}`,
+                      side: 'foe' as const,
+                      label: e.chip,
+                    })),
+                ];
             return (
               <ZoneColumn
                 key={z.id}
@@ -318,7 +335,9 @@ export function Board({
           onCardPointerMove={onCardPointerMove}
           onCardPointerUp={onCardPointerUp}
           onCardPointerCancel={onCardPointerCancel}
-          onLongPress={(i) => { if (pointerState.current?.handIndex === i) pointerState.current.longPressed = true; }}
+          onLongPress={(i) => {
+            if (pointerState.current?.handIndex === i) pointerState.current.longPressed = true;
+          }}
           onLock={onLock}
         />
       ) : null}
@@ -348,11 +367,7 @@ export function Board({
       {isRevealing && !isMatchOver ? (
         <div className="hand-row reveal-dock">
           <span className="dock-hint">{t.scoresAtEnd}</span>
-          <button
-            type="button"
-            className="btn btn-primary lock-btn"
-            onClick={onNextRound}
-          >
+          <button type="button" className="btn btn-primary lock-btn" onClick={onNextRound}>
             {t.nextRound} {match.round})
           </button>
         </div>

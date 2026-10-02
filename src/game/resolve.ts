@@ -116,7 +116,14 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
       totalAfter: 0,
     });
     const totals = { ...base };
-    return { zoneId: zone.zoneId, base, bonus: { A: 0, B: 0 }, totals, winner: winnerOf(totals), steps };
+    return {
+      zoneId: zone.zoneId,
+      base,
+      bonus: { A: 0, B: 0 },
+      totals,
+      winner: winnerOf(totals),
+      steps,
+    };
   }
 
   // Snapshot base conditions BEFORE any deltas (rule 3 must not move stay-frosty).

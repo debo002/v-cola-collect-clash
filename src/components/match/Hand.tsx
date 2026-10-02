@@ -81,8 +81,17 @@ export function Hand({
                 aria-label={`${displayName}, power ${hc.power}`}
                 aria-pressed={isSelected}
               >
-                <CardHoldPreview flavorId={flavor.id as FlavorId} onLongPress={() => onLongPress(i)}>
-                  <GameCard flavor={flavor} power={hc.power} displayName={displayName} selected={isSelected} groups={groups}/>
+                <CardHoldPreview
+                  flavorId={flavor.id as FlavorId}
+                  onLongPress={() => onLongPress(i)}
+                >
+                  <GameCard
+                    flavor={flavor}
+                    power={hc.power}
+                    displayName={displayName}
+                    selected={isSelected}
+                    groups={groups}
+                  />
                 </CardHoldPreview>
               </button>
             );
@@ -91,7 +100,9 @@ export function Hand({
       </div>
       <div className="dock-side">
         <span className="dock-count">{handTitle}</span>
-        <p className="dock-line" role="status">{handTip}</p>
+        <p className="dock-line" role="status">
+          {handTip}
+        </p>
         <button
           type="button"
           className={`btn btn-primary lock-btn${!canLock ? ' disabled' : ''}`}

@@ -112,8 +112,7 @@ body {
   justify-content: center;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230, 30, 43, 0.12) 0%, transparent 70%),
-    #04050a;
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230, 30, 43, 0.12) 0%, transparent 70%), #04050a;
 }
 
 /* Scaled by JS (height only). Children use stage px; on-screen = px × scale. */

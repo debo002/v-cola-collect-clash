@@ -46,7 +46,7 @@ function useStripFit(count: number): {
   let cardW = 64;
   if (box.w > 0 && count > 0) {
     const byWidth = (box.w - STRIP_GAP * (count - 1)) / count;
-    const byHeight = box.h * 5 / 8;
+    const byHeight = (box.h * 5) / 8;
     cardW = Math.max(1, Math.floor(Math.min(byWidth, byHeight)));
   }
   const nameFs = Math.max(9, Math.min(13, Math.floor(cardW * 0.22)));
@@ -157,26 +157,35 @@ export function ZoneColumn({
         : undefined;
     const groups = getCardGroups(flavor.id as FlavorId);
     const { completion, partial } = comboFor(c, side);
-    const citrus = (side === 'mine' ? myHi : foeHi).completed.find((item) => item.group === 'citrus');
+    const citrus = (side === 'mine' ? myHi : foeHi).completed.find(
+      (item) => item.group === 'citrus'
+    );
     const sideCards = side === 'mine' ? myCards : foeCards;
-    const lowestCard = sideCards.reduce<StripCard | null>((best, card) =>
-      card.power != null && (best === null || best.power == null || card.power < best.power) ? card : best, null);
+    const lowestCard = sideCards.reduce<StripCard | null>(
+      (best, card) =>
+        card.power != null && (best === null || best.power == null || card.power < best.power)
+          ? card
+          : best,
+      null
+    );
     const citrusTarget = citrusKeys ? citrusKeys.has(c.key) : lowestCard?.key === c.key;
-    const cardEffect = Boolean(citrus && citrus.involved.includes(c.flavorId as FlavorId) && citrusTarget);
+    const cardEffect = Boolean(
+      citrus && citrus.involved.includes(c.flavorId as FlavorId) && citrusTarget
+    );
     const visualCompletion = cardEffect ? citrus : completion;
     const inner = (
       <CardHoldPreview flavorId={flavor.id as FlavorId}>
-      <GameCard
-        flavor={flavor}
-        power={c.power ?? undefined}
-        displayName={displayName}
-        size="board"
-        groups={groups}
-        greyed={creamCancelled}
-        highlightColor={visualCompletion ? COMBO_COLORS[visualCompletion.group] : undefined}
-        effectChips={[...(cardEffect ? [citrus?.chip ?? 'x2'] : []), ...(chipped ? ['+1'] : [])]}
-        progress={partial?.text}
-      />
+        <GameCard
+          flavor={flavor}
+          power={c.power ?? undefined}
+          displayName={displayName}
+          size="board"
+          groups={groups}
+          greyed={creamCancelled}
+          highlightColor={visualCompletion ? COMBO_COLORS[visualCompletion.group] : undefined}
+          effectChips={[...(cardEffect ? [citrus?.chip ?? 'x2'] : []), ...(chipped ? ['+1'] : [])]}
+          progress={partial?.text}
+        />
       </CardHoldPreview>
     );
     const cls = `strip-mini${pulsed ? ' bonus-pulse' : ''}${staggerMs != null ? (side === 'foe' ? ' animate-flip reveal-pop' : ' pop-in reveal-pop') : ''}`;
@@ -235,7 +244,9 @@ export function ZoneColumn({
       </div>
 
       <div className={`zone-pillar lead-${leading}`}>
-        <span className="pillar-score player-score" key={`m-${myScore}`}>{myScore}</span>
+        <span className="pillar-score player-score" key={`m-${myScore}`}>
+          {myScore}
+        </span>
         <div className="pillar-body">
           <span className="pillar-icon">
             <ZoneIcon zoneId={zoneId} size={20} />
@@ -247,11 +258,19 @@ export function ZoneColumn({
               {verdict}
             </span>
           ) : null}
-          {zoneEffectChips?.length ? <div className="zone-effect-row" aria-label={t.helpChips}>
-            {zoneEffectChips.map((chip) => <span className={`zone-effect-chip ${chip.side}`} key={chip.key}>{chip.label}</span>)}
-          </div> : null}
+          {zoneEffectChips?.length ? (
+            <div className="zone-effect-row" aria-label={t.helpChips}>
+              {zoneEffectChips.map((chip) => (
+                <span className={`zone-effect-chip ${chip.side}`} key={chip.key}>
+                  {chip.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
-        <span className="pillar-score foe-score" key={`f-${foeScore}`}>{foeScore}</span>
+        <span className="pillar-score foe-score" key={`f-${foeScore}`}>
+          {foeScore}
+        </span>
       </div>
 
       <div ref={myFit.ref} className="strip my-strip" style={myFit.style}>

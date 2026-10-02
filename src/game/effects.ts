@@ -68,7 +68,10 @@ function sortedIds(ids: readonly FlavorId[]): FlavorId[] {
 }
 
 /** Exact multiset match: same length, same ids including duplicates. */
-export function isExactCombo(sideFlavors: readonly FlavorId[], expected: readonly FlavorId[]): boolean {
+export function isExactCombo(
+  sideFlavors: readonly FlavorId[],
+  expected: readonly FlavorId[]
+): boolean {
   if (sideFlavors.length !== expected.length) return false;
   const a = sortedIds(sideFlavors);
   const b = sortedIds(expected);
@@ -92,7 +95,10 @@ export function hasBerryTrio(sideFlavors: readonly FlavorId[]): boolean {
   return RULE7_SET.every((id) => sideFlavors.includes(id));
 }
 
-export function hasCreamSoda(flavorsA: readonly FlavorId[], flavorsB: readonly FlavorId[]): boolean {
+export function hasCreamSoda(
+  flavorsA: readonly FlavorId[],
+  flavorsB: readonly FlavorId[]
+): boolean {
   return flavorsA.includes(CREAM_SODA_ID) || flavorsB.includes(CREAM_SODA_ID);
 }
 

@@ -107,13 +107,25 @@ export function scoreZone(state: MatchState, zoneId: string): ZoneResult {
   const { results } = resolveAll(state);
   const hit = results.find((r) => r.zoneId === zoneId);
   if (!hit) throw new RangeError(`Unknown zone: ${zoneId}`);
-  return { zoneId: hit.zoneId, base: hit.base, bonus: hit.bonus, totals: hit.totals, winner: hit.winner };
+  return {
+    zoneId: hit.zoneId,
+    base: hit.base,
+    bonus: hit.bonus,
+    totals: hit.totals,
+    winner: hit.winner,
+  };
 }
 
 /** Score every zone. Requires a completed match (nothing scored mid-match). */
 export function scoreMatch(state: MatchState): ZoneResult[] {
   const { results } = resolveAll(state);
-  return results.map((r) => ({ zoneId: r.zoneId, base: r.base, bonus: r.bonus, totals: r.totals, winner: r.winner }));
+  return results.map((r) => ({
+    zoneId: r.zoneId,
+    base: r.base,
+    bonus: r.bonus,
+    totals: r.totals,
+    winner: r.winner,
+  }));
 }
 
 export function explainZone(state: MatchState, zoneId: string): ZoneExplanation {
@@ -137,7 +149,10 @@ export function explainZone(state: MatchState, zoneId: string): ZoneExplanation 
       if (!ref) continue;
       adjustments.push({
         owner: step.side,
-        target: { kind: 'card', ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex } },
+        target: {
+          kind: 'card',
+          ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex },
+        },
         from: ref.basePower,
         to: ref.basePower + step.delta,
         reason: 'stay-frosty',
@@ -150,7 +165,10 @@ export function explainZone(state: MatchState, zoneId: string): ZoneExplanation 
         if (!ref || ref.owner !== step.side) continue;
         adjustments.push({
           owner: step.side,
-          target: { kind: 'card', ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex } },
+          target: {
+            kind: 'card',
+            ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex },
+          },
           from: ref.basePower,
           to: ref.basePower + 1,
           reason: 'second-wind',
@@ -172,7 +190,10 @@ export function explainZone(state: MatchState, zoneId: string): ZoneExplanation 
       if (!ref) continue;
       adjustments.push({
         owner: step.side,
-        target: { kind: 'card', ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex } },
+        target: {
+          kind: 'card',
+          ref: { owner: ref.owner, round: ref.round, handIndex: ref.handIndex },
+        },
         from: ref.basePower,
         to: ref.basePower + step.delta,
         reason: 'citrus-trio-double-lowest',

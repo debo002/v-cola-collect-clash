@@ -85,12 +85,26 @@ export function GameCard({
       <div className="name-plate">
         <span>{label}</span>
       </div>
-      {size === 'board' ? <div className="board-status-row">
-      {greyed ? <span className="cancelled-mark" aria-hidden="true">×</span> : null}
-      {effectChips?.map((effect, i) => !greyed ? <span className="combo-effect" key={`${effect}-${i}`}>{effect}</span> : null)}
-      {progress && !greyed ? <span className="combo-progress">{progress}</span> : null}
-      </div> : null}
-      {size !== 'board' && progress && !greyed ? <span className="combo-progress">{progress}</span> : null}
+      {size === 'board' ? (
+        <div className="board-status-row">
+          {greyed ? (
+            <span className="cancelled-mark" aria-hidden="true">
+              ×
+            </span>
+          ) : null}
+          {effectChips?.map((effect, i) =>
+            !greyed ? (
+              <span className="combo-effect" key={`${effect}-${i}`}>
+                {effect}
+              </span>
+            ) : null
+          )}
+          {progress && !greyed ? <span className="combo-progress">{progress}</span> : null}
+        </div>
+      ) : null}
+      {size !== 'board' && progress && !greyed ? (
+        <span className="combo-progress">{progress}</span>
+      ) : null}
     </article>
   );
 }

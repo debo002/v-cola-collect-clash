@@ -87,30 +87,38 @@ async function playMatch(page, tag, { skipResolution }) {
           const handCount = await page.locator('.fan-card').count();
           await page.locator('.legend-btn').click();
           await page.waitForSelector('.help-sheet', { timeout: 3000 });
-          if (await page.locator('.guide-zone').count() !== 3) throw new Error('zone guide is incomplete');
+          if ((await page.locator('.guide-zone').count()) !== 3)
+            throw new Error('zone guide is incomplete');
           await page.locator('.guide-tabs button').nth(1).click();
-          if (await page.locator('.guide-combo').count() !== 5) throw new Error('combo guide is incomplete');
+          if ((await page.locator('.guide-combo').count()) !== 5)
+            throw new Error('combo guide is incomplete');
           await page.locator('.guide-tabs button').nth(2).click();
-          if (await page.locator('.guide-card-tile').count() !== 11) throw new Error('card guide is incomplete');
+          if ((await page.locator('.guide-card-tile').count()) !== 11)
+            throw new Error('card guide is incomplete');
           await page.locator('.guide-card-tile').nth(8).click();
-          if (!(await page.locator('.guide-card-detail img').count())) throw new Error('card detail art is missing');
+          if (!(await page.locator('.guide-card-detail img').count()))
+            throw new Error('card detail art is missing');
           await page.locator('.guide-tabs button').nth(3).click();
-          if (!(await page.locator('.guide-board-card img').count())) throw new Error('board example art is missing');
+          if (!(await page.locator('.guide-board-card img').count()))
+            throw new Error('board example art is missing');
           await page.locator('.guide-tabs button').nth(0).click();
           await page.keyboard.press('Escape');
           await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
           await page.locator('.fan-card').first().hover();
           await page.mouse.down();
           await page.waitForTimeout(300);
-          if (await page.locator('.card-preview').count()) throw new Error('preview opened before a long hold');
+          if (await page.locator('.card-preview').count())
+            throw new Error('preview opened before a long hold');
           await page.waitForTimeout(450);
           await page.waitForSelector('.card-preview', { timeout: 2000 });
-          if (!(await page.locator('.card-preview .preview-member img').count())) throw new Error('held-card group art is missing');
+          if (!(await page.locator('.card-preview .preview-member img').count()))
+            throw new Error('held-card group art is missing');
           await page.mouse.up();
           await page.locator('.fan-card').nth(1).hover();
           await page.mouse.down();
           await page.waitForTimeout(750);
-          if (await page.locator('.card-preview').count() !== 1) throw new Error('more than one card tooltip is visible');
+          if ((await page.locator('.card-preview').count()) !== 1)
+            throw new Error('more than one card tooltip is visible');
           await page.mouse.up();
           await page.keyboard.press('Escape');
           await page.waitForSelector('.card-preview', { state: 'hidden', timeout: 2000 });
@@ -118,7 +126,8 @@ async function playMatch(page, tag, { skipResolution }) {
           await page.locator('.legend-btn').click();
           await page.locator('.help-backdrop').click({ position: { x: 8, y: 8 } });
           await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
-          if (await page.locator('.fan-card').count() !== handCount) throw new Error('help changed hand state');
+          if ((await page.locator('.fan-card').count()) !== handCount)
+            throw new Error('help changed hand state');
           helpChecked = true;
         });
       }
@@ -133,7 +142,10 @@ async function playMatch(page, tag, { skipResolution }) {
             { timeout: 3000 }
           );
           await page.waitForTimeout(500);
-          const cardBox = await page.locator('[data-zone="cool"] .game-card.card-board').first().boundingBox();
+          const cardBox = await page
+            .locator('[data-zone="cool"] .game-card.card-board')
+            .first()
+            .boundingBox();
           if (!cardBox || cardBox.width < 45 || cardBox.height < 70) {
             throw new Error(`placed card too small: ${JSON.stringify(cardBox)}`);
           }
@@ -250,7 +262,10 @@ try {
 
   // Arabic full match with reduced motion at the minimum landscape stage width.
   {
-    const ctx = await browser.newContext({ viewport: { width: 720, height: 480 }, reducedMotion: 'reduce' });
+    const ctx = await browser.newContext({
+      viewport: { width: 720, height: 480 },
+      reducedMotion: 'reduce',
+    });
     const page = await ctx.newPage();
     const errors = [];
     page.on('console', (m) => {

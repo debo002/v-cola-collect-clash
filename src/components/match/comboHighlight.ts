@@ -54,7 +54,9 @@ export function getSideHighlight(sideFlavors: readonly FlavorId[]): SideHighligh
   if (isExactCitrusTrio(sideFlavors)) {
     completed.push({ group: 'citrus', chip: 'x2', involved: [...sideFlavors] });
   } else {
-    const present = [...new Set(sideFlavors.filter((id) => (RULE3_EXACT as readonly string[]).includes(id)))];
+    const present = [
+      ...new Set(sideFlavors.filter((id) => (RULE3_EXACT as readonly string[]).includes(id))),
+    ];
     if (present.length > 0 && present.length < RULE3_EXACT.length) {
       partials.push({
         group: 'citrus',
@@ -72,9 +74,15 @@ export function getSideHighlight(sideFlavors: readonly FlavorId[]): SideHighligh
       involved: sideFlavors.filter((f) => (RULE7_SET as readonly string[]).includes(f)),
     });
   } else {
-    const present = [...new Set(sideFlavors.filter((f) => (RULE7_SET as readonly string[]).includes(f)))];
+    const present = [
+      ...new Set(sideFlavors.filter((f) => (RULE7_SET as readonly string[]).includes(f))),
+    ];
     if (present.length > 0 && present.length < RULE7_SET.length) {
-      partials.push({ group: 'berry', text: `${present.length}/${RULE7_SET.length}`, involved: present });
+      partials.push({
+        group: 'berry',
+        text: `${present.length}/${RULE7_SET.length}`,
+        involved: present,
+      });
     }
   }
 

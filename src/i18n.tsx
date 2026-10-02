@@ -150,7 +150,10 @@ export function fmt(template: string, vars: Record<string, string | number>): st
 }
 
 /** Build group explanations from each member card's single effect string. */
-export function comboDescription(t: Translations, group: 'cola' | 'citrus' | 'ingredient' | 'berry' | 'solo'): string {
+export function comboDescription(
+  t: Translations,
+  group: 'cola' | 'citrus' | 'ingredient' | 'berry' | 'solo'
+): string {
   const members: Record<typeof group, readonly string[]> = {
     cola: ['v-cola'],
     citrus: ['lemon-mint'],
@@ -269,30 +272,44 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     comboGroupBerry: 'Berry',
     comboGroupSolo: 'Solo',
     cardEffects: {
-      'v-cola': 'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
-      'v-diet-cola': 'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
-      'v-lemon': 'With V Cola and V Diet Cola: +2 to your zone total; other cards are allowed. With Lemon Mint and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
-      'lemon-mint': 'With V Lemon and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
-      'pink-lemonade': 'With V Lemon and Lemon Mint: add the lowest base power among those three again; other cards are allowed. With Blueberry and Pomegranate: win the zone unless the opponent also completes the trio.',
-      'cream-soda': 'In this zone, cancels both players’ card effects and the zone bonus; both sides count base power only.',
-      pomegranate: 'With Blueberry and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
-      blueberry: 'With Pomegranate and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
-      'pina-colada': 'If this is your only card in a zone, add +1 to your total in every zone you play in, including this one. Cream Soda cancels it in its zone.',
-      'v7-apple-malt': 'For each shared ingredient among your cards in this zone, add +1 to your zone total; apple alone gives no bonus.',
-      'v7-pineapple-malt': 'For each shared ingredient among your cards in this zone, add +1 to your zone total.',
+      'v-cola':
+        'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
+      'v-diet-cola':
+        'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
+      'v-lemon':
+        'With V Cola and V Diet Cola: +2 to your zone total; other cards are allowed. With Lemon Mint and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
+      'lemon-mint':
+        'With V Lemon and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
+      'pink-lemonade':
+        'With V Lemon and Lemon Mint: add the lowest base power among those three again; other cards are allowed. With Blueberry and Pomegranate: win the zone unless the opponent also completes the trio.',
+      'cream-soda':
+        'In this zone, cancels both players’ card effects and the zone bonus; both sides count base power only.',
+      pomegranate:
+        'With Blueberry and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
+      blueberry:
+        'With Pomegranate and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
+      'pina-colada':
+        'If this is your only card in a zone, add +1 to your total in every zone you play in, including this one. Cream Soda cancels it in its zone.',
+      'v7-apple-malt':
+        'For each shared ingredient among your cards in this zone, add +1 to your zone total; apple alone gives no bonus.',
+      'v7-pineapple-malt':
+        'For each shared ingredient among your cards in this zone, add +1 to your zone total.',
     },
     helpClose: 'Close help',
     helpMatchTitle: 'How a match works',
-    helpMatchBody: 'Play 3 rounds. Place cards, then lock in to reveal both sides. Zone bonuses are calculated after Round 3. The player who wins the most zones wins the match.',
+    helpMatchBody:
+      'Play 3 rounds. Place cards, then lock in to reveal both sides. Zone bonuses are calculated after Round 3. The player who wins the most zones wins the match.',
     helpZonesTitle: 'Zones',
     helpCombosTitle: 'Combos',
     helpCardsTitle: 'Every card',
     helpBoardTitle: 'Reading the board',
     helpPower: 'Power number: rolled when your hand is dealt and kept for the whole match.',
     helpProgress: 'Progress (1/3): how many cards from that combo are in this zone on your side.',
-    helpChips: 'Effect chips show effects: zone-total changes (+1/-1) and WIN appear once in the zone row; x2 sits on the lowest card whose power counts twice. Zone bonuses (+1) stay on the affected card or appear once in the zone row, depending on the rule.',
+    helpChips:
+      'Effect chips show effects: zone-total changes (+1/-1) and WIN appear once in the zone row; x2 sits on the lowest card whose power counts twice. Zone bonuses (+1) stay on the affected card or appear once in the zone row, depending on the rule.',
     helpCancelled: 'Greyed card: Cream Soda cancelled effects in this zone.',
-    helpColors: 'Card colors: solid means one combo group; gradient means two groups or a group plus solo effect; unique means a solo effect only.',
+    helpColors:
+      'Card colors: solid means one combo group; gradient means two groups or a group plus solo effect; unique means a solo effect only.',
     helpTags: 'Ingredients',
     tagApple: 'apple',
     tagMalt: 'malt',
@@ -426,30 +443,43 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     comboGroupBerry: 'توت',
     comboGroupSolo: 'فردي',
     cardEffects: {
-      'v-cola': 'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
-      'v-diet-cola': 'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
-      'v-lemon': 'مع في كولا وفي كولا دايت: ‎+2 لمجموع المنطقة وتُسمح ببطاقات أخرى. مع ليمون نعناع وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى.',
-      'lemon-mint': 'مع في ليمون وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى؛ وتُسمح ببطاقات أخرى.',
-      'pink-lemonade': 'مع في ليمون وليمون نعناع: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى. مع بلوبيري ورمان: تفوز بالمنطقة ما لم يكمل الخصم المجموعة أيضًا.',
-      'cream-soda': 'في هذه المنطقة، تلغي تأثيرات بطاقات الطرفين ومكافأة المنطقة؛ ويُحسب مجموع القوة الأساسية فقط.',
-      pomegranate: 'مع بلوبيري وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
-      blueberry: 'مع رمان وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
-      'pina-colada': 'إذا كانت بطاقتك الوحيدة في منطقة، أضف ‎+1 إلى مجموع كل منطقة تلعب فيها، بما فيها هذه المنطقة. كريم صودا يلغي تأثيرها في منطقته.',
-      'v7-apple-malt': 'لكل مكوّن مشترك بين بطاقاتك في المنطقة، أضف ‎+1 إلى مجموع المنطقة؛ التفاح وحده لا يمنح مكافأة.',
+      'v-cola':
+        'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
+      'v-diet-cola':
+        'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
+      'v-lemon':
+        'مع في كولا وفي كولا دايت: ‎+2 لمجموع المنطقة وتُسمح ببطاقات أخرى. مع ليمون نعناع وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى.',
+      'lemon-mint':
+        'مع في ليمون وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى؛ وتُسمح ببطاقات أخرى.',
+      'pink-lemonade':
+        'مع في ليمون وليمون نعناع: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى. مع بلوبيري ورمان: تفوز بالمنطقة ما لم يكمل الخصم المجموعة أيضًا.',
+      'cream-soda':
+        'في هذه المنطقة، تلغي تأثيرات بطاقات الطرفين ومكافأة المنطقة؛ ويُحسب مجموع القوة الأساسية فقط.',
+      pomegranate:
+        'مع بلوبيري وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
+      blueberry:
+        'مع رمان وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
+      'pina-colada':
+        'إذا كانت بطاقتك الوحيدة في منطقة، أضف ‎+1 إلى مجموع كل منطقة تلعب فيها، بما فيها هذه المنطقة. كريم صودا يلغي تأثيرها في منطقته.',
+      'v7-apple-malt':
+        'لكل مكوّن مشترك بين بطاقاتك في المنطقة، أضف ‎+1 إلى مجموع المنطقة؛ التفاح وحده لا يمنح مكافأة.',
       'v7-pineapple-malt': 'لكل مكوّن مشترك بين بطاقاتك في المنطقة، أضف ‎+1 إلى مجموع المنطقة.',
     },
     helpClose: 'إغلاق المساعدة',
     helpMatchTitle: 'كيف تعمل المباراة',
-    helpMatchBody: 'العب 3 جولات. أنزل الكروت ثم أكد لعبك لكشف اختيارات الطرفين. تُحسب مكافآت المناطق بعد الجولة الثالثة. من يفز بأكبر عدد من المناطق يفز بالمباراة.',
+    helpMatchBody:
+      'العب 3 جولات. أنزل الكروت ثم أكد لعبك لكشف اختيارات الطرفين. تُحسب مكافآت المناطق بعد الجولة الثالثة. من يفز بأكبر عدد من المناطق يفز بالمباراة.',
     helpZonesTitle: 'المناطق',
     helpCombosTitle: 'الكومبوهات',
     helpCardsTitle: 'كل الكروت',
     helpBoardTitle: 'قراءة اللوحة',
     helpPower: 'رقم القوة: تُحدد عند توزيع يدك وتظل كما هي طوال المباراة.',
     helpProgress: 'التقدم (1/3): عدد كروت هذا الكومبو الموجودة في المنطقة لدى طرفك.',
-    helpChips: 'شرائح التأثير تعرض النتيجة: تغييرات مجموع المنطقة (‎+1/‎-1) وWIN تظهر مرة واحدة في صف المنطقة؛ وتظهر x2 على أقل بطاقة تُحسب قوتها مرتين. وتبقى مكافآت المنطقة (‎+1) على البطاقة المتأثرة أو تظهر مرة واحدة في صف المنطقة حسب القاعدة.',
+    helpChips:
+      'شرائح التأثير تعرض النتيجة: تغييرات مجموع المنطقة (‎+1/‎-1) وWIN تظهر مرة واحدة في صف المنطقة؛ وتظهر x2 على أقل بطاقة تُحسب قوتها مرتين. وتبقى مكافآت المنطقة (‎+1) على البطاقة المتأثرة أو تظهر مرة واحدة في صف المنطقة حسب القاعدة.',
     helpCancelled: 'الكارت الرمادي: كريم صودا ألغى التأثيرات في هذه المنطقة.',
-    helpColors: 'ألوان الكروت: اللون الواحد يعني مجموعة كومبو واحدة؛ التدرج يعني مجموعتين أو مجموعة مع تأثير فردي؛ اللون الفريد يعني تأثيرًا فرديًا فقط.',
+    helpColors:
+      'ألوان الكروت: اللون الواحد يعني مجموعة كومبو واحدة؛ التدرج يعني مجموعتين أو مجموعة مع تأثير فردي؛ اللون الفريد يعني تأثيرًا فرديًا فقط.',
     helpTags: 'المكونات',
     tagApple: 'تفاح',
     tagMalt: 'شعير',

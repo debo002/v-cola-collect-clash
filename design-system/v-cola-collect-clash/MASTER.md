@@ -10,15 +10,15 @@ Use the project's dark arcade palette and readable brand typography. Keep contra
 
 The CSS custom properties in `src/index.css` are the source of truth. Reuse its color, shape, spacing, and motion tokens instead of introducing parallel values.
 
-| Role | Token |
-|---|---|
-| Base surfaces | `--ink`, `--ink-2` |
-| Brand accent | `--v-red`, `--v-red-deep` |
-| Zone accents | `--cool`, `--party`, `--energy` |
-| Result accents | `--gold`, `--good`, `--bad` |
-| Shapes | `--r-card`, `--r-btn`, `--r-lane` |
-| Spacing | `--space-xs` through `--space-3xl` |
-| Motion | `--motion-micro`, `--motion-short`, `--motion-med`, `--motion-ease` |
+| Role           | Token                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| Base surfaces  | `--ink`, `--ink-2`                                                  |
+| Brand accent   | `--v-red`, `--v-red-deep`                                           |
+| Zone accents   | `--cool`, `--party`, `--energy`                                     |
+| Result accents | `--gold`, `--good`, `--bad`                                         |
+| Shapes         | `--r-card`, `--r-btn`, `--r-lane`                                   |
+| Spacing        | `--space-xs` through `--space-3xl`                                  |
+| Motion         | `--motion-micro`, `--motion-short`, `--motion-med`, `--motion-ease` |
 
 ## Typography
 
@@ -28,13 +28,13 @@ Use `Lilita One` for short display and game headings. Use the system sans stack 
 
 `src/game/effects.ts` defines which combo groups each flavor belongs to. `src/components/comboTheme.ts` maps those groups to the approved colors and derives solid or gradient frames. Keep membership derived from the effect definitions and colors mapped by group; do not create a per-card color map. `src/components/GameCard.tsx` is the shared renderer for cards in hand and on the board.
 
-| Group | Color |
-|---|---|
-| Cola | `#38bdf8` |
-| Citrus | `#a3e635` |
+| Group      | Color     |
+| ---------- | --------- |
+| Cola       | `#38bdf8` |
+| Citrus     | `#a3e635` |
 | Ingredient | `#fbbf24` |
-| Berry | `#e879f9` |
-| Solo | `#cbd5e1` |
+| Berry      | `#e879f9` |
+| Solo       | `#cbd5e1` |
 
 A single group uses its solid color; multiple memberships blend into a gradient. The solo color identifies solo-effect membership. Visual membership does not by itself mean an effect condition is complete; effect rules remain in `src/game/`.
 

@@ -15,13 +15,7 @@ function cards(side: Player, list: Spec, prefix: string): ResolveCard[] {
   }));
 }
 
-function zone(
-  zoneId: string,
-  a: Spec,
-  b: Spec = [],
-  effect?: ZoneEffect,
-  tag = ''
-): ZoneInput {
+function zone(zoneId: string, a: Spec, b: Spec = [], effect?: ZoneEffect, tag = ''): ZoneInput {
   const prefix = `${tag}${zoneId}-`;
   return { zoneId, effect, cards: { A: cards('A', a, prefix), B: cards('B', b, prefix) } };
 }
@@ -32,20 +26,37 @@ function effectIds(r: { steps: readonly { effectId: string }[] }): string[] {
 
 describe('rule 1 — exact V Cola + V Diet Cola: -1', () => {
   it('applies -1 on the exact pair', () => {
-    const r = resolveZone(zone('z', [['v-cola', 3], ['v-diet-cola', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 3],
+        ['v-diet-cola', 3],
+      ])
+    );
     expect(r.base.A).toBe(6);
     expect(r.totals.A).toBe(5);
     expect(effectIds(r)).toContain('cola-diet-minus1');
   });
 
   it('extra card breaks the combo', () => {
-    const r = resolveZone(zone('z', [['v-cola', 3], ['v-diet-cola', 3], ['blueberry', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 3],
+        ['v-diet-cola', 3],
+        ['blueberry', 3],
+      ])
+    );
     expect(r.totals.A).toBe(9);
     expect(effectIds(r)).not.toContain('cola-diet-minus1');
   });
 
   it('duplicate copy breaks the combo (multiset)', () => {
-    const r = resolveZone(zone('z', [['v-cola', 3], ['v-cola', 3], ['v-diet-cola', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 3],
+        ['v-cola', 3],
+        ['v-diet-cola', 3],
+      ])
+    );
     expect(effectIds(r)).not.toContain('cola-diet-minus1');
     expect(effectIds(r)).not.toContain('cola-diet-lemon-plus2');
   });
@@ -53,28 +64,54 @@ describe('rule 1 — exact V Cola + V Diet Cola: -1', () => {
 
 describe('rule 2 — exact trio: +2', () => {
   it('applies +2 on the exact trio', () => {
-    const r = resolveZone(zone('z', [['v-cola', 2], ['v-diet-cola', 2], ['v-lemon', 2]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 2],
+        ['v-diet-cola', 2],
+        ['v-lemon', 2],
+      ])
+    );
     expect(r.totals.A).toBe(8);
     expect(effectIds(r)).toContain('cola-diet-lemon-plus2');
   });
 
   it('extra card does not break it', () => {
     const r = resolveZone(
-      zone('z', [['v-cola', 2], ['v-diet-cola', 2], ['v-lemon', 2], ['blueberry', 5]])
+      zone('z', [
+        ['v-cola', 2],
+        ['v-diet-cola', 2],
+        ['v-lemon', 2],
+        ['blueberry', 5],
+      ])
     );
     expect(r.totals.A).toBe(13);
     expect(effectIds(r)).toContain('cola-diet-lemon-plus2');
   });
 
   it('trio takes precedence over the pair when another card is present', () => {
-    const r = resolveZone(zone('z', [['v-cola', 2], ['v-diet-cola', 2], ['v-lemon', 2], ['blueberry', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 2],
+        ['v-diet-cola', 2],
+        ['v-lemon', 2],
+        ['blueberry', 3],
+      ])
+    );
     expect(effectIds(r)).toContain('cola-diet-lemon-plus2');
     expect(effectIds(r)).not.toContain('cola-diet-minus1');
     expect(r.totals.A).toBe(11);
   });
 
   it('all Cola and Citrus trio members activate their respective effects', () => {
-    const r = resolveZone(zone('z', [['v-cola', 2], ['v-diet-cola', 2], ['v-lemon', 2], ['lemon-mint', 3], ['pink-lemonade', 4]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-cola', 2],
+        ['v-diet-cola', 2],
+        ['v-lemon', 2],
+        ['lemon-mint', 3],
+        ['pink-lemonade', 4],
+      ])
+    );
     expect(effectIds(r)).toContain('cola-diet-lemon-plus2');
     expect(effectIds(r)).toContain('citrus-trio-double-lowest');
     expect(r.totals.A).toBe(17);
@@ -84,8 +121,15 @@ describe('rule 2 — exact trio: +2', () => {
     const r = resolveZone(
       zone(
         'z',
-        [['v-cola', 3], ['v-diet-cola', 3], ['v-lemon', 3]],
-        [['v-cola', 4], ['v-diet-cola', 4]]
+        [
+          ['v-cola', 3],
+          ['v-diet-cola', 3],
+          ['v-lemon', 3],
+        ],
+        [
+          ['v-cola', 4],
+          ['v-diet-cola', 4],
+        ]
       )
     );
     // A: 9 + 2 = 11, B: 8 - 1 = 7.
@@ -96,7 +140,13 @@ describe('rule 2 — exact trio: +2', () => {
 
 describe('rule 3 — citrus trio doubles lowest', () => {
   it('adds lowest base once more', () => {
-    const r = resolveZone(zone('z', [['v-lemon', 1], ['lemon-mint', 4], ['pink-lemonade', 5]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-lemon', 1],
+        ['lemon-mint', 4],
+        ['pink-lemonade', 5],
+      ])
+    );
     expect(r.base.A).toBe(10);
     expect(r.totals.A).toBe(11);
     const step = r.steps.find((s) => s.effectId === 'citrus-trio-double-lowest');
@@ -105,13 +155,24 @@ describe('rule 3 — citrus trio doubles lowest', () => {
   });
 
   it('tied lowest gives the same result either way', () => {
-    const r = resolveZone(zone('z', [['v-lemon', 2], ['lemon-mint', 2], ['pink-lemonade', 5]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v-lemon', 2],
+        ['lemon-mint', 2],
+        ['pink-lemonade', 5],
+      ])
+    );
     expect(r.totals.A).toBe(11); // 9 + 2
   });
 
   it('extra card does not break it', () => {
     const r = resolveZone(
-      zone('z', [['v-lemon', 2], ['lemon-mint', 2], ['pink-lemonade', 2], ['blueberry', 5]])
+      zone('z', [
+        ['v-lemon', 2],
+        ['lemon-mint', 2],
+        ['pink-lemonade', 2],
+        ['blueberry', 5],
+      ])
     );
     expect(effectIds(r)).toContain('citrus-trio-double-lowest');
     expect(r.totals.A).toBe(13);
@@ -120,25 +181,44 @@ describe('rule 3 — citrus trio doubles lowest', () => {
 
 describe('rule 4 — ingredient sharing', () => {
   it('Apple + Pineapple Malt share malt only: +1', () => {
-    const r = resolveZone(zone('z', [['v7-apple-malt', 3], ['v7-pineapple-malt', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v7-apple-malt', 3],
+        ['v7-pineapple-malt', 3],
+      ])
+    );
     expect(r.totals.A).toBe(7);
     expect(r.steps.filter((s) => s.effectId.startsWith('ingredient-share'))).toHaveLength(1);
   });
 
   it('Pineapple Malt + Pina Colada share pineapple only: +1', () => {
-    const r = resolveZone(zone('z', [['v7-pineapple-malt', 3], ['pina-colada', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v7-pineapple-malt', 3],
+        ['pina-colada', 3],
+      ])
+    );
     expect(r.totals.A).toBe(7);
   });
 
   it('Apple Malt + Pina Colada share nothing: +0', () => {
-    const r = resolveZone(zone('z', [['v7-apple-malt', 3], ['pina-colada', 3]]));
+    const r = resolveZone(
+      zone('z', [
+        ['v7-apple-malt', 3],
+        ['pina-colada', 3],
+      ])
+    );
     expect(r.totals.A).toBe(6);
     expect(r.steps.filter((s) => s.effectId.startsWith('ingredient-share'))).toHaveLength(0);
   });
 
   it('all three share both tags: +2', () => {
     const r = resolveZone(
-      zone('z', [['v7-apple-malt', 3], ['v7-pineapple-malt', 3], ['pina-colada', 3]])
+      zone('z', [
+        ['v7-apple-malt', 3],
+        ['v7-pineapple-malt', 3],
+        ['pina-colada', 3],
+      ])
     );
     expect(r.totals.A).toBe(11);
     expect(r.steps.filter((s) => s.effectId.startsWith('ingredient-share'))).toHaveLength(2);
@@ -146,7 +226,11 @@ describe('rule 4 — ingredient sharing', () => {
 
   it('other cards do not block sharing', () => {
     const r = resolveZone(
-      zone('z', [['v7-apple-malt', 3], ['v7-pineapple-malt', 3], ['blueberry', 1]])
+      zone('z', [
+        ['v7-apple-malt', 3],
+        ['v7-pineapple-malt', 3],
+        ['blueberry', 1],
+      ])
     );
     expect(r.totals.A).toBe(8); // 7 base + 1 malt
   });
@@ -175,7 +259,16 @@ describe('rule 5 — Pina Colada alone (via resolveMatch, stacking)', () => {
 
   it('paired Pina is not alone: no bonus', () => {
     const results = resolveMatch([
-      zone('x', [['pina-colada', 3], ['blueberry', 3]], [], undefined, 'm3-'),
+      zone(
+        'x',
+        [
+          ['pina-colada', 3],
+          ['blueberry', 3],
+        ],
+        [],
+        undefined,
+        'm3-'
+      ),
       zone('y', [['blueberry', 2]], [], undefined, 'm3-'),
     ]);
     expect(results.find((r) => r.zoneId === 'x')?.totals.A).toBe(6);
@@ -185,11 +278,46 @@ describe('rule 5 — Pina Colada alone (via resolveMatch, stacking)', () => {
 
 describe('rule 6 — Cream Soda cancels everything in its zone', () => {
   it.each([
-    ['Cola pair', [['v-cola', 3], ['v-diet-cola', 3]] as Spec],
-    ['Cola trio', [['v-cola', 3], ['v-diet-cola', 3], ['v-lemon', 3], ['blueberry', 1]] as Spec],
-    ['Lemon trio', [['v-lemon', 3], ['lemon-mint', 3], ['pink-lemonade', 3], ['blueberry', 1]] as Spec],
-    ['ingredient bonus', [['v7-apple-malt', 3], ['v7-pineapple-malt', 3]] as Spec],
-    ['Berry trio', [['blueberry', 1], ['pomegranate', 1], ['pink-lemonade', 1]] as Spec],
+    [
+      'Cola pair',
+      [
+        ['v-cola', 3],
+        ['v-diet-cola', 3],
+      ] as Spec,
+    ],
+    [
+      'Cola trio',
+      [
+        ['v-cola', 3],
+        ['v-diet-cola', 3],
+        ['v-lemon', 3],
+        ['blueberry', 1],
+      ] as Spec,
+    ],
+    [
+      'Lemon trio',
+      [
+        ['v-lemon', 3],
+        ['lemon-mint', 3],
+        ['pink-lemonade', 3],
+        ['blueberry', 1],
+      ] as Spec,
+    ],
+    [
+      'ingredient bonus',
+      [
+        ['v7-apple-malt', 3],
+        ['v7-pineapple-malt', 3],
+      ] as Spec,
+    ],
+    [
+      'Berry trio',
+      [
+        ['blueberry', 1],
+        ['pomegranate', 1],
+        ['pink-lemonade', 1],
+      ] as Spec,
+    ],
   ])('cancels the %s even when the other side plays Cream Soda', (_label, sideCards) => {
     const r = resolveZone(zone('z', sideCards, [['cream-soda', 5]], 'more-the-merrier'));
     expect(r.totals.A).toBe(sideCards.reduce((sum, [, power]) => sum + power, 0));
@@ -198,7 +326,15 @@ describe('rule 6 — Cream Soda cancels everything in its zone', () => {
 
   it('base power only (card combo + zone effect ignored)', () => {
     const r = resolveZone(
-      zone('z', [['v-cola', 3], ['v-diet-cola', 3]], [['cream-soda', 5]], 'stay-frosty')
+      zone(
+        'z',
+        [
+          ['v-cola', 3],
+          ['v-diet-cola', 3],
+        ],
+        [['cream-soda', 5]],
+        'stay-frosty'
+      )
     );
     expect(r.totals).toEqual({ A: 6, B: 5 });
     expect(effectIds(r)).toEqual(['cream-cancels']);
@@ -230,7 +366,12 @@ describe('rule 7 — berry trio auto-win', () => {
     const r = resolveZone(
       zone(
         'z',
-        [['blueberry', 1], ['pomegranate', 1], ['pink-lemonade', 1], ['v-cola', 1]],
+        [
+          ['blueberry', 1],
+          ['pomegranate', 1],
+          ['pink-lemonade', 1],
+          ['v-cola', 1],
+        ],
         [['v-cola', 5]]
       )
     );
@@ -242,8 +383,16 @@ describe('rule 7 — berry trio auto-win', () => {
     const r = resolveZone(
       zone(
         'z',
-        [['blueberry', 1], ['pomegranate', 1], ['pink-lemonade', 1]],
-        [['blueberry', 2], ['pomegranate', 2], ['pink-lemonade', 2]]
+        [
+          ['blueberry', 1],
+          ['pomegranate', 1],
+          ['pink-lemonade', 1],
+        ],
+        [
+          ['blueberry', 2],
+          ['pomegranate', 2],
+          ['pink-lemonade', 2],
+        ]
       )
     );
     expect(effectIds(r)).not.toContain('berry-trio-autowin');
@@ -254,7 +403,11 @@ describe('rule 7 — berry trio auto-win', () => {
     const r = resolveZone(
       zone(
         'z',
-        [['blueberry', 1], ['pomegranate', 1], ['pink-lemonade', 1]],
+        [
+          ['blueberry', 1],
+          ['pomegranate', 1],
+          ['pink-lemonade', 1],
+        ],
         [['cream-soda', 5]]
       )
     );
@@ -277,11 +430,17 @@ describe('resolver shape', () => {
 
   it('steps deltas sum to bonus and last totalAfter matches totals', () => {
     const r = resolveZone(
-      zone('z', [['v-lemon', 1], ['lemon-mint', 4], ['pink-lemonade', 5]], [['v-cola', 9]])
+      zone(
+        'z',
+        [
+          ['v-lemon', 1],
+          ['lemon-mint', 4],
+          ['pink-lemonade', 5],
+        ],
+        [['v-cola', 9]]
+      )
     );
-    const deltaA = r.steps
-      .filter((s) => s.side === 'A')
-      .reduce((n, s) => n + s.delta, 0);
+    const deltaA = r.steps.filter((s) => s.side === 'A').reduce((n, s) => n + s.delta, 0);
     expect(deltaA).toBe(r.totals.A - r.base.A);
     const lastA = [...r.steps].reverse().find((s) => s.side === 'A');
     expect(lastA?.totalAfter).toBe(r.totals.A);

@@ -74,7 +74,8 @@ export function ResolutionOverlay({
   const inReview = view.kind === 'review';
   // Replay runs the same machine scoped to one zone (others show finals).
   const focusIdx = view.kind === 'replay' ? view.zone : view.kind === 'sequence' ? zoneIdx : -1;
-  const active = view.kind === 'review' ? undefined : explanations[focusIdx >= 0 ? focusIdx : zoneIdx];
+  const active =
+    view.kind === 'review' ? undefined : explanations[focusIdx >= 0 ? focusIdx : zoneIdx];
   const zoneRules: Record<string, string> = {
     cool: t.zoneCoolRule,
     party: t.zonePartyRule,
@@ -186,15 +187,32 @@ export function ResolutionOverlay({
     const effects = ex.adjustments.flatMap((a, i) => {
       if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
       const delta = a.to - a.from;
-      return [{ key: `${a.owner}-${a.reason}-${i}`, side: a.owner === player ? 'mine' as const : 'foe' as const, label: `${delta > 0 ? '+' : ''}${delta}` }];
+      return [
+        {
+          key: `${a.owner}-${a.reason}-${i}`,
+          side: a.owner === player ? ('mine' as const) : ('foe' as const),
+          label: `${delta > 0 ? '+' : ''}${delta}`,
+        },
+      ];
     });
     const zoneView = views.get(ex.zoneId);
     if (zoneView) {
-      const mine = getSideHighlight(zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId));
-      const theirs = getSideHighlight(zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId));
-      if (!isCreamCancelled(zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId), zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId))) {
-        if (mine.completed.some((c) => c.group === 'berry')) effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
-        if (theirs.completed.some((c) => c.group === 'berry')) effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+      const mine = getSideHighlight(
+        zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+      );
+      const theirs = getSideHighlight(
+        zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+      );
+      if (
+        !isCreamCancelled(
+          zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId),
+          zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+        )
+      ) {
+        if (mine.completed.some((c) => c.group === 'berry'))
+          effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
+        if (theirs.completed.some((c) => c.group === 'berry'))
+          effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
       }
     }
     return effects;
@@ -267,11 +285,13 @@ export function ResolutionOverlay({
           const ex = explanations.find((e) => e.zoneId === z.id);
           if (!v || !ex) return null;
           const s = scoreOf(ex);
-          const citrusKeys = new Set(ex.adjustments.flatMap((a) => {
-            if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
-            const ref = a.target.ref;
-            return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
-          }));
+          const citrusKeys = new Set(
+            ex.adjustments.flatMap((a) => {
+              if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
+              const ref = a.target.ref;
+              return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
+            })
+          );
           const isActive = !inReview && i === focusIdx;
           const done =
             inReview || i < focusIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
@@ -315,7 +335,9 @@ export function ResolutionOverlay({
               </button>
             </div>
           </div>
-        ) : <p className="resolution-hint">{t.resTapFaster}</p>}
+        ) : (
+          <p className="resolution-hint">{t.resTapFaster}</p>
+        )}
       </div>
     </div>
   );
