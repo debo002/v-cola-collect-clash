@@ -19,6 +19,32 @@ export interface Translations {
   quickPlayBadge: string;
   quickPlayDesc: string;
   quickPlayBtn: string;
+  customGame: string;
+  customGameSetup: string;
+  customDeck: string;
+  normalDeck: string;
+  customDeckLabel: string;
+  dealing: string;
+  revealAll: string;
+  drawPerRound: string;
+  drawCount: string;
+  drawTapHint: string;
+  drawOne: string;
+  drawPileCount: string;
+  maxPlaced: string;
+  powerMode: string;
+  randomPower: string;
+  fixedPower: string;
+  effectsEnabled: string;
+  startCustom: string;
+  setupBack: string;
+  setupInvalid: string;
+  setupDeckLabel: string;
+  normalDeckDesc: string;
+  selectedCans: string;
+  powerValue: string;
+  effectsOn: string;
+  effectsOff: string;
   rankedNote: string;
   exitMatch: string;
   // Lookaway
@@ -43,6 +69,7 @@ export interface Translations {
   turnTitle: string;
   oppStrip: string;
   lockInCount: string;
+  maxPlacedNotice: string;
   needOne: string;
   onlyTwo: string;
   roundN: string;
@@ -184,6 +211,33 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     quickPlayDesc:
       'Instant showdown with 6 unique cans dealt to each player. Relaxed 3-round battle (~4 min).',
     quickPlayBtn: 'Play Quick Match',
+    customGame: 'Custom Game',
+    customGameSetup: 'Custom Game Setup',
+    customDeck: 'Custom',
+    normalDeck: 'Normal',
+    customDeckLabel: 'Choose cans (1–11)',
+    dealing: 'Card dealing',
+    revealAll: 'Reveal all',
+    drawPerRound: 'Draw per round',
+    drawCount: 'Draw each round',
+    drawTapHint: 'Tap the deck to draw a can into your hand.',
+    drawOne: 'Draw a can',
+    drawPileCount: '{remaining} draws left · {count} in deck',
+    maxPlaced: 'Max placed per round',
+    powerMode: 'Power',
+    randomPower: 'Random 1–5',
+    fixedPower: 'Fixed',
+    effectsEnabled: 'Effects',
+    startCustom: 'Start Custom Game',
+    setupBack: 'Back',
+    setupInvalid:
+      'This setup cannot finish a match. Choose at least 3 cans and valid round settings.',
+    setupDeckLabel: 'Deck',
+    normalDeckDesc: 'Use the same card pool as Quick Play.',
+    selectedCans: '{count} cans selected',
+    powerValue: 'Power {power}',
+    effectsOn: 'On',
+    effectsOff: 'Off',
     rankedNote:
       'Ranked is reserved for two-phone/online mode. Use Quick Play for 1-device pass-and-play.',
     exitMatch: 'Exit Match',
@@ -207,7 +261,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     recall: 'Take back',
     turnTitle: '{name} — place 1 or 2 cans',
     oppStrip: '{name} • waiting for their turn',
-    lockInCount: 'Lock in ({placed}/2)',
+    lockInCount: 'Lock in ({placed}/{max})',
+    maxPlacedNotice: 'Maximum {max} cans this round',
     needOne: 'Place at least 1 can to lock in',
     onlyTwo: 'Only 2 cans per round — tap a placed can to take it back',
     roundN: 'Round {n} of 3',
@@ -355,6 +410,33 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     quickPlayBadge: 'لعب محلي • مباراة واحدة',
     quickPlayDesc: 'مواجهة بـ 6 كروت عشوائية لكل لاعب. 3 جولات على مهل (~4 دقائق).',
     quickPlayBtn: 'العب الآن',
+    customGame: 'مباراة مخصصة',
+    customGameSetup: 'إعداد المباراة المخصصة',
+    customDeck: 'مخصص',
+    normalDeck: 'عادي',
+    customDeckLabel: 'اختر النكهات (1–11)',
+    dealing: 'توزيع البطاقات',
+    revealAll: 'كشف الكل',
+    drawPerRound: 'سحب كل جولة',
+    drawCount: 'السحب في كل جولة',
+    drawTapHint: 'اضغط على رزمة البطاقات لسحب كانة إلى يدك.',
+    drawOne: 'اسحب كانة',
+    drawPileCount: 'السحبات المتبقية: {remaining} · في الرزمة: {count}',
+    maxPlaced: 'أقصى عدد بطاقات في الجولة',
+    powerMode: 'القوة',
+    randomPower: 'عشوائي 1–5',
+    fixedPower: 'ثابتة',
+    effectsEnabled: 'التأثيرات',
+    startCustom: 'ابدأ المباراة المخصصة',
+    setupBack: 'رجوع',
+    setupInvalid:
+      'لا يمكن إنهاء المباراة بهذه الإعدادات. اختر 3 نكهات على الأقل وإعدادات جولات صالحة.',
+    setupDeckLabel: 'التشكيلة',
+    normalDeckDesc: 'استخدم مجموعة البطاقات نفسها في المباراة السريعة.',
+    selectedCans: 'تم اختيار {count} كانات',
+    powerValue: 'القوة {power}',
+    effectsOn: 'تشغيل',
+    effectsOff: 'إيقاف',
     rankedNote:
       'المباريات المصنفة تتطلب اللعب عبر هاتفين. استخدم المباراة السريعة للعب على نفس الجهاز.',
     exitMatch: 'إنهاء المباراة',
@@ -378,7 +460,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     recall: 'استرجاع',
     turnTitle: '{name} — ضع كانًا أو كانين',
     oppStrip: '{name} • بانتظار دوره',
-    lockInCount: 'تأكيد ({placed}/2)',
+    lockInCount: 'تأكيد ({placed}/{max})',
+    maxPlacedNotice: 'الحد الأقصى {max} كانات في هذه الجولة',
     needOne: 'ضع كانًا واحدًا على الأقل للتأكيد',
     onlyTwo: 'كانان فقط في الجولة — اضغط على كان موضوع لاسترجاعه',
     roundN: 'الجولة {n} من 3',

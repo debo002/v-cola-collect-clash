@@ -1,6 +1,7 @@
 import type { MatchState, PlacedCard, Player } from './match';
 import { resolveMatch, type ResolveCard, type ZoneInput } from './resolve';
 import { ZONES } from './zones';
+import type { GameConfig } from './config';
 
 /**
  * Zone scoring adapter (thin — no duplicated logic).
@@ -96,10 +97,10 @@ function collectInputs(state: MatchState): {
   return { inputs, refs };
 }
 
-function resolveAll(state: MatchState) {
+function resolveAll(state: MatchState, config?: GameConfig) {
   if (state.phase !== 'complete') throw new RangeError('Zones are scored after round 3 only');
   const { inputs, refs } = collectInputs(state);
-  return { results: resolveMatch(inputs), refs };
+  return { results: resolveMatch(inputs, config?.effectsEnabled ?? true), refs };
 }
 
 export function scoreZone(state: MatchState, zoneId: string): ZoneResult {
@@ -117,8 +118,8 @@ export function scoreZone(state: MatchState, zoneId: string): ZoneResult {
 }
 
 /** Score every zone. Requires a completed match (nothing scored mid-match). */
-export function scoreMatch(state: MatchState): ZoneResult[] {
-  const { results } = resolveAll(state);
+export function scoreMatch(state: MatchState, config?: GameConfig): ZoneResult[] {
+  const { results } = resolveAll(state, config);
   return results.map((r) => ({
     zoneId: r.zoneId,
     base: r.base,
@@ -241,8 +242,15 @@ export function explainZone(state: MatchState, zoneId: string): ZoneExplanation 
 }
 
 /** Explain every zone in board order (Cool → Party → Energy). */
-export function explainMatch(state: MatchState): ZoneExplanation[] {
+export function explainMatch(state: MatchState, config?: GameConfig): ZoneExplanation[] {
   if (state.phase !== 'complete') throw new RangeError('Zones are scored after round 3 only');
+  if (config?.effectsEnabled === false) {
+    const { results } = resolveAll(state, config);
+    return ZONES.map((zone) => {
+      const result = results.find((item) => item.zoneId === zone.id)!;
+      return { ...result, adjustments: [], noBonus: null };
+    });
+  }
   return ZONES.map((z) => explainZone(state, z.id));
 }
 

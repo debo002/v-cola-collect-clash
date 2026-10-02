@@ -244,9 +244,18 @@ export function ZoneColumn({
       </div>
 
       <div className={`zone-pillar lead-${leading}`}>
-        <span className="pillar-score player-score" key={`m-${myScore}`}>
-          {myScore}
-        </span>
+        <div className="pillar-score-line player-score-line" aria-label={t.helpChips}>
+          <span className="pillar-score player-score" key={`m-${myScore}`}>
+            {myScore}
+          </span>
+          {zoneEffectChips
+            ?.filter((chip) => chip.side === 'mine')
+            .map((chip) => (
+              <span className="zone-effect-chip mine" key={chip.key}>
+                {chip.label}
+              </span>
+            ))}
+        </div>
         <div className="pillar-body">
           <span className="pillar-icon">
             <ZoneIcon zoneId={zoneId} size={20} />
@@ -258,19 +267,19 @@ export function ZoneColumn({
               {verdict}
             </span>
           ) : null}
-          {zoneEffectChips?.length ? (
-            <div className="zone-effect-row" aria-label={t.helpChips}>
-              {zoneEffectChips.map((chip) => (
-                <span className={`zone-effect-chip ${chip.side}`} key={chip.key}>
-                  {chip.label}
-                </span>
-              ))}
-            </div>
-          ) : null}
         </div>
-        <span className="pillar-score foe-score" key={`f-${foeScore}`}>
-          {foeScore}
-        </span>
+        <div className="pillar-score-line foe-score-line" aria-label={t.helpChips}>
+          <span className="pillar-score foe-score" key={`f-${foeScore}`}>
+            {foeScore}
+          </span>
+          {zoneEffectChips
+            ?.filter((chip) => chip.side === 'foe')
+            .map((chip) => (
+              <span className="zone-effect-chip foe" key={chip.key}>
+                {chip.label}
+              </span>
+            ))}
+        </div>
       </div>
 
       <div ref={myFit.ref} className="strip my-strip" style={myFit.style}>

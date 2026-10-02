@@ -2,6 +2,7 @@ import type { HandCard } from './hands';
 import { intBelow, type Rng } from './rng';
 import type { FlavorId } from './types';
 import { ZONES } from './zones';
+import type { GameConfig } from './config';
 
 /**
  * Match core (design doc §5): 3 rounds, 1–2 cards placed per player per round
@@ -46,6 +47,7 @@ export interface MatchState {
   readonly boards: readonly Board[];
   readonly locks: Readonly<Record<Player, boolean>>;
   readonly phase: MatchPhase;
+  readonly maxPlacedPerRound?: number;
 }
 
 export interface Placement {
@@ -63,9 +65,19 @@ function emptyBoards(): Board[] {
   return Array.from({ length: ROUNDS }, () => emptyBoard());
 }
 
-export function createMatch(handA: readonly HandCard[], handB: readonly HandCard[]): MatchState {
-  if (handA.length !== 6 || handB.length !== 6) {
-    throw new RangeError('Each player must bring exactly 6 cards');
+export function createMatch(
+  handA: readonly HandCard[],
+  handB: readonly HandCard[],
+  config?: GameConfig
+): MatchState {
+  const drawStart = config?.dealing === 'draw-per-round';
+  if (
+    (!config && (handA.length !== 6 || handB.length !== 6)) ||
+    (config && !drawStart && (handA.length < 3 || handB.length < 3))
+  ) {
+    throw new RangeError(
+      config ? 'Each player needs at least 3 cards' : 'Each player must bring exactly 6 cards'
+    );
   }
   return {
     round: 1,
@@ -73,7 +85,17 @@ export function createMatch(handA: readonly HandCard[], handB: readonly HandCard
     boards: emptyBoards(),
     locks: { A: false, B: false },
     phase: 'placing',
+    maxPlacedPerRound: config?.maxPlacedPerRound ?? MAX_PLACE,
   };
+}
+
+/** Add a card drawn from the configured per-player deck to the persistent match hand. */
+export function addDrawnCard(state: MatchState, player: Player, card: HandCard): MatchState {
+  if (state.phase !== 'placing' || state.locks[player])
+    throw new RangeError('Cannot draw during this turn');
+  if (state.hands[player].some((held) => held.flavor === card.flavor))
+    throw new RangeError('Card already in hand');
+  return { ...state, hands: { ...state.hands, [player]: [...state.hands[player], card] } };
 }
 
 export function currentBoard(state: MatchState): Board {
@@ -126,8 +148,9 @@ export function placeCards(
 ): MatchState {
   if (state.phase !== 'placing') throw new RangeError('Match is not accepting placements');
   if (state.locks[player]) throw new RangeError('Player has already locked in');
-  if (placements.length < MIN_PLACE || placements.length > MAX_PLACE) {
-    throw new RangeError(`Place ${MIN_PLACE}–${MAX_PLACE} cards per round`);
+  const maxPlace = state.maxPlacedPerRound ?? MAX_PLACE;
+  if (placements.length < MIN_PLACE || placements.length > maxPlace) {
+    throw new RangeError(`Place ${MIN_PLACE}–${maxPlace} cards per round`);
   }
   const used = usedInEarlierRounds(state, player);
   const seen = new Set<number>();

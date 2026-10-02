@@ -3,7 +3,7 @@ import { getFlavorById } from '../../game/cards';
 import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
-import { useI18n } from '../../i18n';
+import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 import { CardHoldPreview } from '../CardHoldPreview';
 
@@ -28,6 +28,12 @@ export function Hand({
   onCardPointerCancel,
   onLongPress,
   onLock,
+  drawPileCount,
+  drawsRemaining = 0,
+  drawnHandIndex = -1,
+  drawAnimKey = 0,
+  drawAnimating = false,
+  onDraw,
 }: {
   visibleCards: readonly { card: HandCard; index: number }[];
   selected: number | null;
@@ -43,11 +49,35 @@ export function Hand({
   onCardPointerCancel: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   onLongPress: (i: number) => void;
   onLock: () => void;
+  drawPileCount?: number;
+  drawsRemaining?: number;
+  drawnHandIndex?: number;
+  drawAnimKey?: number;
+  drawAnimating?: boolean;
+  onDraw?: () => void;
 }) {
   const { t } = useI18n();
 
   return (
     <div className="hand-row">
+      {drawPileCount !== undefined ? (
+        <div className="draw-pile-wrap">
+          <button
+            type="button"
+            className={`draw-pile${drawsRemaining > 0 ? ' draw-ready' : ''}`}
+            disabled={drawsRemaining <= 0 || drawPileCount <= 0 || drawAnimating}
+            onClick={onDraw}
+            aria-label={t.drawOne}
+            title={t.drawOne}
+          >
+            <span className="draw-pile-mark">V7</span>
+            <span className="draw-pile-tap">{t.drawOne}</span>
+          </button>
+          <span className="draw-pile-count">
+            {fmt(t.drawPileCount, { remaining: drawsRemaining, count: drawPileCount })}
+          </span>
+        </div>
+      ) : null}
       <div className="hand-main">
         <div
           key={shakeKey}
@@ -64,9 +94,9 @@ export function Hand({
             const groups = getCardGroups(flavor.id as FlavorId);
             return (
               <button
-                key={i}
+                key={i === drawnHandIndex ? `${i}-draw-${drawAnimKey}` : i}
                 type="button"
-                className={`fan-card${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}`}
+                className={`fan-card${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}${i === drawnHandIndex ? ' card-drawn-in' : ''}`}
                 onPointerDown={(e) => {
                   onCardPointerDown(e, i);
                 }}
