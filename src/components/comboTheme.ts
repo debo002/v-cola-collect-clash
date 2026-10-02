@@ -53,16 +53,16 @@ function mix(hex: string, target: [number, number, number], amount: number): str
 }
 
 /**
- * Dark card-art wash carrying the combo color(s). Mixed ~60% toward deep
- * ink so the can image stays readable on dark backgrounds.
+ * Luminous card-art wash carrying the combo color(s); keep the can art clear
+ * on the zone background instead of fading the card toward near-black.
  */
 export function comboArtBackground(groups: readonly ComboGroup[]): string | undefined {
   if (groups.length === 0) return undefined;
   const ink: [number, number, number] = [10, 13, 22];
   if (groups.length === 1) {
-    const tinted = mix(COMBO_COLORS[groups[0]], ink, 0.62);
+    const tinted = mix(COMBO_COLORS[groups[0]], ink, 0.36);
     return `radial-gradient(circle at 50% 28%, ${tinted} 0%, #0a0d16 78%)`;
   }
-  const stops = groups.map((g) => mix(COMBO_COLORS[g], ink, 0.58)).join(', ');
+  const stops = groups.map((g) => mix(COMBO_COLORS[g], ink, 0.34)).join(', ');
   return `linear-gradient(160deg, ${stops}), radial-gradient(circle at 50% 28%, rgba(10,13,22,0.2) 0%, #0a0d16 85%)`;
 }

@@ -5,6 +5,7 @@ import type { FlavorId } from '../../game/types';
 import { fmt, useI18n } from '../../i18n';
 import { COMBO_COLORS } from '../comboTheme';
 import { GameCard } from '../GameCard';
+import { CardHoldPreview } from '../CardHoldPreview';
 import { CoolIcon, EnergyIcon, PartyIcon } from '../icons';
 import type { StripCard } from './boardUtils';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
@@ -16,21 +17,12 @@ export function ZoneIcon({ zoneId, size = 20 }: { zoneId: string; size?: number 
   return <EnergyIcon size={size} />;
 }
 
-/** Floor for shrink-to-fit zone cards (stage px). Below this badges and
- *  names stop working, so cards never shrink past it. */
-export const MIN_ZONE_CARD_W = 36;
-
-/** Vertical gutters reserved inside each strip so badges/chips never clip. */
-const STRIP_PAD_TOP = 12;
-const STRIP_PAD_BOTTOM = 14;
-/** Room under each card for the static effect chip (-1/x2/WIN/+1). */
-const CHIP_RESERVE = 16;
 const STRIP_GAP = 6;
 
 /**
  * Measures a strip and fits N cards side by side with no overlap or clip.
- * Width-bound (share the row) and height-bound (fit the strip height);
- * floored at MIN_ZONE_CARD_W. Returns CSS vars for the strip element.
+ * The ResizeObserver reports the strip content box (padding is already
+ * excluded), so use all of it and only shrink when the row width is limiting.
  */
 function useStripFit(count: number): {
   ref: React.RefObject<HTMLDivElement | null>;
@@ -53,12 +45,11 @@ function useStripFit(count: number): {
 
   let cardW = 64;
   if (box.w > 0 && count > 0) {
-    const byWidth =
-      (box.w - STRIP_PAD_TOP - STRIP_PAD_TOP - STRIP_GAP * (count - 1)) / count;
-    const byHeight = ((box.h - STRIP_PAD_TOP - STRIP_PAD_BOTTOM - CHIP_RESERVE) * 5) / 8;
-    cardW = Math.max(MIN_ZONE_CARD_W, Math.floor(Math.min(byWidth, byHeight)));
+    const byWidth = (box.w - STRIP_GAP * (count - 1)) / count;
+    const byHeight = box.h * 5 / 8;
+    cardW = Math.max(1, Math.floor(Math.min(byWidth, byHeight)));
   }
-  const nameFs = Math.max(8, Math.min(11, Math.floor(cardW * 0.22)));
+  const nameFs = Math.max(9, Math.min(13, Math.floor(cardW * 0.22)));
   return {
     ref,
     style: { '--card-w': `${cardW}px`, '--name-fs': `${nameFs}px` } as CSSProperties,
@@ -72,11 +63,11 @@ function useStripFit(count: number): {
  * layout. Cards shrink to fit side by side — never stacked, never clipped.
  *
  * Resolution hooks (all optional, inert during placing):
- * - pulseKeys/chipKeys: StripCard keys getting the bonus pulse / +1 chip
+ * - pulseKeys/chipKeys: StripCard keys getting the bonus pulse / card-status chip
  * - verdict: winner pill rendered inside the pillar (null hides it)
  * - stagger: reveal stagger delay base ms (index × 60ms added per card)
  * - mini: compact pillar text for the resolution panel
- * - zoneChip: floating +1 on a pillar score (zone-level Party bonus)
+ * - zoneEffectChips: one badge per zone-total adjustment
  */
 export function ZoneColumn({
   zoneId,
@@ -94,10 +85,10 @@ export function ZoneColumn({
   verdict,
   pulseKeys,
   chipKeys,
+  citrusKeys,
   stagger,
   mini,
   zoneEffectChips,
-  tapPrompt,
   onZoneClick,
   onRecall,
 }: {
@@ -116,10 +107,10 @@ export function ZoneColumn({
   verdict?: string | null;
   pulseKeys?: ReadonlySet<string>;
   chipKeys?: ReadonlySet<string>;
+  citrusKeys?: ReadonlySet<string>;
   stagger?: number | null;
   mini?: boolean;
   zoneEffectChips?: readonly { key: string; side: 'mine' | 'foe'; label: string }[];
-  tapPrompt: string | null;
   onZoneClick: (zoneId: string) => void;
   onRecall: (handIndex: number) => void;
 }) {
@@ -159,7 +150,7 @@ export function ZoneColumn({
     const displayName = t.flavors[flavor.id] || flavor.name;
     const pulsed = pulseKeys?.has(c.key) ?? false;
     const chipped = chipKeys?.has(c.key) ?? false;
-    const staggerMs = stagger != null ? stagger + idx * 60 : null;
+    const staggerMs = stagger != null ? stagger + idx * 90 : null;
     const delay =
       staggerMs != null
         ? ({ animationDelay: `${staggerMs}ms`, '--pop-delay': `${staggerMs}ms` } as CSSProperties)
@@ -170,9 +161,11 @@ export function ZoneColumn({
     const sideCards = side === 'mine' ? myCards : foeCards;
     const lowestCard = sideCards.reduce<StripCard | null>((best, card) =>
       card.power != null && (best === null || best.power == null || card.power < best.power) ? card : best, null);
-    const cardEffect = Boolean(citrus && citrus.involved.includes(c.flavorId as FlavorId) && lowestCard?.key === c.key);
+    const citrusTarget = citrusKeys ? citrusKeys.has(c.key) : lowestCard?.key === c.key;
+    const cardEffect = Boolean(citrus && citrus.involved.includes(c.flavorId as FlavorId) && citrusTarget);
     const visualCompletion = cardEffect ? citrus : completion;
     const inner = (
+      <CardHoldPreview flavorId={flavor.id as FlavorId}>
       <GameCard
         flavor={flavor}
         power={c.power ?? undefined}
@@ -181,17 +174,12 @@ export function ZoneColumn({
         groups={groups}
         greyed={creamCancelled}
         highlightColor={visualCompletion ? COMBO_COLORS[visualCompletion.group] : undefined}
-        effectChip={cardEffect ? citrus?.chip : undefined}
-        effectWarning={cardEffect ? citrus?.warning : undefined}
+        effectChips={[...(cardEffect ? [citrus?.chip ?? 'x2'] : []), ...(chipped ? ['+1'] : [])]}
         progress={partial?.text}
       />
+      </CardHoldPreview>
     );
     const cls = `strip-mini${pulsed ? ' bonus-pulse' : ''}${staggerMs != null ? (side === 'foe' ? ' animate-flip reveal-pop' : ' pop-in reveal-pop') : ''}`;
-    const chip = chipped ? (
-      <span className="plus-chip" aria-hidden="true">
-        +1
-      </span>
-    ) : null;
     if (side === 'mine' && c.recallable) {
       return (
         <button
@@ -208,17 +196,12 @@ export function ZoneColumn({
           aria-label={fmt(t.takeBack, { name: displayName })}
         >
           {inner}
-          {chip}
-          <span className="recall-x" aria-hidden="true">
-            ×
-          </span>
         </button>
       );
     }
     return (
       <div key={c.key} className={cls} style={delay}>
         {inner}
-        {chip}
       </div>
     );
   };
@@ -252,9 +235,7 @@ export function ZoneColumn({
       </div>
 
       <div className={`zone-pillar lead-${leading}`}>
-        <span className="pillar-score foe-score" key={`f-${foeScore}`}>
-          {foeScore}
-        </span>
+        <span className="pillar-score player-score" key={`m-${myScore}`}>{myScore}</span>
         <div className="pillar-body">
           <span className="pillar-icon">
             <ZoneIcon zoneId={zoneId} size={20} />
@@ -266,14 +247,11 @@ export function ZoneColumn({
               {verdict}
             </span>
           ) : null}
-          {tapPrompt ? <span className="pillar-prompt">+ {tapPrompt}</span> : null}
           {zoneEffectChips?.length ? <div className="zone-effect-row" aria-label={t.helpChips}>
             {zoneEffectChips.map((chip) => <span className={`zone-effect-chip ${chip.side}`} key={chip.key}>{chip.label}</span>)}
           </div> : null}
         </div>
-        <span className="pillar-score player-score" key={`m-${myScore}`}>
-          {myScore}
-        </span>
+        <span className="pillar-score foe-score" key={`f-${foeScore}`}>{foeScore}</span>
       </div>
 
       <div ref={myFit.ref} className="strip my-strip" style={myFit.style}>

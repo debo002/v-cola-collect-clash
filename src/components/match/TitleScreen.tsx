@@ -2,6 +2,7 @@ import { assetUrl } from '../assetPaths';
 import { useI18n } from '../../i18n';
 import type { Players } from '../../storage/playersStore';
 import { DeckIcon, PlayIcon } from '../icons';
+import { QuickGuide } from '../QuickGuide';
 import { tryLockLandscape } from '../Stage';
 
 /**
@@ -51,6 +52,7 @@ export function TitleScreen({
           <DeckIcon size={22} />
           {t.tabDeck}
         </button>
+        <QuickGuide menu />
         <div className="lang-switcher" role="group" aria-label="Language">
           <button
             type="button"

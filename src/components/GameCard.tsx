@@ -26,8 +26,7 @@ export function GameCard({
   groups,
   greyed,
   highlightColor,
-  effectChip,
-  effectWarning,
+  effectChips,
   progress,
 }: {
   flavor: Flavor;
@@ -39,8 +38,7 @@ export function GameCard({
   groups?: readonly ComboGroup[];
   greyed?: boolean;
   highlightColor?: string;
-  effectChip?: string;
-  effectWarning?: boolean;
+  effectChips?: readonly string[];
   progress?: string;
 }) {
   const classes = ['game-card', `flavor-${flavor.id}`, `line-${flavor.line}`];
@@ -89,14 +87,9 @@ export function GameCard({
       </div>
       {size === 'board' ? <div className="board-status-row">
       {greyed ? <span className="cancelled-mark" aria-hidden="true">×</span> : null}
-      {effectChip && !greyed ? (
-        <span className={`combo-effect${effectWarning ? ' combo-warn' : ''}`}>{effectChip}</span>
-      ) : null}
+      {effectChips?.map((effect, i) => !greyed ? <span className="combo-effect" key={`${effect}-${i}`}>{effect}</span> : null)}
       {progress && !greyed ? <span className="combo-progress">{progress}</span> : null}
       </div> : null}
-      {size !== 'board' && effectChip && !greyed ? (
-        <span className={`combo-effect${effectWarning ? ' combo-warn' : ''}`}>{effectChip}</span>
-      ) : null}
       {size !== 'board' && progress && !greyed ? <span className="combo-progress">{progress}</span> : null}
     </article>
   );

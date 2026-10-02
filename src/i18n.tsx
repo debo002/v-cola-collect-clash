@@ -101,6 +101,7 @@ export interface Translations {
   unmute: string;
   // Combo legend (group colors + what each group's combo does)
   comboLegendTitle: string;
+  guideMenuLabel: string;
   comboGroupCola: string;
   comboGroupCitrus: string;
   comboGroupIngredient: string;
@@ -123,6 +124,15 @@ export interface Translations {
   tagApple: string;
   tagMalt: string;
   tagPineapple: string;
+  helpTabMatch: string;
+  helpTabCombos: string;
+  helpTabCards: string;
+  helpTabBoard: string;
+  helpStepPlan: string;
+  helpStepLock: string;
+  helpStepReveal: string;
+  helpStepScore: string;
+  helpMostZones: string;
   // Flavors map
   flavors: Record<string, string>;
 }
@@ -251,7 +261,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     comingPhase2: 'Coming in Phase 2',
     mute: 'Mute sound',
     unmute: 'Unmute sound',
-    comboLegendTitle: 'Combo colors',
+    comboLegendTitle: 'Quick guide',
+    guideMenuLabel: 'How to play',
     comboGroupCola: 'Cola',
     comboGroupCitrus: 'Citrus',
     comboGroupIngredient: 'Ingredient',
@@ -286,6 +297,15 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     tagApple: 'apple',
     tagMalt: 'malt',
     tagPineapple: 'pineapple',
+    helpTabMatch: 'Match',
+    helpTabCombos: 'Combos',
+    helpTabCards: 'Cards',
+    helpTabBoard: 'Board guide',
+    helpStepPlan: 'Place cards in zones',
+    helpStepLock: 'Both players lock in',
+    helpStepReveal: 'Cards are revealed',
+    helpStepScore: 'Zones score after round 3',
+    helpMostZones: 'Win the most zones to win the match',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -398,7 +418,8 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     comingPhase2: 'قريباً في المرحلة 2',
     mute: 'كتم الصوت',
     unmute: 'تشغيل الصوت',
-    comboLegendTitle: 'ألوان الكومبو',
+    comboLegendTitle: 'دليل سريع',
+    guideMenuLabel: 'طريقة اللعب',
     comboGroupCola: 'كولا',
     comboGroupCitrus: 'حمضيات',
     comboGroupIngredient: 'مكونات',
@@ -433,6 +454,15 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     tagApple: 'تفاح',
     tagMalt: 'شعير',
     tagPineapple: 'أناناس',
+    helpTabMatch: 'المباراة',
+    helpTabCombos: 'المجموعات',
+    helpTabCards: 'البطاقات',
+    helpTabBoard: 'دليل اللوحة',
+    helpStepPlan: 'ضع البطاقات في المناطق',
+    helpStepLock: 'يؤكد اللاعبان اختياراتهما',
+    helpStepReveal: 'تُكشف البطاقات',
+    helpStepScore: 'تُحسب المناطق بعد الجولة الثالثة',
+    helpMostZones: 'الفوز بأكبر عدد من المناطق يحسم المباراة',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',

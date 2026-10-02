@@ -14,7 +14,7 @@ type Phase = 'count' | 'reason' | 'apply' | 'verdict';
  *  replay: single-zone re-run of the same animation, then back to review. */
 type View = { kind: 'sequence' } | { kind: 'review' } | { kind: 'replay'; zone: number };
 
-const DUR: Record<Phase, number> = { count: 1200, reason: 2000, apply: 2000, verdict: 1400 };
+const DUR: Record<Phase, number> = { count: 800, reason: 1100, apply: 1200, verdict: 950 };
 const NEXT: Record<Phase, Phase | null> = {
   count: 'reason',
   reason: 'apply',
@@ -106,7 +106,12 @@ export function ResolutionOverlay({
 
   // Phase auto-advance.
   useEffect(() => {
-    if (reduced || inReview) return;
+    if (inReview) return;
+    if (reduced) {
+      if (view.kind !== 'replay') return;
+      const id = window.setTimeout(() => setView({ kind: 'review' }), 700);
+      return () => window.clearTimeout(id);
+    }
     const id = window.setTimeout(() => advance(), DUR[phase]);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,7 +134,8 @@ export function ResolutionOverlay({
 
   function startReplay(i: number) {
     setZoneIdx(i);
-    setPhase('count');
+    // Replay is a quick effect recap; the full count-up sequence has already played.
+    setPhase('apply');
     setView({ kind: 'replay', zone: i });
   }
 
@@ -261,6 +267,11 @@ export function ResolutionOverlay({
           const ex = explanations.find((e) => e.zoneId === z.id);
           if (!v || !ex) return null;
           const s = scoreOf(ex);
+          const citrusKeys = new Set(ex.adjustments.flatMap((a) => {
+            if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
+            const ref = a.target.ref;
+            return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
+          }));
           const isActive = !inReview && i === focusIdx;
           const done =
             inReview || i < focusIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
@@ -282,30 +293,30 @@ export function ResolutionOverlay({
               verdict={done || (isActive && phase === 'verdict') ? verdictFor(ex) : null}
               pulseKeys={isActive ? pulse : undefined}
               chipKeys={isActive ? chips : undefined}
+              citrusKeys={citrusKeys}
               zoneEffectChips={zoneChipsFor(ex)}
               mini={true}
-              tapPrompt={null}
               onZoneClick={() => onZoneTap(i)}
               onRecall={() => {}}
             />
           );
         })}
       </div>
-      {inReview ? (
-        <div className="hand-row review-dock">
-          <span className="dock-hint">{t.resReplayHint}</span>
-          <div className="review-actions">
-            <button type="button" className="btn btn-primary" onClick={onRematch}>
-              {t.rematch}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={onReturnMenu}>
-              {t.returnToMenu}
-            </button>
+      <div className={`resolution-footer${inReview ? ' review-mode' : ''}`}>
+        {inReview ? (
+          <div className="review-dock">
+            <span className="dock-hint">{t.resReplayHint}</span>
+            <div className="review-actions">
+              <button type="button" className="btn btn-primary" onClick={onRematch}>
+                {t.rematch}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={onReturnMenu}>
+                {t.returnToMenu}
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <p className="resolution-hint">{t.resTapFaster}</p>
-      )}
+        ) : <p className="resolution-hint">{t.resTapFaster}</p>}
+      </div>
     </div>
   );
 }

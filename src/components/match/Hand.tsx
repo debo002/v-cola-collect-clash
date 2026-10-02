@@ -1,10 +1,11 @@
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { type PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../../game/cards';
 import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
 import { useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
+import { CardHoldPreview } from '../CardHoldPreview';
 
 /**
  * Bottom dock: single card row + inline status line, with count + Lock In
@@ -25,6 +26,7 @@ export function Hand({
   onCardPointerMove,
   onCardPointerUp,
   onCardPointerCancel,
+  onLongPress,
   onLock,
 }: {
   visibleCards: readonly { card: HandCard; index: number }[];
@@ -39,13 +41,10 @@ export function Hand({
   onCardPointerMove: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   onCardPointerUp: (e: ReactPointerEvent<HTMLButtonElement>) => void;
   onCardPointerCancel: (e: ReactPointerEvent<HTMLButtonElement>) => void;
+  onLongPress: (i: number) => void;
   onLock: () => void;
 }) {
   const { t } = useI18n();
-
-  const selectedEntry = selected !== null ? visibleCards.find((v) => v.index === selected) : undefined;
-  const selectedFlavor = selectedEntry ? getFlavorById(selectedEntry.card.flavor) : undefined;
-  const selectedGroups = selectedFlavor ? getCardGroups(selectedFlavor.id as FlavorId) : [];
 
   return (
     <div className="hand-row">
@@ -68,21 +67,23 @@ export function Hand({
                 key={i}
                 type="button"
                 className={`fan-card${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}`}
-                onPointerDown={(e) => onCardPointerDown(e, i)}
+                onPointerDown={(e) => {
+                  onCardPointerDown(e, i);
+                }}
                 onPointerMove={onCardPointerMove}
-                onPointerUp={onCardPointerUp}
-                onPointerCancel={onCardPointerCancel}
+                onPointerUp={(e) => {
+                  onCardPointerUp(e);
+                }}
+                onPointerCancel={(e) => {
+                  onCardPointerCancel(e);
+                }}
                 onDragStart={(e) => e.preventDefault()}
-            aria-label={`${displayName}, power ${hc.power}${isSelected ? ` — ${t.cardEffects[flavor.id]}` : ''}`}
+                aria-label={`${displayName}, power ${hc.power}`}
                 aria-pressed={isSelected}
               >
-                <GameCard
-                  flavor={flavor}
-                  power={hc.power}
-                  displayName={displayName}
-                  selected={isSelected}
-                  groups={groups}
-                />
+                <CardHoldPreview flavorId={flavor.id as FlavorId} onLongPress={() => onLongPress(i)}>
+                  <GameCard flavor={flavor} power={hc.power} displayName={displayName} selected={isSelected} groups={groups}/>
+                </CardHoldPreview>
               </button>
             );
           })}
@@ -90,11 +91,7 @@ export function Hand({
       </div>
       <div className="dock-side">
         <span className="dock-count">{handTitle}</span>
-        <p className="dock-line" role="status">
-      {selectedFlavor && selectedGroups.length > 0 ? (
-            <><strong>{t.flavors[selectedFlavor.id] || selectedFlavor.name}:</strong>{' '}{t.cardEffects[selectedFlavor.id]}</>
-          ) : handTip}
-        </p>
+        <p className="dock-line" role="status">{handTip}</p>
         <button
           type="button"
           className={`btn btn-primary lock-btn${!canLock ? ' disabled' : ''}`}

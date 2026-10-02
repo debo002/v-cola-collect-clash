@@ -81,6 +81,7 @@ export function Board({
     startY: number;
     pointerId: number;
     isDragging: boolean;
+    longPressed: boolean;
   } | null>(null);
 
   function zoneFromPoint(x: number, y: number): string | null {
@@ -111,6 +112,7 @@ export function Board({
       startY: e.clientY,
       pointerId: e.pointerId,
       isDragging: false,
+      longPressed: false,
     };
     // Window-level move/up: drop tracking must survive the pointer leaving
     // the card (and must not depend on setPointerCapture, which synthetic
@@ -155,7 +157,7 @@ export function Board({
       }
       setDrag(null);
       setHoverZone(null);
-    } else {
+    } else if (!state.longPressed) {
       handleCardTap(state.handIndex);
     }
   }
@@ -293,8 +295,7 @@ export function Board({
                 dimmed={false}
                 victory={zResult?.winner === player}
                 zoneEffectChips={zoneEffectChips}
-                stagger={isRevealing && !isMatchOver ? zi * 120 : null}
-                tapPrompt={!isRevealing && effectiveSelected !== null ? t.tapZoneToPlace : null}
+                stagger={isRevealing && !isMatchOver ? zi * 220 : null}
                 onZoneClick={handleZoneClick}
                 onRecall={(i) => onUnplace(i)}
               />
@@ -317,6 +318,7 @@ export function Board({
           onCardPointerMove={onCardPointerMove}
           onCardPointerUp={onCardPointerUp}
           onCardPointerCancel={onCardPointerCancel}
+          onLongPress={(i) => { if (pointerState.current?.handIndex === i) pointerState.current.longPressed = true; }}
           onLock={onLock}
         />
       ) : null}

@@ -54,6 +54,10 @@ async function playMatch(page, tag, { skipResolution }) {
   await step(page, `${tag} title`, async () => {
     await page.goto(BASE, { waitUntil: 'networkidle' });
     await page.waitForSelector('.title-screen', { timeout: 10000 });
+    await page.locator('.menu-guide-btn').click();
+    await page.waitForSelector('.help-sheet', { timeout: 3000 });
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
   });
 
   if (tag.startsWith('ar')) {
@@ -83,10 +87,34 @@ async function playMatch(page, tag, { skipResolution }) {
           const handCount = await page.locator('.fan-card').count();
           await page.locator('.legend-btn').click();
           await page.waitForSelector('.help-sheet', { timeout: 3000 });
-          const sections = await page.locator('.help-sheet .help-section').count();
-          if (sections !== 5) throw new Error(`expected 5 help sections, saw ${sections}`);
+          if (await page.locator('.guide-zone').count() !== 3) throw new Error('zone guide is incomplete');
+          await page.locator('.guide-tabs button').nth(1).click();
+          if (await page.locator('.guide-combo').count() !== 5) throw new Error('combo guide is incomplete');
+          await page.locator('.guide-tabs button').nth(2).click();
+          if (await page.locator('.guide-card-tile').count() !== 11) throw new Error('card guide is incomplete');
+          await page.locator('.guide-card-tile').nth(8).click();
+          if (!(await page.locator('.guide-card-detail img').count())) throw new Error('card detail art is missing');
+          await page.locator('.guide-tabs button').nth(3).click();
+          if (!(await page.locator('.guide-board-card img').count())) throw new Error('board example art is missing');
+          await page.locator('.guide-tabs button').nth(0).click();
           await page.keyboard.press('Escape');
           await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
+          await page.locator('.fan-card').first().hover();
+          await page.mouse.down();
+          await page.waitForTimeout(300);
+          if (await page.locator('.card-preview').count()) throw new Error('preview opened before a long hold');
+          await page.waitForTimeout(450);
+          await page.waitForSelector('.card-preview', { timeout: 2000 });
+          if (!(await page.locator('.card-preview .preview-member img').count())) throw new Error('held-card group art is missing');
+          await page.mouse.up();
+          await page.locator('.fan-card').nth(1).hover();
+          await page.mouse.down();
+          await page.waitForTimeout(750);
+          if (await page.locator('.card-preview').count() !== 1) throw new Error('more than one card tooltip is visible');
+          await page.mouse.up();
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.card-preview', { state: 'hidden', timeout: 2000 });
+          await page.locator('.zone-col').first().hover();
           await page.locator('.legend-btn').click();
           await page.locator('.help-backdrop').click({ position: { x: 8, y: 8 } });
           await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
@@ -104,6 +132,11 @@ async function playMatch(page, tag, { skipResolution }) {
             null,
             { timeout: 3000 }
           );
+          await page.waitForTimeout(500);
+          const cardBox = await page.locator('[data-zone="cool"] .game-card.card-board').first().boundingBox();
+          if (!cardBox || cardBox.width < 45 || cardBox.height < 70) {
+            throw new Error(`placed card too small: ${JSON.stringify(cardBox)}`);
+          }
         });
         await step(page, `${tag} tap-place`, async () => {
           await page.locator('.fan-card').nth(0).click();
@@ -154,6 +187,13 @@ async function playMatch(page, tag, { skipResolution }) {
     await page.waitForSelector('.resolution-panel', { timeout: 8000 });
     const cols = await page.locator('.resolution-panel .zone-col').count();
     if (cols !== 3) throw new Error(`expected 3 zone columns, saw ${cols}`);
+    const opponentCard = page.locator('.resolution-panel .foe-strip .game-card').first();
+    await opponentCard.hover();
+    await page.mouse.down();
+    await page.waitForSelector('.card-preview', { timeout: 3000 });
+    await page.mouse.up();
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.card-preview', { state: 'hidden', timeout: 2000 });
     if (skipResolution) {
       if (await page.locator('.skip-btn').count()) await page.locator('.skip-btn').click();
     } else {
@@ -162,6 +202,11 @@ async function playMatch(page, tag, { skipResolution }) {
       await page.locator('.resolution-panel .zones-row').click();
     }
     await page.waitForSelector('.review-dock', { timeout: 25000 });
+    if (skipResolution) {
+      await page.locator('.resolution-panel .zone-col').first().click();
+      await page.waitForSelector('.review-dock', { state: 'hidden', timeout: 1000 });
+      await page.waitForSelector('.review-dock', { timeout: 3000 });
+    }
     if (!skipResolution) {
       await page.locator('.resolution-panel .zone-col').first().click();
       await page.waitForSelector('.skip-btn', { timeout: 3000 });
