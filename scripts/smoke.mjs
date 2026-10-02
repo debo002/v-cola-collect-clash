@@ -6,8 +6,8 @@ import { chromium } from 'playwright';
 
 const BASE = process.env.SMOKE_URL || 'http://localhost:4173/';
 const VIEWPORTS = [
-  { w: 844, h: 390 },
-  { w: 1920, h: 1080 },
+  { w: 720, h: 480 },
+  { w: 1100, h: 480 },
 ];
 
 let failures = 0;
@@ -49,6 +49,7 @@ async function step(page, label, fn) {
 async function playMatch(page, tag, { skipResolution }) {
   const lockText = () => page.locator('.lock-btn').innerText();
   const zones = ['cool', 'cool', 'cool'];
+  let helpChecked = false;
 
   await step(page, `${tag} title`, async () => {
     await page.goto(BASE, { waitUntil: 'networkidle' });
@@ -76,6 +77,23 @@ async function playMatch(page, tag, { skipResolution }) {
         await page.locator('.lookaway .btn').click();
         await page.waitForSelector('.hand-fan', { timeout: 5000 });
       });
+
+      if (turn === 'A' && r === 0 && !helpChecked) {
+        await step(page, `${tag} help sheet`, async () => {
+          const handCount = await page.locator('.fan-card').count();
+          await page.locator('.legend-btn').click();
+          await page.waitForSelector('.help-sheet', { timeout: 3000 });
+          const sections = await page.locator('.help-sheet .help-section').count();
+          if (sections !== 5) throw new Error(`expected 5 help sections, saw ${sections}`);
+          await page.keyboard.press('Escape');
+          await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
+          await page.locator('.legend-btn').click();
+          await page.locator('.help-backdrop').click({ position: { x: 8, y: 8 } });
+          await page.waitForSelector('.help-sheet', { state: 'hidden', timeout: 3000 });
+          if (await page.locator('.fan-card').count() !== handCount) throw new Error('help changed hand state');
+          helpChecked = true;
+        });
+      }
 
       if (turn === 'A' && r === 0) {
         // Drag (pointer events) at scale < 1, then tap-to-place, then recall.
@@ -117,7 +135,7 @@ async function playMatch(page, tag, { skipResolution }) {
 
       await step(page, `${tag} r${r + 1}${turn} lock`, async () => {
         await page.locator('.lock-btn').click();
-        await page.waitForSelector('.lookaway, .round-revealed-card, .resolution-panel', {
+        await page.waitForSelector('.lookaway, .reveal-dock, .resolution-panel', {
           timeout: 5000,
         });
       });
@@ -125,8 +143,8 @@ async function playMatch(page, tag, { skipResolution }) {
 
     if (r < 2) {
       await step(page, `${tag} reveal${r + 1}`, async () => {
-        await page.waitForSelector('.round-revealed-card', { timeout: 5000 });
-        await page.locator('.round-revealed-card .btn').click();
+        await page.waitForSelector('.reveal-dock', { timeout: 5000 });
+        await page.locator('.reveal-dock .btn').click();
         await page.waitForSelector('.lookaway', { timeout: 5000 });
       });
     }
@@ -137,22 +155,28 @@ async function playMatch(page, tag, { skipResolution }) {
     const cols = await page.locator('.resolution-panel .zone-col').count();
     if (cols !== 3) throw new Error(`expected 3 zone columns, saw ${cols}`);
     if (skipResolution) {
-      await page.locator('.skip-btn').click();
+      if (await page.locator('.skip-btn').count()) await page.locator('.skip-btn').click();
     } else {
       // Tap once mid-sequence to prove tap-to-speed never breaks completion.
       await page.waitForTimeout(2500);
       await page.locator('.resolution-panel .zones-row').click();
     }
-    await page.waitForSelector('.match-over-card', { timeout: 25000 });
+    await page.waitForSelector('.review-dock', { timeout: 25000 });
+    if (!skipResolution) {
+      await page.locator('.resolution-panel .zone-col').first().click();
+      await page.waitForSelector('.skip-btn', { timeout: 3000 });
+      await page.locator('.skip-btn').click();
+      await page.waitForSelector('.review-dock', { timeout: 3000 });
+    }
   });
 
   await step(page, `${tag} rematch`, async () => {
-    await page.locator('.reveal-actions-row .btn-primary').click();
+    await page.locator('.review-actions .btn-primary').click();
     await page.waitForSelector('.lookaway', { timeout: 5000 });
   });
 
   await step(page, `${tag} menu`, async () => {
-    await page.locator('.game-topbar .icon-btn').click();
+    await page.locator('.game-topbar .icon-btn').first().click();
     await page.waitForSelector('.title-screen', { timeout: 5000 });
   });
 
@@ -179,9 +203,9 @@ try {
     await ctx.close();
   }
 
-  // Arabic full match (skip path) at 844x390.
+  // Arabic full match with reduced motion at the minimum landscape stage width.
   {
-    const ctx = await browser.newContext({ viewport: { width: 844, height: 390 } });
+    const ctx = await browser.newContext({ viewport: { width: 720, height: 480 }, reducedMotion: 'reduce' });
     const page = await ctx.newPage();
     const errors = [];
     page.on('console', (m) => {
@@ -189,11 +213,11 @@ try {
     });
     page.on('pageerror', (e) => errors.push(String(e)));
     try {
-      await playMatch(page, 'ar-844x390', { skipResolution: true });
+      await playMatch(page, 'ar-720x480-reduced', { skipResolution: true });
     } catch {
       // Recorded already.
     }
-    if (errors.length > 0) fail('ar-844x390 console', errors.join(' | '));
+    if (errors.length > 0) fail('ar-720x480-reduced console', errors.join(' | '));
     await ctx.close();
   }
 

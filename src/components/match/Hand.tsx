@@ -1,10 +1,17 @@
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../../game/cards';
+import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
+import type { FlavorId } from '../../game/types';
 import { useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 
-/** Bottom hand row: fan of unplaced cards + Lock In. All targets ≥56 stage px. */
+/**
+ * Bottom dock: single card row + inline status line, with count + Lock In
+ * stacked in a slim side column. The status line shows the hint by default
+ * and the selected card's full effect text (wrapping, never ellipsis);
+ * the dock sizes to fit it. All targets ≥56 stage px.
+ */
 export function Hand({
   visibleCards,
   selected,
@@ -35,13 +42,14 @@ export function Hand({
   onLock: () => void;
 }) {
   const { t } = useI18n();
+
+  const selectedEntry = selected !== null ? visibleCards.find((v) => v.index === selected) : undefined;
+  const selectedFlavor = selectedEntry ? getFlavorById(selectedEntry.card.flavor) : undefined;
+  const selectedGroups = selectedFlavor ? getCardGroups(selectedFlavor.id as FlavorId) : [];
+
   return (
     <div className="hand-row">
       <div className="hand-main">
-        <div className="hand-header">
-          <span className="hand-title">{handTitle}</span>
-          <span className="hand-tip">{handTip}</span>
-        </div>
         <div
           key={shakeKey}
           className={`hand-fan count-${Math.min(visibleCards.length, 6)}${shakeKey > 0 ? ' shake-once' : ''}`}
@@ -54,6 +62,7 @@ export function Hand({
             const displayName = t.flavors[flavor.id] || flavor.name;
             const isSelected = selected === i;
             const isDragging = draggingIndex === i;
+            const groups = getCardGroups(flavor.id as FlavorId);
             return (
               <button
                 key={i}
@@ -64,7 +73,7 @@ export function Hand({
                 onPointerUp={onCardPointerUp}
                 onPointerCancel={onCardPointerCancel}
                 onDragStart={(e) => e.preventDefault()}
-                aria-label={`${displayName}, power ${hc.power}`}
+            aria-label={`${displayName}, power ${hc.power}${isSelected ? ` — ${t.cardEffects[flavor.id]}` : ''}`}
                 aria-pressed={isSelected}
               >
                 <GameCard
@@ -72,20 +81,29 @@ export function Hand({
                   power={hc.power}
                   displayName={displayName}
                   selected={isSelected}
+                  groups={groups}
                 />
               </button>
             );
           })}
         </div>
       </div>
-      <button
-        type="button"
-        className={`btn btn-primary lock-btn${!canLock ? ' disabled' : ''}`}
-        disabled={!canLock}
-        onClick={onLock}
-      >
-        {lockLabel}
-      </button>
+      <div className="dock-side">
+        <span className="dock-count">{handTitle}</span>
+        <p className="dock-line" role="status">
+      {selectedFlavor && selectedGroups.length > 0 ? (
+            <><strong>{t.flavors[selectedFlavor.id] || selectedFlavor.name}:</strong>{' '}{t.cardEffects[selectedFlavor.id]}</>
+          ) : handTip}
+        </p>
+        <button
+          type="button"
+          className={`btn btn-primary lock-btn${!canLock ? ' disabled' : ''}`}
+          disabled={!canLock}
+          onClick={onLock}
+        >
+          {lockLabel}
+        </button>
+      </div>
     </div>
   );
 }

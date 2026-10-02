@@ -1,28 +1,23 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getFlavorById } from '../../game/cards';
+import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
+import type { FlavorId } from '../../game/types';
 import { MAX_PLACE, MIN_PLACE, type MatchState, type Player } from '../../game/match';
 import type { ZoneExplanation, ZoneResult } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
-import { CrownIcon } from '../icons';
 import { useStageScale } from '../Stage';
 import { allUsedIndices, buildZoneViews, placedMap, type StripCard } from './boardUtils';
 import { Hand } from './Hand';
 import { ResolutionOverlay } from './ResolutionOverlay';
-import { ZoneColumn, ZoneIcon } from './ZoneColumn';
-
-export interface LastRoundLine {
-  zoneId: string;
-  mine: number;
-  foe: number;
-}
+import { ZoneColumn } from './ZoneColumn';
+import { getSideHighlight, isCreamCancelled } from './comboHighlight';
 
 /**
- * Landscape match board: left rail (standings + last round) | 3 zone
- * columns | right rail (rules) | bottom hand + Lock In.
+ * Landscape match board: 3 full-width zone columns + bottom hand + Lock In.
  * Owns tap-select + drag state; game rules stay in QuickPlay/src/game.
  *
  * Hidden-info rule: foe current-round cards never render (not even a
@@ -46,8 +41,6 @@ export function Board({
   onRematch,
   onReturnMenu,
   explanations,
-  resolutionDone,
-  onResolutionDone,
 }: {
   match: MatchState;
   player: Player;
@@ -59,8 +52,6 @@ export function Board({
   winner?: Player | null;
   /** Match-over only: pure explainZone data drives the resolution sequence. */
   explanations?: readonly ZoneExplanation[] | null;
-  resolutionDone?: boolean;
-  onResolutionDone?: () => void;
   shakeKey: number;
   onPlace: (handIndex: number, zone: string) => void;
   onUnplace: (handIndex: number) => void;
@@ -209,13 +200,9 @@ export function Board({
     myCards: StripCard[];
     foeScore: number;
     myScore: number;
-    leader: Player | null;
   }
 
   const views = new Map<string, ZoneView>();
-  // Last completed round for the rail log (placing N -> N-1; reveal shows N).
-  const lastRoundIdx = isRevealing ? displayRound - 1 : displayRound - 2;
-  const lastLines: LastRoundLine[] = [];
 
   // Shared strip builder (hidden-info rule inside): foe current-round
   // picks are skipped entirely unless revealing.
@@ -235,20 +222,7 @@ export function Board({
       myCards: raw.myCards,
       foeScore,
       myScore,
-      leader: myScore === foeScore ? null : myScore > foeScore ? player : foe,
     });
-  }
-
-  if (lastRoundIdx >= 0 && match.boards[lastRoundIdx]) {
-    for (const z of ZONES) {
-      const side = match.boards[lastRoundIdx][z.id];
-      if (!side) continue;
-      let mine = 0;
-      let theirs = 0;
-      for (const c of side[player]) mine += c.power ?? 0;
-      for (const c of side[foe]) theirs += c.power ?? 0;
-      lastLines.push({ zoneId: z.id, mine, foe: theirs });
-    }
   }
 
   // Keep selection valid after recalls.
@@ -260,9 +234,10 @@ export function Board({
   // on-screen px (stage px × scale) to match the board cards.
   const ghostFlavor = drag !== null ? getFlavorById(hand[drag.handIndex]?.flavor ?? '') : undefined;
 
-  // Match-over resolution sequence replaces rails/zones until done/skipped,
-  // then the board falls through to the existing match-result screen.
-  if (isMatchOver && explanations && explanations.length > 0 && !resolutionDone) {
+  // Match over: round-3 resolution animation and match review are ONE screen.
+  // The overlay owns sequence → review → per-zone replay internally and stays
+  // mounted on the same board; there is no separate match-over layout.
+  if (isMatchOver && explanations && explanations.length > 0) {
     return (
       <div className="board">
         <div className="match-main resolution-main">
@@ -271,7 +246,9 @@ export function Board({
             player={player}
             names={names}
             explanations={explanations}
-            onDone={() => onResolutionDone?.()}
+            winner={winner ?? null}
+            onRematch={onRematch}
+            onReturnMenu={onReturnMenu}
           />
         </div>
       </div>
@@ -280,57 +257,26 @@ export function Board({
 
   return (
     <div className="board">
-      <div className="match-main">
-        <aside className="rail rail-left" aria-label={t.railStandings}>
-          <div className="rail-block">
-            <h3 className="rail-title">{t.railStandings}</h3>
-            <div className="stand-row you">
-              <strong>{names[player]}</strong>
-              <span>{ZONES.filter((z) => views.get(z.id)?.leader === player).length} ◆</span>
-            </div>
-            <div className="stand-row opp">
-              <strong>{names[foe]}</strong>
-              <span>{ZONES.filter((z) => views.get(z.id)?.leader === foe).length} ◆</span>
-            </div>
-            <ul className="leader-dots">
-              {ZONES.map((z) => {
-                const lead = views.get(z.id)?.leader;
-                return (
-                  <li key={z.id} className="leader-dot">
-                    <ZoneIcon zoneId={z.id} size={16} />
-                    <span>{lead ? names[lead] : '–'}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          <div className="rail-block">
-            <h3 className="rail-title">
-              {t.railLastRound}
-              {lastRoundIdx >= 0 ? ` ${lastRoundIdx + 1}` : ''}
-            </h3>
-            {lastLines.length > 0 ? (
-              <ul className="last-lines">
-                {lastLines.map((l) => (
-                  <li key={l.zoneId}>
-                    <ZoneIcon zoneId={l.zoneId} size={14} />
-                    <span>
-                      {l.mine}–{l.foe}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="rail-muted">{t.noHistory}</p>
-            )}
-          </div>
-        </aside>
-
+      {isRevealing && !isMatchOver ? (
+        <div className="thin-banner" role="status">
+          <span className="resolution-text">
+            {fmt(t.roundN, { n: displayRound })} — {t.roundRevealed}
+          </span>
+        </div>
+      ) : null}
+      <div className="match-main zones-full">
         <div className="zones-row">
           {ZONES.map((z, zi) => {
             const v = views.get(z.id);
             if (!v) return null;
             const zResult = results?.find((r) => r.zoneId === z.id);
+            const myHi = getSideHighlight(v.myCards.map((c) => c.flavorId as FlavorId));
+            const foeHi = getSideHighlight(v.foeCards.map((c) => c.flavorId as FlavorId));
+            const cancelled = isCreamCancelled(v.myCards.map((c) => c.flavorId as FlavorId), v.foeCards.map((c) => c.flavorId as FlavorId));
+            const zoneEffectChips = cancelled ? [] : [
+              ...myHi.completed.filter((e) => e.group !== 'citrus').map((e, i) => ({ key: `m-${e.group}-${i}`, side: 'mine' as const, label: e.chip })),
+              ...foeHi.completed.filter((e) => e.group !== 'citrus').map((e, i) => ({ key: `f-${e.group}-${i}`, side: 'foe' as const, label: e.chip })),
+            ];
             return (
               <ZoneColumn
                 key={z.id}
@@ -346,6 +292,7 @@ export function Board({
                 spotlight={false}
                 dimmed={false}
                 victory={zResult?.winner === player}
+                zoneEffectChips={zoneEffectChips}
                 stagger={isRevealing && !isMatchOver ? zi * 120 : null}
                 tapPrompt={!isRevealing && effectiveSelected !== null ? t.tapZoneToPlace : null}
                 onZoneClick={handleZoneClick}
@@ -354,25 +301,6 @@ export function Board({
             );
           })}
         </div>
-
-        <aside className="rail rail-right" aria-label={t.railRules}>
-          <h3 className="rail-title">{t.railRules}</h3>
-          <ul className="rule-lines">
-            {ZONES.map((z) => (
-              <li
-                key={z.id}
-                className={`rule-line rule-${z.id}`}
-                title={`${z.name} ${zoneRules[z.id]}`}
-              >
-                <ZoneIcon zoneId={z.id} size={16} />
-                <span>
-                  <strong>{z.name}</strong> {zoneRules[z.id]}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {!isRevealing ? <p className="rail-muted">{t.scoresAtEnd}</p> : null}
-        </aside>
       </div>
 
       {!isRevealing ? (
@@ -408,45 +336,23 @@ export function Board({
                 flavor={ghostFlavor}
                 power={hand[drag.handIndex].power}
                 displayName={t.flavors[ghostFlavor.id] || ghostFlavor.name}
+                groups={getCardGroups(ghostFlavor.id as FlavorId)}
               />
             </div>,
             document.body
           )
         : null}
 
-      {isRevealing ? (
-        <div className="reveal-overlay-banner">
-          {isMatchOver ? (
-            <div className="reveal-content-card match-over-card">
-              <div className="winner-crown">
-                <CrownIcon size={36} />
-              </div>
-              <h3 className="winner-title">
-                {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}
-              </h3>
-              <p className="winner-subtitle">{winner ? t.winsTheMatch : t.allTied}</p>
-              <div className="reveal-actions-row">
-                <button type="button" className="btn btn-primary btn-lg" onClick={onRematch}>
-                  {t.rematch}
-                </button>
-                <button type="button" className="btn btn-secondary btn-lg" onClick={onReturnMenu}>
-                  {t.returnToMenu}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="reveal-content-card round-revealed-card">
-              <h3 className="round-revealed-title">{t.roundRevealed}</h3>
-              <p className="round-revealed-note">{t.scoresAtEnd}</p>
-              <button
-                type="button"
-                className="btn btn-primary btn-lg lock-btn"
-                onClick={onNextRound}
-              >
-                {t.nextRound} {match.round})
-              </button>
-            </div>
-          )}
+      {isRevealing && !isMatchOver ? (
+        <div className="hand-row reveal-dock">
+          <span className="dock-hint">{t.scoresAtEnd}</span>
+          <button
+            type="button"
+            className="btn btn-primary lock-btn"
+            onClick={onNextRound}
+          >
+            {t.nextRound} {match.round})
+          </button>
         </div>
       ) : null}
     </div>

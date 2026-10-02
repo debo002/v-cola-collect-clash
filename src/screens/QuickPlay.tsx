@@ -52,7 +52,6 @@ export function QuickPlay({
   const [results, setResults] = useState<ZoneResult[] | null>(null);
   const [winner, setWinner] = useState<Player | null>(null);
   const [explanations, setExplanations] = useState<ZoneExplanation[] | null>(null);
-  const [resolutionDone, setResolutionDone] = useState(false);
   const timedOut = useRef(false);
 
   const player = activePlayer(stage);
@@ -112,7 +111,6 @@ export function QuickPlay({
       setResults(scored);
       setWinner(matchWinner(scored));
       setExplanations(explainMatch(revealed));
-      setResolutionDone(false);
       setStage('matchOver');
     } else {
       setStage('roundReveal');
@@ -129,7 +127,6 @@ export function QuickPlay({
     setResults(null);
     setWinner(null);
     setExplanations(null);
-    setResolutionDone(false);
     setNotice('');
     setStage('passA');
   }
@@ -139,7 +136,6 @@ export function QuickPlay({
     setResults(null);
     setWinner(null);
     setExplanations(null);
-    setResolutionDone(false);
     setNotice('');
     setStage('idle');
   }
@@ -288,8 +284,6 @@ export function QuickPlay({
             results={results}
             winner={winner}
             explanations={explanations}
-            resolutionDone={resolutionDone}
-            onResolutionDone={() => setResolutionDone(true)}
             shakeKey={0}
             onPlace={() => {}}
             onUnplace={() => {}}

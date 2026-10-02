@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { FLAVORS, getFlavorById } from '../game/cards';
 import { countOf, totalCopies, type Collection } from '../game/collection';
+import { getCardGroups } from '../game/effects';
 import { HAND_SIZE } from '../game/hands';
 import type { FlavorId } from '../game/types';
+import { ComboLegend } from '../components/ComboLegend';
 import { GameCard } from '../components/GameCard';
 import { DeckIcon } from '../components/icons';
 import { useI18n } from '../i18n';
@@ -102,7 +104,11 @@ export function Deck({
               aria-label={`Remove ${displayName} from deck`}
               title="Click to remove from deck"
             >
-              <GameCard flavor={flavor} displayName={displayName} />
+              <GameCard
+                flavor={flavor}
+                displayName={displayName}
+                groups={getCardGroups(flavor.id as FlavorId)}
+              />
             </button>
           ) : (
             <div key={i} className="deck-slot empty" aria-hidden="true">
@@ -111,6 +117,8 @@ export function Deck({
           );
         })}
       </div>
+
+      <ComboLegend />
 
       {notice ? (
         <p className="notice" role="status">
@@ -156,6 +164,7 @@ export function Deck({
                 flavor={flavor}
                 displayName={displayName}
                 dimmed={!available || alreadyInDeck}
+                groups={getCardGroups(flavor.id as FlavorId)}
               />
               <div className="deck-meta-row">
                 <span className="deck-count">×{owned}</span>

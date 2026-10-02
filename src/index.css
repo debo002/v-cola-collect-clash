@@ -195,7 +195,7 @@ input:focus-visible,
   .glow-pulse,
   .lock-btn:not(.disabled),
   .zone-col.drop-ready,
-  .lane-drop-prompt,
+  .pillar-prompt,
   .timer-ring.urgent,
   .confetti-piece,
   .shake-once,
@@ -205,8 +205,10 @@ input:focus-visible,
   .animate-flip,
   .pop-in,
   .reveal-pop .power-gem,
-  .reveal-overlay-banner,
-  .verdict-badge {
+  .legend-pop,
+  .pillar-score,
+  .fan-card,
+  .fan-card .game-card {
     animation: none !important;
   }
 

@@ -3,12 +3,18 @@ import type { MatchState, Player } from '../../game/match';
 import type { ZoneExplanation } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
+import { CrownIcon } from '../icons';
 import { buildZoneViews, type StripCard } from './boardUtils';
 import { ZoneColumn } from './ZoneColumn';
+import { getSideHighlight, isCreamCancelled } from './comboHighlight';
 
 type Phase = 'count' | 'reason' | 'apply' | 'verdict';
 
-const DUR: Record<Phase, number> = { count: 600, reason: 1000, apply: 1000, verdict: 700 };
+/** sequence: full Cool → Party → Energy run. review: finals + replay dock.
+ *  replay: single-zone re-run of the same animation, then back to review. */
+type View = { kind: 'sequence' } | { kind: 'review' } | { kind: 'replay'; zone: number };
+
+const DUR: Record<Phase, number> = { count: 1200, reason: 2000, apply: 2000, verdict: 1400 };
 const NEXT: Record<Phase, Phase | null> = {
   count: 'reason',
   reason: 'apply',
@@ -21,9 +27,11 @@ function keyOf(player: Player, owner: Player, round: number, handIndex: number):
 }
 
 /**
- * Timed effect-resolution sequence, Cool → Party → Energy (UI renders pure
- * explainZone data; no scoring logic here). Tap speeds up, Skip jumps to
- * the match-result screen. Total ≈ 8.7s. Reduced motion jumps to end
+ * Round-3 resolution + match review on ONE board (UI renders pure
+ * explainZone data; no scoring logic here). Sequence plays Cool → Party →
+ * Energy, then stays in review mode: finals + winner banner + Rematch/Back
+ * dock. Tapping a zone replays its resolution animation, then returns to
+ * review. Tap speeds up, Skip jumps to review. Reduced motion jumps to end
  * states with a short fade.
  */
 export function ResolutionOverlay({
@@ -31,13 +39,17 @@ export function ResolutionOverlay({
   player,
   names,
   explanations,
-  onDone,
+  winner,
+  onRematch,
+  onReturnMenu,
 }: {
   match: MatchState;
   player: Player;
   names: Record<Player, string>;
   explanations: readonly ZoneExplanation[];
-  onDone: () => void;
+  winner: Player | null;
+  onRematch?: () => void;
+  onReturnMenu?: () => void;
 }) {
   const { t } = useI18n();
   const foe: Player = player === 'A' ? 'B' : 'A';
@@ -54,11 +66,15 @@ export function ResolutionOverlay({
     [match, player, foe]
   );
 
+  const [view, setView] = useState<View>({ kind: reduced ? 'review' : 'sequence' });
   const [zoneIdx, setZoneIdx] = useState(0);
   const [phase, setPhase] = useState<Phase>('count');
   const [counted, setCounted] = useState({ mine: 0, foe: 0 });
 
-  const active = explanations[zoneIdx];
+  const inReview = view.kind === 'review';
+  // Replay runs the same machine scoped to one zone (others show finals).
+  const focusIdx = view.kind === 'replay' ? view.zone : view.kind === 'sequence' ? zoneIdx : -1;
+  const active = view.kind === 'review' ? undefined : explanations[focusIdx >= 0 ? focusIdx : zoneIdx];
   const zoneRules: Record<string, string> = {
     cool: t.zoneCoolRule,
     party: t.zonePartyRule,
@@ -71,9 +87,9 @@ export function ResolutionOverlay({
     foe: views.get(id)?.foeBase ?? 0,
   });
 
-  // Count-up ticker for the active zone.
+  // Count-up ticker for the animated zone.
   useEffect(() => {
-    if (reduced || phase !== 'count' || !active) return;
+    if (reduced || inReview || phase !== 'count' || !active) return;
     const target = baseOf(active.zoneId);
     setCounted({ mine: 0, foe: 0 });
     const t0 = performance.now();
@@ -86,15 +102,15 @@ export function ResolutionOverlay({
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoneIdx, phase, reduced]);
+  }, [view, zoneIdx, phase, reduced]);
 
   // Phase auto-advance.
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || inReview) return;
     const id = window.setTimeout(() => advance(), DUR[phase]);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoneIdx, phase, reduced]);
+  }, [view, zoneIdx, phase, reduced]);
 
   function advance() {
     const next = NEXT[phase];
@@ -102,12 +118,19 @@ export function ResolutionOverlay({
       setPhase(next);
       return;
     }
-    if (zoneIdx + 1 < explanations.length) {
+    if (view.kind === 'sequence' && zoneIdx + 1 < explanations.length) {
       setZoneIdx((i) => i + 1);
       setPhase('count');
-    } else {
-      onDone();
+      return;
     }
+    // Sequence finished or single-zone replay finished → review mode.
+    setView({ kind: 'review' });
+  }
+
+  function startReplay(i: number) {
+    setZoneIdx(i);
+    setPhase('count');
+    setView({ kind: 'replay', zone: i });
   }
 
   function bannerFor(ex: ZoneExplanation): string | null {
@@ -131,77 +154,52 @@ export function ResolutionOverlay({
     return fmt(t.resEnergy, { name: names[owner], a: counts[owner], b: counts[other] });
   }
 
-  if (reduced) {
-    return (
-      <div className="resolution-panel" role="status">
-        <div className="resolution-banner">
-          <span className="resolution-text">{t.resTapFaster}</span>
-          <button type="button" className="btn btn-secondary skip-btn" onClick={onDone}>
-            {t.resSkip}
-          </button>
-        </div>
-        <div className="zones-row">
-          {explanations.map((ex) => {
-            const v = views.get(ex.zoneId);
-            if (!v) return null;
-            return (
-              <ZoneColumn
-                key={ex.zoneId}
-                zoneId={ex.zoneId}
-                zoneName={ex.zoneId.toUpperCase()}
-                zoneRule={zoneRules[ex.zoneId] ?? ''}
-                foeCards={v.foeCards}
-                myCards={v.myCards}
-                foeScore={ex.totals[foe]}
-                myScore={ex.totals[player]}
-                dropReady={false}
-                dropTarget={false}
-                spotlight={false}
-                dimmed={false}
-                victory={ex.winner === player}
-                verdict={verdictFor(ex)}
-                mini={true}
-                tapPrompt={null}
-                onZoneClick={() => {}}
-                onRecall={() => {}}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
   function verdictFor(ex: ZoneExplanation): string | null {
     if (ex.winner === null) return t.resTiedZone;
     return fmt(t.resTakesZone, { name: names[ex.winner], zone: ex.zoneId.toUpperCase() });
   }
 
-  // Displayed scores per zone: past → finals, active → animated, future → base.
+  // Displayed scores per zone: past → finals, animated → ticking, future → base.
+  // Reduced motion jumps straight to finals (no count-up).
   const scoreOf = (ex: ZoneExplanation | undefined): { mine: number; foe: number } => {
     if (!ex) return { mine: 0, foe: 0 };
+    if (inReview || reduced) return { mine: ex.totals[player], foe: ex.totals[foe] };
     const idx = explanations.indexOf(ex);
-    if (idx < zoneIdx) return { mine: ex.totals[player], foe: ex.totals[foe] };
-    if (idx > zoneIdx) return { mine: ex.base[player], foe: ex.base[foe] };
+    if (idx < focusIdx) return { mine: ex.totals[player], foe: ex.totals[foe] };
+    if (idx > focusIdx) return { mine: ex.base[player], foe: ex.base[foe] };
     if (phase === 'count') return counted;
     if (phase === 'reason') return { mine: ex.base[player], foe: ex.base[foe] };
     return { mine: ex.totals[player], foe: ex.totals[foe] };
   };
 
-  // Card power ticks + pulse/chip keys for the active zone in apply/verdict.
+  // Card power ticks + pulse/chip keys for the animated zone in apply/verdict.
   const tick = new Map<string, number>();
   const pulse = new Set<string>();
   const chips = new Set<string>();
-  let zoneChip: 'mine' | 'foe' | null = null;
+  const zoneChipsFor = (ex: ZoneExplanation) => {
+    const effects = ex.adjustments.flatMap((a, i) => {
+      if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
+      const delta = a.to - a.from;
+      return [{ key: `${a.owner}-${a.reason}-${i}`, side: a.owner === player ? 'mine' as const : 'foe' as const, label: `${delta > 0 ? '+' : ''}${delta}` }];
+    });
+    const zoneView = views.get(ex.zoneId);
+    if (zoneView) {
+      const mine = getSideHighlight(zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId));
+      const theirs = getSideHighlight(zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId));
+      if (!isCreamCancelled(zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId), zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId))) {
+        if (mine.completed.some((c) => c.group === 'berry')) effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
+        if (theirs.completed.some((c) => c.group === 'berry')) effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+      }
+    }
+    return effects;
+  };
   if (active && (phase === 'apply' || phase === 'verdict')) {
     for (const a of active.adjustments) {
       if (a.target.kind === 'card') {
         const k = keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex);
         tick.set(k, a.to);
         pulse.add(k);
-        chips.add(k);
-      } else if (a.owner) {
-        zoneChip = a.owner === player ? 'mine' : 'foe';
+        if (a.reason !== 'stay-frosty') chips.add(k);
       }
     }
   }
@@ -213,57 +211,101 @@ export function ResolutionOverlay({
 
   const banner = active ? bannerFor(active) : null;
 
+  const onZoneTap = (i: number) => {
+    if (inReview) startReplay(i);
+    else advance();
+  };
+
+  // Review banner: crown + majority winner (same slot as the sequence banner).
+  const reviewBanner = (
+    <div className="resolution-banner review-banner" role="status">
+      <span className="winner-crown" aria-hidden="true">
+        <CrownIcon size={28} />
+      </span>
+      <span className="resolution-text">
+        {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}{' '}
+        {winner ? t.winsTheMatch : t.allTied}
+      </span>
+    </div>
+  );
+
   return (
-    <div className="resolution-panel" onClick={advance} role="status" aria-live="polite">
-      <div className="resolution-banner" onClick={(e) => e.stopPropagation()}>
-        <span className="resolution-text">{banner ?? t.resTapFaster}</span>
-        <button
-          type="button"
-          className="btn btn-secondary skip-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDone();
-          }}
-        >
-          {t.resSkip}
-        </button>
-      </div>
+    <div
+      className="resolution-panel"
+      onClick={() => {
+        if (!inReview) advance();
+      }}
+      role="status"
+      aria-live="polite"
+    >
+      {inReview ? (
+        reviewBanner
+      ) : (
+        <div className="resolution-banner" onClick={(e) => e.stopPropagation()}>
+          <span className="resolution-text">{banner ?? t.resTapFaster}</span>
+          <button
+            type="button"
+            className="btn btn-secondary skip-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setView({ kind: 'review' });
+            }}
+          >
+            {t.resSkip}
+          </button>
+        </div>
+      )}
       <div className="zones-row">
         {ZONES.map((z, i) => {
           const v = views.get(z.id);
           const ex = explanations.find((e) => e.zoneId === z.id);
           if (!v || !ex) return null;
           const s = scoreOf(ex);
-          const isActive = i === zoneIdx;
-          const done = i < zoneIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
+          const isActive = !inReview && i === focusIdx;
+          const done =
+            inReview || i < focusIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
           return (
             <ZoneColumn
               key={z.id}
               zoneId={z.id}
               zoneName={z.name}
               zoneRule={zoneRules[z.id] ?? ''}
-              foeCards={withTick(v.foeCards)}
-              myCards={withTick(v.myCards)}
+              foeCards={isActive ? withTick(v.foeCards) : v.foeCards}
+              myCards={isActive ? withTick(v.myCards) : v.myCards}
               foeScore={s.foe}
               myScore={s.mine}
               dropReady={false}
               dropTarget={false}
               spotlight={isActive}
-              dimmed={!isActive}
+              dimmed={!inReview && !isActive}
               victory={done && ex.winner === player}
               verdict={done || (isActive && phase === 'verdict') ? verdictFor(ex) : null}
               pulseKeys={isActive ? pulse : undefined}
               chipKeys={isActive ? chips : undefined}
-              zoneChip={isActive ? zoneChip : undefined}
+              zoneEffectChips={zoneChipsFor(ex)}
               mini={true}
               tapPrompt={null}
-              onZoneClick={() => advance()}
+              onZoneClick={() => onZoneTap(i)}
               onRecall={() => {}}
             />
           );
         })}
       </div>
-      <p className="resolution-hint">{t.resTapFaster}</p>
+      {inReview ? (
+        <div className="hand-row review-dock">
+          <span className="dock-hint">{t.resReplayHint}</span>
+          <div className="review-actions">
+            <button type="button" className="btn btn-primary" onClick={onRematch}>
+              {t.rematch}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={onReturnMenu}>
+              {t.returnToMenu}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="resolution-hint">{t.resTapFaster}</p>
+      )}
     </div>
   );
 }

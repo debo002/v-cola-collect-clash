@@ -319,13 +319,13 @@
   overflow: clip;
 }
 
-/* Top bar: menu + round pips + timer */
+/* Top bar: menu + round pips + timer (~10% of the 480 stage) */
 .game-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
-  flex: 0 0 64px;
+  height: 40px;
+  flex: 0 0 40px;
   padding: 4px var(--space-sm);
   box-sizing: border-box;
   background: var(--ink);
@@ -371,7 +371,7 @@
   white-space: nowrap;
 }
 
-/* Board: left rail | zones | right rail, then hand row below */
+/* Board: full-width zone arena, then hand row below */
 .board {
   flex: 1;
   min-height: 0;
@@ -379,6 +379,10 @@
   flex-direction: column;
   overflow: clip;
   position: relative;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(230, 30, 43, 0.1) 0%, transparent 65%),
+    radial-gradient(ellipse 120% 90% at 50% 115%, rgba(0, 0, 0, 0.55) 0%, transparent 60%),
+    var(--ink);
 }
 
 .match-main {
@@ -392,133 +396,11 @@
   overflow: clip;
 }
 
-/* Side rails */
-.rail {
-  width: 148px;
-  flex: 0 0 148px;
-  min-height: 0;
-  overflow: clip;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  background: rgba(17, 21, 31, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: var(--space-sm);
-  box-sizing: border-box;
+.match-main.zones-full {
+  padding: var(--space-sm) var(--space-md);
 }
 
-.rail-title {
-  margin: 0 0 4px;
-  font-size: 14px;
-  color: var(--gold);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rail-block {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.rail-muted {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.35;
-}
-
-.stand-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px;
-  font-size: 13px;
-  min-height: 30px;
-}
-
-.stand-row strong {
-  color: #fff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 88px;
-}
-
-.stand-row span {
-  color: var(--gold);
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.leader-dots,
-.last-lines,
-.rule-lines {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.leader-dot,
-.last-lines li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text);
-  min-height: 30px;
-}
-
-.leader-dot span,
-.last-lines li span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.rule-lines {
-  gap: 8px;
-}
-
-.rule-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text);
-  line-height: 1.3;
-  min-height: 30px;
-}
-
-.rule-line span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rule-line strong {
-  color: #fff;
-}
-
-.rule-cool svg {
-  color: var(--cool);
-}
-.rule-party svg {
-  color: var(--party);
-}
-.rule-energy svg {
-  color: var(--energy);
-}
-
-/* Zone columns side by side */
+/* Zone columns side by side (full freed width — rails deleted) */
 .zones-row {
   flex: 1;
   min-width: 0;
@@ -534,11 +416,11 @@
   min-width: 0;
   min-height: 0;
   border-radius: var(--r-lane);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  padding: 6px 4px;
+  /* Three non-overlapping areas: foe strip / info pillar / mine strip.
+     1fr strips reserve space even when empty so reveals never shift layout. */
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+  padding: 4px;
   box-sizing: border-box;
   position: relative;
   overflow: clip;
@@ -651,48 +533,35 @@
     inset 0 0 14px rgba(255, 215, 0, 0.25);
 }
 
-/* Horizontal overlap strips: 6 cards per side fit with no scrolling */
+/* Shrink-to-fit strips: cards sit side by side, never stacked, never clipped.
+   Card width comes from --card-w measured in ZoneColumn (floored at 36px).
+   Gutters reserve room for power gems (top-start) and progress chips (top-end). */
 .strip {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   min-height: 0;
-  flex: 1 1 0;
-  padding: 2px;
+  min-width: 0;
+  padding: 12px 10px 14px;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .strip-mini {
   position: relative;
   flex: 0 0 auto;
+  width: var(--card-w, 54px);
   background: none;
   border: none;
   padding: 0;
   font: inherit;
   color: inherit;
-  min-height: 44px;
-  min-width: 44px;
 }
 
-/* Overlap steps keep 6 cards inside narrow columns (min col ~117 stage px) */
-.density-roomy .strip-mini {
-  width: 54px;
-}
-.density-roomy .strip-mini + .strip-mini {
-  margin-inline-start: -16px;
-}
-.density-snug .strip-mini {
-  width: 42px;
-}
-.density-snug .strip-mini + .strip-mini {
-  margin-inline-start: -18px;
-}
-.density-crowded .strip-mini {
-  width: 36px;
-}
-.density-crowded .strip-mini + .strip-mini {
-  margin-inline-start: -20px;
+.strip-mini .game-card {
+  width: 100%;
 }
 
 .strip-mini.recallable {
@@ -783,11 +652,12 @@
 }
 
 .pillar-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   white-space: nowrap;
+  line-height: 1.15;
 }
 
 .pillar-rule {
@@ -800,23 +670,36 @@
   max-width: 100%;
 }
 
-.lane-drop-prompt {
-  position: absolute;
-  bottom: 4px;
-  left: 4px;
-  right: 4px;
+/* Winner pill lives inside the info strip — never over cards. */
+.pillar-verdict {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: #111;
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-top: 2px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* "Tap a zone to place" prompt lives in the pillar — never over cards. */
+.pillar-prompt {
   font-size: 11px;
   font-weight: 800;
-  text-align: center;
-  padding: 3px 2px;
-  background: rgba(255, 216, 117, 0.16);
   color: #ffd875;
-  border-radius: 6px;
-  border: 1px dashed rgba(255, 216, 117, 0.6);
-  animation: readyPulse 1s infinite alternate;
+  line-height: 1.2;
+  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  animation: readyPulse 1s infinite alternate;
+  border-radius: 6px;
 }
 
 /* Card pop into lane */
@@ -898,17 +781,22 @@
    HAND ROW — fan left, Lock In right
    ========================================================================== */
 
+/* Bottom dock (placing, reveal, review): content-sized, ~30% of stage.
+   Zones above take the remainder (flex:1, ≥55%). */
 .hand-row {
-  flex: 0 0 152px;
+  flex: 0 0 132px;
+  height: 132px;
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   gap: var(--space-sm);
-  background: rgba(10, 13, 20, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 30%),
+    rgba(10, 13, 20, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 6px var(--space-sm) 8px;
-  overflow: clip;
+  padding: 6px var(--space-sm);
+  overflow: visible;
 }
 
 .hand-main {
@@ -919,48 +807,29 @@
   min-height: 0;
 }
 
-.hand-header {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: var(--space-sm);
-  padding: 0 4px;
-}
-
-.hand-title {
-  font-family: var(--heading);
-  font-size: 16px;
-  color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-}
-
-.hand-tip {
-  font-size: 12px;
-  color: #ffd875;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .hand-fan {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
+  flex-wrap: nowrap;
   justify-content: center;
-  align-items: flex-end;
-  padding: 2px 4px 0;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  overflow: visible;
 }
 
 .fan-card {
-  width: 64px;
-  flex: 0 0 64px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 76px;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
   font: inherit;
   position: relative;
+  overflow: visible;
   transition: transform var(--motion-micro, 120ms) ease-out;
   touch-action: none;
   user-select: none;
@@ -968,18 +837,19 @@
   min-height: 56px;
 }
 
-.fan-card + .fan-card {
-  margin-inline-start: -10px;
-}
-
 .fan-card.selected {
-  transform: translateY(-10px) scale(1.12);
+  transform: translateY(-8px);
   z-index: 10;
 }
 
-/* Hover brightens without moving layout (no jitter, stable bounds) */
+/* Hover lifts + brightens the card itself (no sibling layout shift) */
 .fan-card:hover .game-card {
+  transform: translateY(-4px);
   filter: brightness(1.15);
+}
+
+.fan-card.selected .game-card {
+  transform: translateY(-2px);
 }
 
 .fan-card.dragging {
@@ -990,12 +860,86 @@
   width: 100%;
 }
 
+.fan-card .name-plate span {
+  font-size: 10px;
+}
+
+/* Inline status line under the fan: hint by default, selected card's full
+   effect text when a card is picked. Wraps in full — never ellipsis. */
+.dock-line {
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #ffd875;
+  min-height: 1.35em;
+}
+
+.dock-line strong {
+  color: #fff;
+}
+
+/* Slim side column: card count + primary action. */
+.dock-side {
+  flex: 0 0 172px;
+  width: 172px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.dock-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
 .lock-btn {
-  width: 200px;
-  flex: 0 0 200px;
+  width: 100%;
+  flex: 0 0 auto;
   align-self: center;
-  min-height: 64px;
-  font-size: 17px;
+  min-height: 46px;
+  font-size: 14px;
+}
+
+/* Reveal + review docks reuse the hand-row footprint. */
+.reveal-dock,
+.review-dock {
+  align-items: center;
+}
+
+.dock-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.reveal-dock .lock-btn {
+  flex: 0 0 220px;
+  width: 220px;
+}
+
+.review-dock .dock-hint {
+  color: #ffd875;
+}
+
+.review-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+
+.review-actions .btn {
+  min-height: 56px;
+  padding: 8px 18px;
+  font-size: 15px;
 }
 
 .lock-btn:not(.disabled) {
@@ -1123,102 +1067,37 @@
    REVEAL / MATCH OVER OVERLAY (inline on the board)
    ========================================================================== */
 
-.reveal-overlay-banner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(640px, 92%);
-  z-index: 40;
-  animation: popIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes popIn {
-  0% {
-    transform: translate(-50%, -50%) scale(0.85);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-}
-
-.reveal-content-card {
-  background: rgba(15, 19, 28, 0.95);
-  backdrop-filter: blur(14px);
-  border: 2px solid #ffd875;
-  box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.85),
-    0 0 24px rgba(255, 216, 117, 0.3);
-  border-radius: 18px;
-  padding: 16px 20px;
-  text-align: center;
+/* Thin reveal banner: same slot and language as the resolution banner,
+   nothing covers the zones. */
+.thin-banner {
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
   align-items: center;
-  justify-content: center;
+  background: rgba(15, 19, 28, 0.96);
+  border-bottom: 2px solid var(--cool);
+  padding: 6px 12px;
+  box-sizing: border-box;
 }
 
-.match-over-card {
-  border-color: #ffd700;
-  background: radial-gradient(circle at 50% 0%, #3d2112 0%, #11151f 80%);
+.thin-banner .resolution-text {
+  font-size: 14px;
 }
 
 .winner-crown {
   display: inline-flex;
+  flex: 0 0 auto;
   color: var(--gold);
   filter: drop-shadow(0 2px 8px rgba(255, 213, 74, 0.7));
 }
 
-.winner-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 900;
-  color: #ffd700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-  flex: 1 1 100%;
+.review-banner {
+  border-color: #ffd700;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 213, 74, 0.12) 0%, transparent 70%),
+    rgba(15, 19, 28, 0.96);
 }
 
-.winner-subtitle {
-  margin: 0;
-  font-size: 15px;
-  color: var(--text);
-  flex: 1 1 100%;
-}
-
-.round-revealed-card {
-  border-color: #38bdf8;
-  background: radial-gradient(circle at 50% 0%, #0d283d 0%, #0e121a 80%);
-}
-
-.round-revealed-title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 900;
-  color: #38bdf8;
-  flex: 1 1 100%;
-}
-
-.round-revealed-note {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-  flex: 1 1 100%;
-}
-
-.reveal-actions-row {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-  margin-top: 6px;
-}
-
-.reveal-actions-row .btn {
-  flex: 1;
-}
+/* (match-over-panel layout retired: round-3 animation and review share one board) */
 
 /* ==========================================================================
    DECK SCREEN — landscape: slots row + scrollable grid panel
@@ -1456,25 +1335,7 @@
   filter: saturate(0.6);
 }
 
-/* Mini columns inside the resolution panel (banner takes top space) */
-.mini-col .strip-mini {
-  width: 44px;
-}
-.mini-col .strip-mini + .strip-mini {
-  margin-inline-start: -16px;
-}
-.mini-col .density-snug .strip-mini {
-  width: 38px;
-}
-.mini-col .density-snug .strip-mini + .strip-mini {
-  margin-inline-start: -17px;
-}
-.mini-col .density-crowded .strip-mini {
-  width: 32px;
-}
-.mini-col .density-crowded .strip-mini + .strip-mini {
-  margin-inline-start: -17px;
-}
+/* Compact pillar text for resolution/review zones (strips use the same fit system) */
 .mini-col .pillar-score {
   font-size: 18px;
   min-width: 24px;
@@ -1548,25 +1409,7 @@
   }
 }
 
-/* Winner / tie badge pinned to the column corner (no layout shift) */
-.verdict-badge {
-  position: absolute;
-  top: 4px;
-  inset-inline-start: 4px;
-  z-index: 5;
-  font-size: 11px;
-  font-weight: 900;
-  color: #111;
-  background: var(--gold);
-  border-radius: 999px;
-  padding: 2px 8px;
-  white-space: nowrap;
-  max-width: calc(100% - 8px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  animation: cardPop 250ms var(--motion-ease, cubic-bezier(0.2, 1.4, 0.4, 1));
-}
+/* (verdict-badge retired: winner pills now render inside the pillar) */
 
 /* Round 1-2 reveal: flip + stagger (short, end state identical) */
 .animate-flip {
@@ -1591,7 +1434,10 @@
 }
 
 /* ==========================================================================
-   V7 CARD STYLING — GROUND TRUTH PER-FLAVOR CAN PALETTES (unchanged)
+   COMBO CARD STYLING — border + art wash + glow carry the combo color.
+   Membership comes from getCardGroups(); per-flavor frames are gone.
+   Single group = solid frame; 2+ groups (or solo + group) = gradient
+   frame via padding-box/border-box clip. Name plate stays solid dark.
    ========================================================================== */
 
 .game-card {
@@ -1609,27 +1455,34 @@
   -webkit-user-select: none;
   transition:
     transform var(--motion-micro, 120ms) ease-out,
-    box-shadow var(--motion-micro, 120ms) ease-out;
+    box-shadow var(--motion-micro, 120ms) ease-out,
+    filter var(--motion-micro, 120ms) ease-out;
 }
 
-/* Product-line frames: silver/blue, flavor rim, copper/gold */
-.game-card.line-super-soda {
-  border-color: #9fb3c8;
+.game-card.has-combo {
+  border: 2.5px solid transparent;
+  background:
+    linear-gradient(180deg, #171b26 0%, #0d1017 100%) padding-box,
+    var(--combo-frame, var(--border)) border-box;
   box-shadow:
     0 5px 0 rgba(0, 0, 0, 0.55),
-    0 0 0 1.5px rgba(159, 179, 200, 0.5);
+    0 0 14px color-mix(in srgb, var(--combo-glow, #fff) 45%, transparent);
 }
 
-.game-card.line-flavored-malt {
-  border-color: #c98a2d;
-  box-shadow:
-    0 5px 0 rgba(0, 0, 0, 0.55),
-    0 0 0 1.5px rgba(201, 138, 45, 0.55);
+.game-card.has-combo .game-art {
+  background: var(--combo-art, radial-gradient(circle at 50% 28%, #1a2133 0%, #0a0d16 78%));
+  filter: brightness(1.55) saturate(1.2);
+}
+
+.game-card.has-combo .name-plate {
+  border-top-color: color-mix(in srgb, var(--combo-glow, #fff) 55%, transparent);
 }
 
 .game-card.selected {
-  border-color: #ffd875 !important;
+  outline: 2px solid #ffd875;
+  outline-offset: 2px;
   box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.55),
     0 0 0 2px #ffd875,
     0 8px 24px rgba(255, 216, 117, 0.6) !important;
 }
@@ -1714,17 +1567,8 @@
   line-height: 1.1;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.game-card.long-name .name-plate span {
-  font-size: 9px;
-}
-
-.game-card.xlong-name .name-plate span {
-  font-size: 8px;
+  overflow: visible;
+  max-width: none;
 }
 
 /* Board mini keeps the same identity, power readable without zoom */
@@ -1732,188 +1576,338 @@
   border-width: 2px;
 }
 
+.game-card.card-board.has-combo {
+  border-width: 2px;
+}
+
 .game-card.card-board .power-gem {
-  width: 26px;
-  height: 26px;
-  top: -8px;
-  inset-inline-start: -8px;
+  width: 20px;
+  height: 20px;
+  top: 3px;
+  inset-inline-start: 3px;
+  border-width: 1px;
+  z-index: 4;
 }
 
 .game-card.card-board .power-val {
-  font-size: 15px;
+  font-size: 11px;
 }
 
 .game-card.card-board .name-plate {
-  min-height: 22px;
-  padding: 3px 2px 4px;
+  min-height: 0;
+  max-height: 30%;
+  padding: 2px;
 }
 
 .game-card.card-board .name-plate span {
-  font-size: 8px;
+  /* Full name, never ellipsis: shrink to --name-fs floor, then wrap 2 lines. */
+  font-size: var(--name-fs, 8px);
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.15;
 }
+
+/* Zone cards keep the result chip inside their own box (below the plate),
+   so it never covers names, badges, or neighboring cards. */
+.game-card.card-board .combo-effect {
+  position: static;
+  transform: none;
+  margin: 2px auto 0;
+  font-size: 10px;
+}
+
+.game-card.card-board {
+  aspect-ratio: 5 / 8;
+  overflow: hidden;
+}
+
+.game-card.card-board .game-art {
+  min-height: 0;
+  flex: 1 1 55%;
+  padding: 3px 1px 0;
+  background-color: color-mix(in srgb, var(--combo-frame, #26334d) 38%, #253047);
+}
+
+.game-card.card-board .game-art img {
+  width: 135%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.55));
+}
+
+.board-status-row {
+  min-height: 13px;
+  flex: 0 0 13px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  background: #0b0e18;
+  border-radius: 0 0 5px 5px;
+}
+
+.game-card.card-board .combo-effect,
+.game-card.card-board .combo-progress {
+  position: static;
+  transform: none;
+  margin: 0;
+  padding: 1px 3px;
+  font-size: 8px;
+  line-height: 1;
+  border-width: 1px;
+}
+
+.cancelled-mark {
+  color: #fff;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  font: 9px/8px var(--heading);
+  text-align: center;
+}
+
+/* Per-flavor frames removed: border + art wash now carry the combo color
+   (see .has-combo above). Can images stay; power gems stay brand red. */
 
 /* --------------------------------------------------------------------------
-   INDIVIDUAL FLAVOR COLOR SCHEMES (From ground truth can colors)
+   COMBO STATE (visual only) — frame + art wash come from --combo-* vars.
+   Effect chips show the actual result; -1 uses a warning style.
+   Cream zones grey group colors out.
    -------------------------------------------------------------------------- */
 
-/* 1. V Cola — Deep navy/blue with silver */
-.flavor-v-cola.game-card {
-  border-color: #1d4ed8;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(29, 78, 216, 0.3);
-}
-.flavor-v-cola .game-art {
-  background: radial-gradient(circle at 50% 30%, #1e3a8a 0%, #0a1329 75%);
-}
-.flavor-v-cola .power-gem {
-  background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
-  border-color: #cbd5e1;
-}
-.flavor-v-cola .name-plate {
-  border-top-color: rgba(203, 213, 225, 0.4);
-}
-
-/* 2. V Diet Cola — Silver/white with blue accent */
-.flavor-v-diet-cola.game-card {
-  border-color: #94a3b8;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(148, 163, 184, 0.3);
-}
-.flavor-v-diet-cola .game-art {
-  background: radial-gradient(circle at 50% 30%, #475569 0%, #0f172a 75%);
-}
-.flavor-v-diet-cola .power-gem {
-  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-  border-color: #f8fafc;
-}
-.flavor-v-diet-cola .name-plate {
-  border-top-color: rgba(56, 189, 248, 0.5);
+.game-card .combo-effect {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: #0b0e18;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  padding: 2px 7px;
+  pointer-events: none;
 }
 
-/* 3. V Lemon — Vibrant green */
-.flavor-v-lemon.game-card {
-  border-color: #16a34a;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(22, 163, 74, 0.3);
-}
-.flavor-v-lemon .game-art {
-  background: radial-gradient(circle at 50% 30%, #15803d 0%, #052e16 75%);
-}
-.flavor-v-lemon .power-gem {
-  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+.game-card .combo-effect.combo-warn {
+  color: #fecaca;
+  background: #7f1d1d;
+  border-color: #fca5a5;
 }
 
-/* 4. Pink Lemonade — Pink/magenta */
-.flavor-pink-lemonade.game-card {
-  border-color: #ec4899;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(236, 72, 153, 0.3);
-}
-.flavor-pink-lemonade .game-art {
-  background: radial-gradient(circle at 50% 30%, #be185d 0%, #500724 75%);
-}
-.flavor-pink-lemonade .power-gem {
-  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
-}
-
-/* 5. Cream Soda — Warm gold/tan */
-.flavor-cream-soda.game-card {
-  border-color: #d97706;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(217, 119, 6, 0.3);
-}
-.flavor-cream-soda .game-art {
-  background: radial-gradient(circle at 50% 30%, #b45309 0%, #451a03 75%);
-}
-.flavor-cream-soda .power-gem {
-  background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+.game-card .combo-progress {
+  position: absolute;
+  top: -9px;
+  inset-inline-end: -7px;
+  z-index: 4;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  background: #0b0e18;
+  border: 1.5px solid #fff;
+  border-radius: 999px;
+  padding: 2px 6px;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 6. Pomegranate — Deep red */
-.flavor-pomegranate.game-card {
-  border-color: #dc2626;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(220, 38, 38, 0.3);
-}
-.flavor-pomegranate .game-art {
-  background: radial-gradient(circle at 50% 30%, #991b1b 0%, #450a0a 75%);
-}
-.flavor-pomegranate .power-gem {
-  background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);
+.game-card.combo-greyed {
+  filter: saturate(0.25) brightness(.78);
+  opacity: .55;
 }
 
-/* 7. Blueberry — Blue/purple */
-.flavor-blueberry.game-card {
-  border-color: #6366f1;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(99, 102, 241, 0.3);
-}
-.flavor-blueberry .game-art {
-  background: radial-gradient(circle at 50% 30%, #4338ca 0%, #1e1b4b 75%);
-}
-.flavor-blueberry .power-gem {
-  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+.zone-col.combo-cancelled {
+  position: relative;
 }
 
-/* 8. Lemon Mint — Light green/teal */
-.flavor-lemon-mint.game-card {
-  border-color: #0d9488;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(13, 148, 136, 0.3);
-}
-.flavor-lemon-mint .game-art {
-  background: radial-gradient(circle at 50% 30%, #0f766e 0%, #042f2e 75%);
-}
-.flavor-lemon-mint .power-gem {
-  background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
+/* Collapsible combo legend (Deck screen) */
+.combo-legend {
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 8px;
 }
 
-/* 9. Pina Colada — Yellow/cream */
-.flavor-pina-colada.game-card {
-  border-color: #eab308;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(234, 179, 8, 0.3);
-}
-.flavor-pina-colada .game-art {
-  background: radial-gradient(circle at 50% 30%, #ca8a04 0%, #422006 75%);
-}
-.flavor-pina-colada .power-gem {
-  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+.combo-legend summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #fff;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
 }
 
-/* 10. V7 Apple Malt — Amber/gold */
-.flavor-v7-apple-malt.game-card {
-  border-color: #c2410c;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(194, 65, 12, 0.3);
-}
-.flavor-v7-apple-malt .game-art {
-  background: radial-gradient(circle at 50% 30%, #9a3412 0%, #3d1308 75%);
-}
-.flavor-v7-apple-malt .power-gem {
-  background: linear-gradient(135deg, #ea580c 0%, #9a3412 100%);
+.combo-legend ul {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* 11. V7 Pineapple Malt — Yellow/gold */
-.flavor-v7-pineapple-malt.game-card {
-  border-color: #d97706;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 0 12px rgba(217, 119, 6, 0.3);
+.combo-legend li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
 }
-.flavor-v7-pineapple-malt .game-art {
-  background: radial-gradient(circle at 50% 30%, #a16207 0%, #3f2205 75%);
+
+.combo-dot {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  margin-top: 1px;
 }
-.flavor-v7-pineapple-malt .power-gem {
-  background: linear-gradient(135deg, #f59e0b 0%, #a16207 100%);
+
+.legend-cards {
+  display: block;
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Top-bar "?" combo legend popover */
+.legend-pop-wrap {
+  position: relative;
+}
+
+.legend-btn {
+  width: 44px;
+  height: 44px;
+  font-family: var(--heading);
+  font-size: 20px;
+  color: #ffd875;
+}
+
+.legend-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  z-index: 80;
+  width: 300px;
+  background: rgba(15, 19, 28, 0.98);
+  border: 2px solid #2b3550;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
+  padding: 10px 12px;
+  animation: cardPop 180ms var(--motion-ease, cubic-bezier(0.2, 1.4, 0.4, 1));
+}
+
+.help-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(2, 5, 12, .78);
+  backdrop-filter: blur(4px);
+}
+
+.help-sheet {
+  width: min(760px, 94vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #f7f8fc;
+  background: #111827;
+  border: 2px solid #39445c;
+  border-radius: 14px;
+  box-shadow: 0 22px 70px rgba(0,0,0,.8);
+}
+
+.help-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #39445c;
+  background: #192134;
+}
+
+.help-header h2 { margin: 0; font: 18px var(--heading); color: #ffd875; }
+.help-scroll { overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px 18px; }
+.help-section { padding: 8px 0 12px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.help-section:last-child { border-bottom: 0; }
+.help-section h3 { margin: 0 0 7px; color: #ffd875; font-size: 14px; }
+.help-section p { margin: 4px 0; line-height: 1.4; }
+.help-zone-line { display: flex; gap: 10px; }
+.help-zone-line b { min-width: 64px; color: #91d7ff; }
+.help-combos, .help-cards, .help-reading { list-style: none; padding: 0; margin: 0; }
+.help-combos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.help-combos li { display: flex; gap: 8px; padding: 7px; border-radius: 8px; background: #1a2435; }
+.help-combos .combo-dot { width: 13px; height: 13px; }
+.help-combos p { font-size: 12px; }
+.help-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px 14px; }
+.help-cards li { display: grid; grid-template-columns: 18px minmax(90px, .7fr) 1.3fr; align-items: center; gap: 7px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 11px; }
+.frame-swatch { width: 16px; height: 22px; border: 2px solid rgba(255,255,255,.8); border-radius: 4px; }
+.help-cards li > span:last-child { color: #c3cada; line-height: 1.25; }
+.help-reading { display: grid; gap: 5px; }
+.help-reading li { line-height: 1.4; }
+.zone-effect-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 100%; }
+.zone-effect-chip { display: inline-flex; align-items: center; min-height: 16px; padding: 1px 5px; border: 1px solid rgba(255,255,255,.22); border-radius: 99px; background: #243247; color: #f7fbff; font: 700 10px/1 var(--body); }
+.zone-effect-chip.mine { border-color: rgba(101,222,255,.65); }
+.zone-effect-chip.foe { border-color: rgba(255,143,166,.65); }
+
+@media (max-width: 700px) {
+  .help-combos, .help-cards { grid-template-columns: 1fr; }
+  .help-cards li { grid-template-columns: 18px minmax(85px, .6fr) 1.4fr; }
+  .help-header h2 { font-size: 15px; }
+}
+
+.legend-pop-title {
+  display: block;
+  font-size: 13px;
+  color: #ffd875;
+  margin-bottom: 6px;
+}
+
+.legend-pop ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-pop li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+/* Score tick: pillar numbers pop on value change (key-driven) */
+.pillar-score {
+  animation: scoreTick 220ms var(--motion-ease, cubic-bezier(0.2, 1.4, 0.4, 1));
+}
+
+@keyframes scoreTick {
+  0% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
