@@ -88,7 +88,7 @@ function winnerOf(totals: Record<Player, number>): Player | null {
   return totals.A > totals.B ? 'A' : 'B';
 }
 
-export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): ResolveResult {
+export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX, effectsEnabled = true): ResolveResult {
   const sides: readonly Player[] = ['A', 'B'];
   const base: Record<Player, number> = {
     A: sumBase(zone.cards.A),
@@ -102,7 +102,7 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
   const bySide: Record<Player, FlavorId[]> = { A: flavorsA, B: flavorsB };
 
   // 1. Cream Soda: base power only, everything else ignored in this zone.
-  if (hasCreamSoda(flavorsA, flavorsB)) {
+  if (effectsEnabled && hasCreamSoda(flavorsA, flavorsB)) {
     const creamIds = [...zone.cards.A, ...zone.cards.B]
       .filter((c) => c.flavor === CREAM_SODA_ID)
       .map((c) => c.cardId);
@@ -133,7 +133,7 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
   const counts: Record<Player, number> = { A: zone.cards.A.length, B: zone.cards.B.length };
 
   // 3. Citrus trio double-lowest (additional cards are allowed; tie → same result either way).
-  for (const side of sides) {
+  for (const side of effectsEnabled ? sides : []) {
     const cards = zone.cards[side];
     if (isExactCitrusTrio(bySide[side])) {
       const lowest = Math.min(...cards.map((c) => c.basePower));
@@ -151,7 +151,7 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
   }
 
   // 4. Flat card effects.
-  for (const side of sides) {
+  for (const side of effectsEnabled ? sides : []) {
     const cards = zone.cards[side];
     const ids = cards.map((c) => c.cardId);
     if (isExactColaDiet(bySide[side])) {
@@ -210,7 +210,9 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
   }
 
   // 5. Zone effect (moved unchanged from old scoring; base snapshot only).
-  if (zone.effect === 'stay-frosty') {
+  if (!effectsEnabled) {
+    // Plain-power mode ignores card and zone effects alike.
+  } else if (zone.effect === 'stay-frosty') {
     if (allCards.length > 0 && lowestHolders.length === 1) {
       const lucky = lowestHolders[0] as ResolveCard;
       running[lucky.owner] += 1;
@@ -275,7 +277,7 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
   }
 
   // 6. Berry-trio auto-win (presence; others allowed). Exactly one side wins.
-  const aHas = hasBerryTrio(flavorsA);
+  const aHas = effectsEnabled && hasBerryTrio(flavorsA);
   const bHas = hasBerryTrio(flavorsB);
   let winner = winnerOf(running);
   if (aHas !== bHas) {
@@ -313,12 +315,12 @@ export function resolveZone(zone: ZoneInput, ctx: ResolveContext = EMPTY_CTX): R
  * is correctly silenced there (and Pinas sitting in Cream zones give nothing
  * anywhere). Never assumes exactly 3 zones.
  */
-export function resolveMatch(zones: readonly ZoneInput[]): ResolveResult[] {
+export function resolveMatch(zones: readonly ZoneInput[], effectsEnabled = true): ResolveResult[] {
   const cream = new Set<string>();
   for (const z of zones) {
     const fa = z.cards.A.map((c) => c.flavor);
     const fb = z.cards.B.map((c) => c.flavor);
-    if (hasCreamSoda(fa, fb)) cream.add(z.zoneId);
+    if (effectsEnabled && hasCreamSoda(fa, fb)) cream.add(z.zoneId);
   }
   const pinaSources: Record<Player, { cardId: string; zoneId: string }[]> = { A: [], B: [] };
   for (const z of zones) {
@@ -331,5 +333,5 @@ export function resolveMatch(zones: readonly ZoneInput[]): ResolveResult[] {
     }
   }
   const ctx: ResolveContext = { pinaSources };
-  return zones.map((z) => resolveZone(z, ctx));
+  return zones.map((z) => resolveZone(z, ctx, effectsEnabled));
 }

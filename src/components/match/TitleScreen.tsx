@@ -14,11 +14,13 @@ export function TitleScreen({
   onPlayersChange,
   onPlay,
   onOpenDeck,
+  onCustomGame,
 }: {
   players: Players;
   onPlayersChange: (players: Players) => void;
   onPlay: () => void;
   onOpenDeck: () => void;
+  onCustomGame: () => void;
 }) {
   const { lang, setLang, t } = useI18n();
   return (
@@ -52,6 +54,7 @@ export function TitleScreen({
           <DeckIcon size={22} />
           {t.tabDeck}
         </button>
+        <button type="button" className="btn btn-secondary btn-xl" onClick={onCustomGame}>{t.customGame}</button>
         <QuickGuide menu />
         <div className="lang-switcher" role="group" aria-label="Language">
           <button

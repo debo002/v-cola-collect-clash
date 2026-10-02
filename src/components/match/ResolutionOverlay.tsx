@@ -135,8 +135,10 @@ export function ResolutionOverlay({
 
   function startReplay(i: number) {
     setZoneIdx(i);
-    // Replay is a quick effect recap; the full count-up sequence has already played.
-    setPhase('apply');
+    // Replay the selected zone with the same count → reason → apply → verdict
+    // sequence used by its tile in the opening resolution run.
+    setCounted({ mine: 0, foe: 0 });
+    setPhase('count');
     setView({ kind: 'replay', zone: i });
   }
 

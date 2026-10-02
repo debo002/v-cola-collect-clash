@@ -37,6 +37,12 @@ export function Board({
   onUnplace,
   onLock,
   onTooMany,
+  drawPileCount,
+  drawsRemaining = 0,
+  drawAnimKey = 0,
+  drawnHandIndex = -1,
+  drawAnimating = false,
+  onDraw,
   onNextRound,
   onRematch,
   onReturnMenu,
@@ -57,6 +63,12 @@ export function Board({
   onUnplace: (handIndex: number) => void;
   onLock: () => void;
   onTooMany: () => void;
+  drawPileCount?: number;
+  drawsRemaining?: number;
+  drawAnimKey?: number;
+  drawnHandIndex?: number;
+  drawAnimating?: boolean;
+  onDraw?: () => void;
   onNextRound?: () => void;
   onRematch?: () => void;
   onReturnMenu?: () => void;
@@ -93,19 +105,19 @@ export function Board({
   }
 
   function handleZoneClick(zoneId: string) {
-    if (isRevealing) return;
+    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
     if (selected === null) return;
     onPlace(selected, zoneId);
     setSelected(null);
   }
 
   function handleCardTap(i: number) {
-    if (isRevealing) return;
+    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
     setSelected((prev) => (prev === i ? null : i));
   }
 
   function onCardPointerDown(e: ReactPointerEvent<HTMLButtonElement>, i: number) {
-    if (isRevealing) return;
+    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
     pointerState.current = {
       handIndex: i,
       startX: e.clientX,
@@ -148,7 +160,7 @@ export function Board({
       if (targetZone) {
         // Third-card guard mirrors tap: shake + toast instead of placing.
         const alreadyPlaced = placedMap(match, player);
-        if (!alreadyPlaced.has(state.handIndex) && alreadyPlaced.size >= MAX_PLACE) {
+        if (!alreadyPlaced.has(state.handIndex) && alreadyPlaced.size >= (match.maxPlacedPerRound ?? MAX_PLACE)) {
           onTooMany();
         } else {
           onPlace(state.handIndex, targetZone);
@@ -189,7 +201,9 @@ export function Board({
   );
 
   const placedCount = map.size;
-  const canLock = placedCount >= MIN_PLACE;
+  const drawingRequired = drawPileCount !== undefined && drawsRemaining > 0;
+  const canLock = placedCount >= MIN_PLACE && !drawingRequired;
+  const maxPlaced = match.maxPlacedPerRound ?? MAX_PLACE;
 
   const zoneRules: Record<string, string> = {
     cool: t.zoneCoolRule,
@@ -306,8 +320,8 @@ export function Board({
                 myCards={v.myCards}
                 foeScore={v.foeScore}
                 myScore={v.myScore}
-                dropReady={!isRevealing && effectiveSelected !== null}
-                dropTarget={!isRevealing && hoverZone === z.id}
+          dropReady={!isRevealing && !drawingRequired && effectiveSelected !== null}
+          dropTarget={!isRevealing && !drawingRequired && hoverZone === z.id}
                 spotlight={false}
                 dimmed={false}
                 victory={zResult?.winner === player}
@@ -328,9 +342,15 @@ export function Board({
           draggingIndex={drag?.handIndex ?? null}
           shakeKey={shakeKey}
           handTitle={`${t.yourHand} (${visibleCards.length})`}
-          handTip={effectiveSelected !== null ? t.tapZoneToPlace : t.tapToPlaceHint}
-          lockLabel={canLock ? fmt(t.lockInCount, { placed: placedCount }) : t.needOne}
+          handTip={drawingRequired ? t.drawTapHint : effectiveSelected !== null ? t.tapZoneToPlace : t.tapToPlaceHint}
+          lockLabel={canLock ? fmt(t.lockInCount, { placed: placedCount, max: maxPlaced }) : t.needOne}
           canLock={canLock}
+          drawPileCount={drawPileCount}
+          drawsRemaining={drawsRemaining}
+          drawAnimKey={drawAnimKey}
+          drawnHandIndex={drawnHandIndex}
+          drawAnimating={drawAnimating}
+          onDraw={onDraw}
           onCardPointerDown={onCardPointerDown}
           onCardPointerMove={onCardPointerMove}
           onCardPointerUp={onCardPointerUp}

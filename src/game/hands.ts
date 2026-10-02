@@ -2,6 +2,7 @@ import { FLAVOR_IDS, isFlavorId } from './cards';
 import { countOf, type Collection } from './collection';
 import { intBelow, rollPower, shuffled, type Rng } from './rng';
 import type { FlavorId } from './types';
+import type { GameConfig } from './config';
 
 /**
  * 6-card hand assembly (design doc §5, match-entry modes).
@@ -63,6 +64,11 @@ export function buildQuickPlayHand(collection: Collection, rng: Rng = Math.rando
   }
   // If collection empty, still deal 6 unique loaners
   return shuffled(hand, rng);
+}
+
+/** Apply match-only power overrides to an already built hand; card data stays immutable. */
+export function applyGameConfig(hand: readonly HandCard[], config: GameConfig, rng: Rng = Math.random): HandCard[] {
+  return hand.map((card) => ({ ...card, power: config.power === 'fixed' ? (config.fixedPower[card.flavor] ?? 3) : rollPower(rng) }));
 }
 
 export function buildCustomHand(
