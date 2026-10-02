@@ -1,40 +1,45 @@
-# V Cola: Collect & Clash — Phase 1 (local pass-and-play)
+# V Cola: Collect & Clash
 
-Mobile-web PWA, 1v1 collectible card game. Phase 1 is local pass-and-play only:
-no backend, no scanning, no online PvP yet. See `docs/` (local-only) for the
-locked design spec and build order.
+A landscape mobile-web PWA for local, two-player pass-and-play matches. Players build a collection, receive a six-card Quick Play hand, and compete across three zones. The current game has no scanning or online play. Custom matches and Ranked series are not available yet.
 
 ## Run locally
 
-Prerequisites: Node 20+ and npm (verified with Node 24, npm 12 on Windows).
+Requires Node.js and npm.
 
 ```sh
 npm install
-npm run dev      # local dev server (Vite)
-npm run dev -- --host  # expose a LAN URL for phone testing (same WiFi)
-npm test         # Vitest suite (game-logic tests, no browser needed)
-npm run build    # typecheck + production build
-npm run preview  # preview the production build
+npm run dev                 # Start the Vite development server
+npm run dev -- --host       # Expose it on the local network for phone testing
+npm test                    # Run the Vitest suite
+npm run build               # Type-check and create the production build
+npm run preview             # Preview the production build
+npm run smoke               # Run the Playwright match smoke flow (with preview serving)
 ```
 
-Other scripts: `npm run lint`, `npm run format`, `npm run typecheck`.
+`npm run smoke` expects the app to be served with `npm run preview -- --port 4173` in another terminal. Other available scripts are `npm run lint`, `npm run format`, `npm run format:check`, and `npm run typecheck`.
+
+## Match flow
+
+Quick Play starts with player setup, then passes the device between players. Each player plans cards in a zone and locks in; both players' placements are revealed after both lock in. After the third round, the game runs the zone-resolution sequence, shows the match review, and lets players tap a zone to replay its resolution. Players can rematch or return to the menu.
+
+The Deck screen lets players manage a deck, but that deck does not currently start a Custom match. Ranked play is not implemented.
 
 ## Project map
 
-```
-src/game/        # framework-agnostic TS: rules, placement, reveal, scoring (no React/DOM)
-src/storage/     # IndexedDB persistence: collection, deck, player names
-src/components/  # React UI building blocks
-src/screens/     # mobile-first screens (Play, Deck)
-src/i18n.tsx     # English + Arabic strings (single Translations table)
-src/tests/       # Vitest tests for game logic
-docs/            # local-only specs (gitignored, never committed)
+```text
+src/game/                 Framework-agnostic TypeScript for cards, effects, zones,
+                          placement, resolution, scoring, and series rules
+src/storage/              IndexedDB persistence for collection, deck, and player names
+src/components/match/     Title/setup, pass screen, top bar, board, zones, resolution/replay
+src/components/           Shared UI components, including GameCard
+src/screens/              QuickPlay and Deck screens
+src/i18n.tsx              English and Arabic translations and RTL direction
+src/tests/                Vitest tests for game and storage modules
+public/assets/cards/      Can photos and the V7 logo
 ```
 
-Rules: cards store Flavor only — Power (1–5) is rolled fresh every match, never
-stored. Flavor/zone names live in `src/game/cards.ts` / `src/game/zones.ts` —
-never hardcoded elsewhere.
+`src/game/` has no React or DOM dependencies. Card definitions live in `src/game/cards.ts`; zone definitions live in `src/game/zones.ts`. Card power is rolled when hands are built, stays with that hand for the match, and is not persisted in the collection.
 
-Demo placeholders: real V7 can photos (`public/assets/cards/<flavor-id>.webp`)
-on CSS line-color gradients, CSS zone banners + card back. No AI art. Final art
-brief lives in `docs/ASSET_REQUESTS.md` (local-only).
+## Local project guidance
+
+See [AGENTS.md](AGENTS.md) for coding conventions and [docs/V_COLA_DESIGN.md](docs/V_COLA_DESIGN.md) for the current local rules reference. The local design and implementation documents are ignored by Git.

@@ -1,19 +1,19 @@
 ## What / why
 
-## Spec reference
+## Project guidance
 
-`docs/V_COLA_DESIGN.md` § / `docs/IMPLEMENTATION_PLAN.md` item:
+See [README.md](../README.md) for the project, run commands, and folder map. See [AGENTS.md](../AGENTS.md) for coding conventions.
 
 ## Tests
 
-- [ ] `npm test` green (new tests for game-logic changes)
-- [ ] `npm run build` green
+- [ ] `npm test` passes (add tests for game-logic changes)
+- [ ] `npm run build` passes
 
 ## Checklist
 
-- [ ] No game rule added, removed, or reinterpreted
-- [ ] No Power stored on cards or in the collection
-- [ ] No flavor/zone names hardcoded outside `src/game/cards.ts` / `src/game/zones.ts`
-- [ ] `src/game/` has no React/DOM imports
-- [ ] No private docs committed (`AGENTS.md`, `docs/*.md` stay local)
-- [ ] Mobile-first: readable on a 360px phone screen
+- [ ] No game rule or effect invented or changed without an explicit request
+- [ ] No power persisted in the collection
+- [ ] Flavor and zone definitions remain in their source modules
+- [ ] `src/game/` has no React or DOM imports
+- [ ] No local-only documentation added to the commit
+- [ ] Landscape stage checked at the minimum, typical, and maximum design widths defined in `src/components/Stage.tsx`
