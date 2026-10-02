@@ -63,6 +63,27 @@ export interface Translations {
   matchDrawn: string;
   rematch: string;
   returnToMenu: string;
+  // Title screen + rails + rotate gate
+  mainMenu: string;
+  railStandings: string;
+  railLastRound: string;
+  railRules: string;
+  noHistory: string;
+  rotateTitle: string;
+  rotateDesc: string;
+  // Effect resolution sequence (whole sentences via fmt)
+  resSkip: string;
+  resTapFaster: string;
+  resCool: string;
+  resCoolNone: string;
+  resEmpty: string;
+  resParty: string;
+  resPartyNone: string;
+  resEnergy: string;
+  resEnergyNone: string;
+  resTakesZone: string;
+  resTiedZone: string;
+  resReplayHint: string;
   // Deck
   deckTitle: string;
   deckFull: string;
@@ -78,6 +99,40 @@ export interface Translations {
   comingPhase2: string;
   mute: string;
   unmute: string;
+  // Combo legend (group colors + what each group's combo does)
+  comboLegendTitle: string;
+  guideMenuLabel: string;
+  comboGroupCola: string;
+  comboGroupCitrus: string;
+  comboGroupIngredient: string;
+  comboGroupBerry: string;
+  comboGroupSolo: string;
+  cardEffects: Record<string, string>;
+  helpClose: string;
+  helpMatchTitle: string;
+  helpMatchBody: string;
+  helpZonesTitle: string;
+  helpCombosTitle: string;
+  helpCardsTitle: string;
+  helpBoardTitle: string;
+  helpPower: string;
+  helpProgress: string;
+  helpChips: string;
+  helpCancelled: string;
+  helpColors: string;
+  helpTags: string;
+  tagApple: string;
+  tagMalt: string;
+  tagPineapple: string;
+  helpTabMatch: string;
+  helpTabCombos: string;
+  helpTabCards: string;
+  helpTabBoard: string;
+  helpStepPlan: string;
+  helpStepLock: string;
+  helpStepReveal: string;
+  helpStepScore: string;
+  helpMostZones: string;
   // Flavors map
   flavors: Record<string, string>;
 }
@@ -92,6 +147,21 @@ export function fmt(template: string, vars: Record<string, string | number>): st
     out = out.split(`{${key}}`).join(String(value));
   }
   return out;
+}
+
+/** Build group explanations from each member card's single effect string. */
+export function comboDescription(
+  t: Translations,
+  group: 'cola' | 'citrus' | 'ingredient' | 'berry' | 'solo'
+): string {
+  const members: Record<typeof group, readonly string[]> = {
+    cola: ['v-cola'],
+    citrus: ['lemon-mint'],
+    ingredient: ['v7-apple-malt'],
+    berry: ['blueberry'],
+    solo: ['pina-colada', 'cream-soda'],
+  };
+  return [...new Set(members[group].map((id) => t.cardEffects[id]).filter(Boolean))].join(' ');
 }
 
 export const TRANSLATIONS: Record<Language, Translations> = {
@@ -158,21 +228,101 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'Match Drawn!',
     rematch: 'Rematch',
     returnToMenu: 'Back to Arena Menu',
+    // Title screen + rails + rotate gate
+    mainMenu: 'Main Menu',
+    railStandings: 'Standings',
+    railLastRound: 'Last round',
+    railRules: 'Zone rules',
+    noHistory: 'No rounds yet',
+    rotateTitle: 'Rotate your device',
+    rotateDesc: 'V Cola: Collect & Clash plays in landscape.',
+    // Effect resolution sequence (whole sentences via fmt)
+    resSkip: 'Skip',
+    resTapFaster: 'Tap to speed up',
+    resCool: 'STAY FROSTY: {name}\u2019s {power} is the lone lowest (+1)',
+    resCoolNone: 'STAY FROSTY: no bonus — tied lowest',
+    resEmpty: 'No bonus: empty zone',
+    resParty: 'PARTY: {name} has more cans here ({a} vs {b}), +1 to the total',
+    resPartyNone: 'PARTY: no bonus — equal cans',
+    resEnergy: 'ENERGY: {name} has fewer cans here ({a} vs {b}), +1 on each of their cans',
+    resEnergyNone: 'ENERGY: no bonus — equal cans',
+    resTakesZone: '{name} takes {zone}',
+    resTiedZone: 'Tied zone',
+    resReplayHint: 'Tap a zone to replay',
     // Deck
     deckTitle: 'Battle Deck',
     deckFull: 'Deck full (6 cards) — tap a slot to remove one first.',
     deckUniqueOnly: 'Unique flavors only — this flavor is already in your deck!',
     clearDeck: 'Clear Deck',
     resetTo0: 'Reset to 0 cans',
-    noCansTitle: '📦 No Cans in Collection',
+    noCansTitle: 'No Cans in Collection',
     noCansDesc: 'Your collection currently has 0 cans.',
     flavorsToUnlock: 'V7 Egyptian Flavors to Unlock',
     tapOwnedToAdd: 'Tap owned cans to add to your battle deck (Unique flavors only)',
     inDeck: 'In Deck',
-    starterPackBtn: '🎁 Get Starter Pack (all 11 flavors)',
+    starterPackBtn: 'Get Starter Pack (all 11 flavors)',
     comingPhase2: 'Coming in Phase 2',
     mute: 'Mute sound',
     unmute: 'Unmute sound',
+    comboLegendTitle: 'Quick guide',
+    guideMenuLabel: 'How to play',
+    comboGroupCola: 'Cola',
+    comboGroupCitrus: 'Citrus',
+    comboGroupIngredient: 'Ingredient',
+    comboGroupBerry: 'Berry',
+    comboGroupSolo: 'Solo',
+    cardEffects: {
+      'v-cola':
+        'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
+      'v-diet-cola':
+        'If these are your only cards here: V Cola + V Diet Cola gives -1 to your zone total. With V Lemon too, the trio gives +2 instead; other cards are allowed.',
+      'v-lemon':
+        'With V Cola and V Diet Cola: +2 to your zone total; other cards are allowed. With Lemon Mint and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
+      'lemon-mint':
+        'With V Lemon and Pink Lemonade: add the lowest base power among those three again; other cards are allowed.',
+      'pink-lemonade':
+        'With V Lemon and Lemon Mint: add the lowest base power among those three again; other cards are allowed. With Blueberry and Pomegranate: win the zone unless the opponent also completes the trio.',
+      'cream-soda':
+        'In this zone, cancels both players’ card effects and the zone bonus; both sides count base power only.',
+      pomegranate:
+        'With Blueberry and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
+      blueberry:
+        'With Pomegranate and Pink Lemonade in the same zone: win it unless the opponent also completes the trio.',
+      'pina-colada':
+        'If this is your only card in a zone, add +1 to your total in every zone you play in, including this one. Cream Soda cancels it in its zone.',
+      'v7-apple-malt':
+        'For each shared ingredient among your cards in this zone, add +1 to your zone total; apple alone gives no bonus.',
+      'v7-pineapple-malt':
+        'For each shared ingredient among your cards in this zone, add +1 to your zone total.',
+    },
+    helpClose: 'Close help',
+    helpMatchTitle: 'How a match works',
+    helpMatchBody:
+      'Play 3 rounds. Place cards, then lock in to reveal both sides. Zone bonuses are calculated after Round 3. The player who wins the most zones wins the match.',
+    helpZonesTitle: 'Zones',
+    helpCombosTitle: 'Combos',
+    helpCardsTitle: 'Every card',
+    helpBoardTitle: 'Reading the board',
+    helpPower: 'Power number: rolled when your hand is dealt and kept for the whole match.',
+    helpProgress: 'Progress (1/3): how many cards from that combo are in this zone on your side.',
+    helpChips:
+      'Effect chips show effects: zone-total changes (+1/-1) and WIN appear once in the zone row; x2 sits on the lowest card whose power counts twice. Zone bonuses (+1) stay on the affected card or appear once in the zone row, depending on the rule.',
+    helpCancelled: 'Greyed card: Cream Soda cancelled effects in this zone.',
+    helpColors:
+      'Card colors: solid means one combo group; gradient means two groups or a group plus solo effect; unique means a solo effect only.',
+    helpTags: 'Ingredients',
+    tagApple: 'apple',
+    tagMalt: 'malt',
+    tagPineapple: 'pineapple',
+    helpTabMatch: 'Match',
+    helpTabCombos: 'Combos',
+    helpTabCards: 'Cards',
+    helpTabBoard: 'Board guide',
+    helpStepPlan: 'Place cards in zones',
+    helpStepLock: 'Both players lock in',
+    helpStepReveal: 'Cards are revealed',
+    helpStepScore: 'Zones score after round 3',
+    helpMostZones: 'Win the most zones to win the match',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -249,21 +399,100 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     matchDrawn: 'تعادل في المباراة!',
     rematch: 'مباراة جديدة',
     returnToMenu: 'العودة للساحة الرئيسية',
+    // Title screen + rails + rotate gate
+    mainMenu: 'القائمة الرئيسية',
+    railStandings: 'الترتيب',
+    railLastRound: 'الجولة الماضية',
+    railRules: 'قواعد المناطق',
+    noHistory: 'لا جولات بعد',
+    rotateTitle: 'دوّر جهازك',
+    rotateDesc: 'تُلعب V كولا: اجمع وتحدى في الوضع الأفقي.',
+    // Effect resolution sequence (whole sentences via fmt)
+    resSkip: 'تخطي',
+    resTapFaster: 'اضغط للتسريع',
+    resCool: 'STAY FROSTY: {name} الأقل بقوة {power} منفردًا (+1)',
+    resCoolNone: 'STAY FROSTY: لا مكافأة — تعادل الأقل',
+    resEmpty: 'لا مكافأة — منطقة فارغة',
+    resParty: 'PARTY: {name} لديه كروت أكثر هنا ({a} مقابل {b})، +1 للمجموع',
+    resPartyNone: 'PARTY: لا مكافأة — تساوي الكروت',
+    resEnergy: 'ENERGY: {name} لديه كروت أقل هنا ({a} مقابل {b})، +1 لكل كارت',
+    resEnergyNone: 'ENERGY: لا مكافأة — تساوي الكروت',
+    resTakesZone: '{name} يفوز بمنطقة {zone}',
+    resTiedZone: 'تعادل',
+    resReplayHint: 'اضغط على منطقة لإعادة مشاهدة حسمها',
     // Deck
     deckTitle: 'تشكيلة المعركة',
     deckFull: 'التشكيلة مكتملة (6 كروت) — اضغط على كارت لإزالته أولاً.',
     deckUniqueOnly: 'نكهات فريدة فقط — هذه النكهة موجودة بالفعل في تشكيلتك!',
     clearDeck: 'مسح التشكيلة',
     resetTo0: 'إعادة ضبط إلى 0 كان',
-    noCansTitle: '📦 لا توجد كانات في مجموعتك',
+    noCansTitle: 'لا توجد كانات في مجموعتك',
     noCansDesc: 'مجموعتك خالية حالياً (0 كان).',
     flavorsToUnlock: 'نكهات V7 المتوفرة في مصر',
     tapOwnedToAdd: 'اضغط على الكروت المملوكة لإضافتها لتشكيلتك (نكهات غير مكررة)',
     inDeck: 'بالتشكيلة',
-    starterPackBtn: '🎁 احصل على حزمة البداية (كل النكهات الـ11)',
+    starterPackBtn: 'احصل على حزمة البداية (كل النكهات الـ11)',
     comingPhase2: 'قريباً في المرحلة 2',
     mute: 'كتم الصوت',
     unmute: 'تشغيل الصوت',
+    comboLegendTitle: 'دليل سريع',
+    guideMenuLabel: 'طريقة اللعب',
+    comboGroupCola: 'كولا',
+    comboGroupCitrus: 'حمضيات',
+    comboGroupIngredient: 'مكونات',
+    comboGroupBerry: 'توت',
+    comboGroupSolo: 'فردي',
+    cardEffects: {
+      'v-cola':
+        'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
+      'v-diet-cola':
+        'إذا كانتا بطاقتيك الوحيدتين هنا: في كولا مع في كولا دايت تخصم ‎-1 من مجموع المنطقة. ومع في ليمون أيضًا، تمنح المجموعة ‎+2 بدلًا من ذلك؛ وتُسمح ببطاقات أخرى.',
+      'v-lemon':
+        'مع في كولا وفي كولا دايت: ‎+2 لمجموع المنطقة وتُسمح ببطاقات أخرى. مع ليمون نعناع وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى.',
+      'lemon-mint':
+        'مع في ليمون وبينك ليمونيد: أضف أقل قوة أساسية بين الثلاثة مرة أخرى؛ وتُسمح ببطاقات أخرى.',
+      'pink-lemonade':
+        'مع في ليمون وليمون نعناع: أضف أقل قوة أساسية بين الثلاثة مرة أخرى وتُسمح ببطاقات أخرى. مع بلوبيري ورمان: تفوز بالمنطقة ما لم يكمل الخصم المجموعة أيضًا.',
+      'cream-soda':
+        'في هذه المنطقة، تلغي تأثيرات بطاقات الطرفين ومكافأة المنطقة؛ ويُحسب مجموع القوة الأساسية فقط.',
+      pomegranate:
+        'مع بلوبيري وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
+      blueberry:
+        'مع رمان وبينك ليمونيد في المنطقة نفسها: تفوز بها ما لم يكمل الخصم المجموعة أيضًا.',
+      'pina-colada':
+        'إذا كانت بطاقتك الوحيدة في منطقة، أضف ‎+1 إلى مجموع كل منطقة تلعب فيها، بما فيها هذه المنطقة. كريم صودا يلغي تأثيرها في منطقته.',
+      'v7-apple-malt':
+        'لكل مكوّن مشترك بين بطاقاتك في المنطقة، أضف ‎+1 إلى مجموع المنطقة؛ التفاح وحده لا يمنح مكافأة.',
+      'v7-pineapple-malt': 'لكل مكوّن مشترك بين بطاقاتك في المنطقة، أضف ‎+1 إلى مجموع المنطقة.',
+    },
+    helpClose: 'إغلاق المساعدة',
+    helpMatchTitle: 'كيف تعمل المباراة',
+    helpMatchBody:
+      'العب 3 جولات. أنزل الكروت ثم أكد لعبك لكشف اختيارات الطرفين. تُحسب مكافآت المناطق بعد الجولة الثالثة. من يفز بأكبر عدد من المناطق يفز بالمباراة.',
+    helpZonesTitle: 'المناطق',
+    helpCombosTitle: 'الكومبوهات',
+    helpCardsTitle: 'كل الكروت',
+    helpBoardTitle: 'قراءة اللوحة',
+    helpPower: 'رقم القوة: تُحدد عند توزيع يدك وتظل كما هي طوال المباراة.',
+    helpProgress: 'التقدم (1/3): عدد كروت هذا الكومبو الموجودة في المنطقة لدى طرفك.',
+    helpChips:
+      'شرائح التأثير تعرض النتيجة: تغييرات مجموع المنطقة (‎+1/‎-1) وWIN تظهر مرة واحدة في صف المنطقة؛ وتظهر x2 على أقل بطاقة تُحسب قوتها مرتين. وتبقى مكافآت المنطقة (‎+1) على البطاقة المتأثرة أو تظهر مرة واحدة في صف المنطقة حسب القاعدة.',
+    helpCancelled: 'الكارت الرمادي: كريم صودا ألغى التأثيرات في هذه المنطقة.',
+    helpColors:
+      'ألوان الكروت: اللون الواحد يعني مجموعة كومبو واحدة؛ التدرج يعني مجموعتين أو مجموعة مع تأثير فردي؛ اللون الفريد يعني تأثيرًا فرديًا فقط.',
+    helpTags: 'المكونات',
+    tagApple: 'تفاح',
+    tagMalt: 'شعير',
+    tagPineapple: 'أناناس',
+    helpTabMatch: 'المباراة',
+    helpTabCombos: 'المجموعات',
+    helpTabCards: 'البطاقات',
+    helpTabBoard: 'دليل اللوحة',
+    helpStepPlan: 'ضع البطاقات في المناطق',
+    helpStepLock: 'يؤكد اللاعبان اختياراتهما',
+    helpStepReveal: 'تُكشف البطاقات',
+    helpStepScore: 'تُحسب المناطق بعد الجولة الثالثة',
+    helpMostZones: 'الفوز بأكبر عدد من المناطق يحسم المباراة',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',

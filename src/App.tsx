@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { assetUrl } from './components/assetPaths';
 import { addCopy, type Collection } from './game/collection';
 import { FLAVOR_IDS } from './game/cards';
 import { clearCollection, loadCollection, saveCollection } from './storage/collectionStore';
@@ -7,22 +6,19 @@ import { loadDeck, saveDeck } from './storage/deckStore';
 import { DEFAULT_PLAYERS, loadPlayers, savePlayers, type Players } from './storage/playersStore';
 import type { FlavorId } from './game/types';
 import { Deck } from './screens/Deck';
-import { DeckIcon, PlayIcon } from './components/icons';
 import { QuickPlay } from './screens/QuickPlay';
 import { I18nProvider, useI18n } from './i18n';
+import { Stage } from './components/Stage';
 import './App.css';
 
 type Tab = 'play' | 'deck';
 
-const LOGO = assetUrl('assets/cards/v7-logo.png');
-
 function MainApp() {
-  const { lang, setLang, t, isRTL } = useI18n();
+  const { isRTL } = useI18n();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [deck, setDeck] = useState<FlavorId[]>([]);
   const [players, setPlayers] = useState<Players>(DEFAULT_PLAYERS);
   const [tab, setTab] = useState<Tab>('play');
-  const [isMatchActive, setIsMatchActive] = useState(false);
 
   useEffect(() => {
     loadCollection()
@@ -63,89 +59,40 @@ function MainApp() {
 
   if (!collection) {
     return (
-      <main className="demo">
-        <p className="demo-note">Loading collection…</p>
-      </main>
+      <Stage>
+        <main className={`demo${isRTL ? ' rtl' : ''}`}>
+          <p className="demo-note">Loading collection…</p>
+        </main>
+      </Stage>
     );
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'play', label: t.tabPlay },
-    { id: 'deck', label: t.tabDeck },
-  ];
-
-  function tabIcon(id: Tab) {
-    return id === 'play' ? <PlayIcon size={20} /> : <DeckIcon size={20} />;
-  }
-
-  return (
-    <main className={`demo${isRTL ? ' rtl' : ''}`}>
-      {/* Top App Header (Hidden during active match to keep full game immersion) */}
-      {!isMatchActive && (
-        <header className="demo-head">
-          <img src={LOGO} alt="V7 logo" className="demo-logo" />
-          <div className="demo-head-text">
-            <h1>{t.appTitle}</h1>
-            <p>{t.appSubtitle}</p>
-          </div>
-          <div className="lang-switcher">
-            <button
-              type="button"
-              className={`lang-btn${lang === 'en' ? ' active' : ''}`}
-              onClick={() => setLang('en')}
-              title="English"
-            >
-              EN
-            </button>
-            <span className="lang-divider">|</span>
-            <button
-              type="button"
-              className={`lang-btn${lang === 'ar' ? ' active' : ''}`}
-              onClick={() => setLang('ar')}
-              title="العربية"
-            >
-              عربي
-            </button>
-          </div>
-        </header>
-      )}
-
-      {tab === 'play' ? (
+  // Active match renders its own stage (top bar + board); no web chrome.
+  if (tab === 'play') {
+    return (
+      <main className={`demo${isRTL ? ' rtl' : ''}`}>
         <QuickPlay
           collection={collection}
           players={players}
           onPlayersChange={updatePlayers}
-          onMatchActiveChange={setIsMatchActive}
+          onOpenDeck={() => setTab('deck')}
         />
-      ) : null}
+      </main>
+    );
+  }
 
-      {tab === 'deck' ? (
+  return (
+    <main className={`demo${isRTL ? ' rtl' : ''}`}>
+      <Stage>
         <Deck
           collection={collection}
           picks={deck}
           onChange={updateDeck}
           onResetCollection={handleResetCollection}
           onStarterPack={handleStarterPack}
+          onBack={() => setTab('play')}
         />
-      ) : null}
-
-      {/* Hide bottom navigation mid-match! */}
-      {!isMatchActive && (
-        <nav className="tabbar" aria-label="Main">
-          {tabs.map((tabItem) => (
-            <button
-              key={tabItem.id}
-              type="button"
-              className={tab === tabItem.id ? 'active' : ''}
-              aria-current={tab === tabItem.id ? 'page' : undefined}
-              onClick={() => setTab(tabItem.id)}
-            >
-              <span className="tab-icon">{tabIcon(tabItem.id)}</span>
-              <span className="tab-label">{tabItem.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
+      </Stage>
     </main>
   );
 }

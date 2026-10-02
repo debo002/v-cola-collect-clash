@@ -1,4 +1,4 @@
-/* V Cola: Collect & Clash — global tokens + phone shell (Step 1) */
+/* V Cola: Collect & Clash — global tokens + landscape stage shell */
 
 :root {
   /* Spec tokens — use only these for new UI */
@@ -18,13 +18,28 @@
   --r-btn: 16px;
   --r-lane: 18px;
 
+  /* Spacing scale (MASTER.md — single scale for all UI) */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Motion tokens (MASTER.md — shared, distance-appropriate) */
+  --motion-micro: 120ms;
+  --motion-short: 200ms;
+  --motion-med: 320ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
   /* Type */
   --display: 'Lilita One', 'Cairo', system-ui, sans-serif;
   --sans: system-ui, -apple-system, 'Segoe UI', 'Cairo', 'Noto Sans Arabic', Roboto, sans-serif;
   --heading: 'Lilita One', 'Cairo', system-ui, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  /* Legacy aliases (migrating off these; kept so old App.css stays playable) */
+  /* Legacy aliases (migrating off these; kept so old styles stay playable) */
   --text: #cbd5e1;
   --text-h: #ffffff;
   --text-muted: #8492a6;
@@ -52,8 +67,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100dvh;
+  height: 100%;
   background: #06070a;
+  overflow: hidden;
 }
 
 /* Display face for titles, numbers, buttons, card names. Arabic falls back to Cairo. */
@@ -74,31 +90,43 @@ body {
   background: #06070a;
 }
 
-/* Centered phone-width column on desktop; full-bleed on phones. */
+/* Full-viewport app column; the Stage owns sizing from here down. */
 #root {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  min-height: 100dvh;
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   background: var(--ink);
   position: relative;
+  overflow: hidden;
 }
 
-/* Subtle outer gutter on larger screens so the phone column reads as a device. */
-@media (min-width: 520px) {
-  body {
-    background:
-      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230, 30, 43, 0.12) 0%, transparent 70%),
-      #04050a;
-  }
+/* Viewport centers the fixed-height stage; crops evenly if scale clamps. */
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230, 30, 43, 0.12) 0%, transparent 70%), #04050a;
+}
 
-  #root {
-    border-inline: 1px solid #232c44;
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
-  }
+/* Scaled by JS (height only). Children use stage px; on-screen = px × scale. */
+.stage {
+  flex: 0 0 auto;
+  transform-origin: center center;
+  background: var(--ink);
+  border-inline: 1px solid #232c44;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+  position: relative;
 }
 
 h1,
@@ -122,11 +150,42 @@ code {
   background: var(--code-bg);
 }
 
+/* Visible keyboard focus everywhere (MASTER.md checklist). */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Portrait gate: full-screen rotate prompt, readable without scaling. */
+.rotate-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--gold);
+  max-width: 420px;
+}
+
+.rotate-gate strong {
+  font-family: var(--heading);
+  font-size: 28px;
+  color: #fff;
+}
+
+.rotate-gate p {
+  font-size: 16px;
+  color: var(--text);
+}
+
 /*
- * Reduced motion (nuanced per demo requirements):
- * Keep short tactile transitions (<=150ms), card pop + flip.
- * Kill only ambient loops, stagger, count-up, glow pulses, shakes.
- * Reveal code must also skip stagger timers when this matches.
+ * Reduced motion: jump to end states with a short fade.
+ * Keep short tactile transitions (<=150ms); kill loops, stagger, count-up,
+ * glow pulses, shakes. Reveal code skips stagger timers when this matches.
  */
 @media (prefers-reduced-motion: reduce) {
   .fizz-layer,
@@ -134,12 +193,21 @@ code {
   .bob,
   .glow-pulse,
   .lock-btn:not(.disabled),
-  .snap-lane-column.drop-ready,
-  .lane-drop-prompt,
+  .zone-col.drop-ready,
+  .pillar-prompt,
   .timer-ring.urgent,
   .confetti-piece,
   .shake-once,
-  .battlefield-container.armed .snap-lane-column {
+  .zone-col,
+  .strip-mini.bonus-pulse .game-card,
+  .plus-chip,
+  .animate-flip,
+  .pop-in,
+  .reveal-pop .power-gem,
+  .legend-pop,
+  .pillar-score,
+  .fan-card,
+  .fan-card .game-card {
     animation: none !important;
   }
 
@@ -147,5 +215,9 @@ code {
   .count-up,
   .lane-flash {
     animation: none !important;
+  }
+
+  * {
+    transition-duration: 1ms !important;
   }
 }

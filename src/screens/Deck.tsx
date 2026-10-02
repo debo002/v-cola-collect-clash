@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { FLAVORS, getFlavorById } from '../game/cards';
 import { countOf, totalCopies, type Collection } from '../game/collection';
+import { getCardGroups } from '../game/effects';
 import { HAND_SIZE } from '../game/hands';
 import type { FlavorId } from '../game/types';
+import { ComboLegend } from '../components/ComboLegend';
 import { GameCard } from '../components/GameCard';
+import { DeckIcon } from '../components/icons';
 import { useI18n } from '../i18n';
 
 /**
@@ -17,12 +20,14 @@ export function Deck({
   onChange,
   onResetCollection,
   onStarterPack,
+  onBack,
 }: {
   collection: Collection;
   picks: FlavorId[];
   onChange: (picks: FlavorId[]) => void;
   onResetCollection?: () => void;
   onStarterPack?: () => void;
+  onBack?: () => void;
 }) {
   const { t } = useI18n();
   const [notice, setNotice] = useState('');
@@ -58,6 +63,11 @@ export function Deck({
           {t.deckTitle} ({picks.length}/{HAND_SIZE})
         </h2>
         <div className="section-actions">
+          {onBack ? (
+            <button type="button" className="btn btn-secondary" onClick={onBack}>
+              {t.mainMenu}
+            </button>
+          ) : null}
           {picks.length > 0 ? (
             <button type="button" className="btn btn-secondary" onClick={() => onChange([])}>
               {t.clearDeck}
@@ -94,7 +104,11 @@ export function Deck({
               aria-label={`Remove ${displayName} from deck`}
               title="Click to remove from deck"
             >
-              <GameCard flavor={flavor} displayName={displayName} />
+              <GameCard
+                flavor={flavor}
+                displayName={displayName}
+                groups={getCardGroups(flavor.id as FlavorId)}
+              />
             </button>
           ) : (
             <div key={i} className="deck-slot empty" aria-hidden="true">
@@ -104,6 +118,8 @@ export function Deck({
         })}
       </div>
 
+      <ComboLegend />
+
       {notice ? (
         <p className="notice" role="status">
           {notice}
@@ -112,6 +128,9 @@ export function Deck({
 
       {totalOwned === 0 ? (
         <div className="empty-collection-box">
+          <span className="empty-box-icon" aria-hidden="true">
+            <DeckIcon size={28} />
+          </span>
           <h3>{t.noCansTitle}</h3>
           <p className="demo-note">{t.noCansDesc}</p>
           {onStarterPack ? (
@@ -145,6 +164,7 @@ export function Deck({
                 flavor={flavor}
                 displayName={displayName}
                 dimmed={!available || alreadyInDeck}
+                groups={getCardGroups(flavor.id as FlavorId)}
               />
               <div className="deck-meta-row">
                 <span className="deck-count">×{owned}</span>
