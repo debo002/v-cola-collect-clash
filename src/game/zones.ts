@@ -9,7 +9,7 @@ export interface Zone {
   readonly id: string;
   readonly name: string;
   readonly tagline: string;
-  readonly effect: ZoneEffect;
+  readonly effect?: ZoneEffect;
 }
 
 export const ZONES: readonly Zone[] = [

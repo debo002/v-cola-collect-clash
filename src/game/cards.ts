@@ -8,17 +8,22 @@ import type { Flavor, FlavorId } from './types';
  * Cream Soda is a single Standard card (no separate Summer-Edition entry).
  */
 export const FLAVORS: readonly Flavor[] = [
-  { id: 'v-cola', name: 'V Cola', line: 'super-soda' },
-  { id: 'v-diet-cola', name: 'V Diet Cola', line: 'super-soda' },
-  { id: 'v-lemon', name: 'V Lemon', line: 'super-soda' },
-  { id: 'pink-lemonade', name: 'Pink Lemonade', line: 'vitamin-sparkling' },
-  { id: 'cream-soda', name: 'Cream Soda', line: 'vitamin-sparkling' },
-  { id: 'pomegranate', name: 'Pomegranate', line: 'vitamin-sparkling' },
-  { id: 'blueberry', name: 'Blueberry', line: 'vitamin-sparkling' },
-  { id: 'lemon-mint', name: 'Lemon Mint', line: 'vitamin-sparkling' },
-  { id: 'pina-colada', name: 'Pina Colada', line: 'vitamin-sparkling' },
-  { id: 'v7-apple-malt', name: 'V7 Apple Malt', line: 'flavored-malt' },
-  { id: 'v7-pineapple-malt', name: 'V7 Pineapple Malt', line: 'flavored-malt' },
+  { id: 'v-cola', name: 'V Cola', line: 'super-soda', tags: [] },
+  { id: 'v-diet-cola', name: 'V Diet Cola', line: 'super-soda', tags: [] },
+  { id: 'v-lemon', name: 'V Lemon', line: 'super-soda', tags: [] },
+  { id: 'pink-lemonade', name: 'Pink Lemonade', line: 'vitamin-sparkling', tags: [] },
+  { id: 'cream-soda', name: 'Cream Soda', line: 'vitamin-sparkling', tags: [] },
+  { id: 'pomegranate', name: 'Pomegranate', line: 'vitamin-sparkling', tags: [] },
+  { id: 'blueberry', name: 'Blueberry', line: 'vitamin-sparkling', tags: [] },
+  { id: 'lemon-mint', name: 'Lemon Mint', line: 'vitamin-sparkling', tags: [] },
+  { id: 'pina-colada', name: 'Pina Colada', line: 'vitamin-sparkling', tags: ['pineapple'] },
+  { id: 'v7-apple-malt', name: 'V7 Apple Malt', line: 'flavored-malt', tags: ['apple', 'malt'] },
+  {
+    id: 'v7-pineapple-malt',
+    name: 'V7 Pineapple Malt',
+    line: 'flavored-malt',
+    tags: ['pineapple', 'malt'],
+  },
 ] as const;
 
 export const FLAVOR_IDS: readonly FlavorId[] = FLAVORS.map((f) => f.id);
