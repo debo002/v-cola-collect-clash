@@ -152,7 +152,7 @@ describe('LocalController', () => {
     expect(view.locks.A).toBe(true);
   });
 
-  it('draw-per-round draws before the timer starts', () => {
+  it('draw-per-round draws under a draw deadline, then placement deadline starts', () => {
     const { controller, clock } = make();
     const config: GameConfig = {
       ...customConfig(),
@@ -163,19 +163,35 @@ describe('LocalController', () => {
     controller.setSeat('A');
     let view = latest(controller);
     expect(view.drawsRemaining).toBe(2);
-    expect(view.deadlineMs).toBeNull();
-    expect(clock.pendingCount()).toBe(0);
+    expect(view.deadlineMs).not.toBeNull();
+    expect(clock.pendingCount()).toBe(1);
 
     controller.send({ type: 'draw' });
     view = latest(controller);
     expect(view.drawsRemaining).toBe(1);
-    expect(view.deadlineMs).toBeNull();
+    expect(view.deadlineMs).not.toBeNull();
 
     controller.send({ type: 'draw' });
     view = latest(controller);
     expect(view.drawsRemaining).toBe(0);
     expect(view.deadlineMs).not.toBeNull();
     expect(clock.pendingCount()).toBe(1);
+  });
+
+  it('draw deadline auto-draws the remainder so idle players cannot stall', () => {
+    const { controller, clock } = make();
+    const config: GameConfig = {
+      ...customConfig(),
+      dealing: 'draw-per-round',
+      drawPerRound: 2,
+    };
+    controller.startCustomGame(config);
+    controller.setSeat('A');
+    clock.advance(61_000);
+    const view = latest(controller);
+    expect(view.drawsRemaining).toBe(0);
+    expect(view.hand.length).toBe(2);
+    expect(view.deadlineMs).not.toBeNull();
   });
 
   it('third-card guard rejects, shakes via onReject, card stays in hand', () => {

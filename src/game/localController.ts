@@ -3,7 +3,14 @@ import { DEFAULT_GAME_CONFIG, type GameConfig } from './config';
 import type { GameController, Intent, PlayerView } from './controller';
 import { buildQuickPlayHand } from './hands';
 import type { Player } from './match';
-import { apply, applyTimeout, beginTurn, createRoomState, type RoomState } from './matchEngine';
+import {
+  apply,
+  applyDrawTimeout,
+  applyTimeout,
+  beginTurn,
+  createRoomState,
+  type RoomState,
+} from './matchEngine';
 import { rollPower, shuffled } from './rng';
 import { buildPlayerView } from './view';
 
@@ -176,7 +183,7 @@ export class LocalController implements GameController {
   ): void {
     this.clearTimer();
     this.config = config;
-    this.room = createRoomState(config, handA, handB, poolA, poolB);
+    this.room = createRoomState(config, handA, handB, poolA, poolB, this.clock.now());
     this.currentSeat = 'A';
     this.emit();
   }
@@ -189,7 +196,10 @@ export class LocalController implements GameController {
     const delay = Math.max(0, deadline - this.clock.now());
     this.timer = this.clock.setTimeout(() => {
       if (this.room === null) return;
-      const result = applyTimeout(this.room, [seat], this.ctx());
+      const result =
+        this.room.drawMs !== null
+          ? applyDrawTimeout(this.room, this.ctx())
+          : applyTimeout(this.room, [seat], this.ctx());
       this.room = result.state;
       this.syncTimer();
       this.emit();

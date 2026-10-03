@@ -6,6 +6,7 @@ import type { HandCard } from '../game/hands';
 import { LocalController, type ControllerClock } from '../game/localController';
 import {
   apply,
+  applyDrawTimeout,
   applyTimeout,
   beginTurn,
   createRoomState,
@@ -69,7 +70,7 @@ function makeRoom(
   dealing: GameConfig['dealing'] = 'reveal-all'
 ): RoomState {
   const config = engineConfig(dealing);
-  return createRoomState(config, fixedHand(), fixedHand(), poolA, poolB);
+  return createRoomState(config, fixedHand(), fixedHand(), poolA, poolB, NOW);
 }
 
 function lockBoth(room: RoomState, handIndex = 0): RoomState {
@@ -176,19 +177,36 @@ describe('matchEngine', () => {
     expect(placedB).toBe(0);
   });
 
-  it('draw-per-round starts the shared deadline only after all draws', () => {
+  it('draw-per-round: draw deadline first, shared placement deadline after all draws', () => {
     let room = makeRoom([...DRAW_POOL], [...DRAW_POOL], 'draw-per-round');
     room = beginTurn(room, 'A', ctx());
     room = beginTurn(room, 'B', ctx());
     expect(room.drawsLeft).toEqual({ A: 2, B: 2 });
-    expect(room.deadlineMs).toBeNull();
+    expect(room.drawMs).toBe(NOW + 60_000);
+    expect(room.placeMs).toBeNull();
     room = apply(room, 'A', { type: 'draw' }, ctx()).state;
     room = apply(room, 'A', { type: 'draw' }, ctx()).state;
-    expect(room.deadlineMs).toBeNull();
+    expect(room.drawMs).not.toBeNull();
+    expect(room.placeMs).toBeNull();
     room = apply(room, 'B', { type: 'draw' }, ctx()).state;
     room = apply(room, 'B', { type: 'draw' }, ctx()).state;
     expect(room.drawsLeft).toEqual({ A: 0, B: 0 });
+    expect(room.drawMs).toBeNull();
+    expect(room.placeMs).toBe(NOW + 60_000);
     expect(room.deadlineMs).toBe(NOW + 60_000);
+  });
+
+  it('draw timeout auto-draws remainders then starts placement', () => {
+    let room = makeRoom([...DRAW_POOL], [...DRAW_POOL], 'draw-per-round');
+    room = beginTurn(room, 'A', ctx());
+    room = beginTurn(room, 'B', ctx());
+    room = apply(room, 'A', { type: 'draw' }, ctx()).state;
+    const timed = applyDrawTimeout(room, { now: NOW + 61_000, rng: zeroRng });
+    expect(timed.state.drawsLeft).toEqual({ A: 0, B: 0 });
+    expect(timed.state.drawMs).toBeNull();
+    expect(timed.state.placeMs).toBe(NOW + 61_000 + 60_000);
+    expect(timed.state.match.hands.A.length).toBe(fixedHand().length + 2);
+    expect(timed.state.match.hands.B.length).toBe(fixedHand().length + 2);
   });
 
   it('view computes results itself at complete', () => {
