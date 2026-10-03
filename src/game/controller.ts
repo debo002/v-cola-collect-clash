@@ -66,6 +66,7 @@ export type Intent =
   | { readonly type: 'unplace'; readonly handIndex: number }
   | { readonly type: 'lock' }
   | { readonly type: 'draw' }
+  | { readonly type: 'ready' }
   | { readonly type: 'rematch' };
 
 export interface GameController {
