@@ -4,13 +4,19 @@ import { getFlavorById } from '../../game/cards';
 import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
-import { MAX_PLACE, MIN_PLACE, type MatchState, type Player } from '../../game/match';
+import { MAX_PLACE, MIN_PLACE, type Player } from '../../game/match';
+import type { PlayerView } from '../../game/controller';
 import type { ZoneExplanation, ZoneResult } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
 import { useStageScale } from '../Stage';
-import { allUsedIndices, buildZoneViews, placedMap, type StripCard } from './boardUtils';
+import {
+  allUsedIndicesFromView,
+  buildZoneViewsFromView,
+  placedMapFromView,
+  type StripCard,
+} from './boardUtils';
 import { Hand } from './Hand';
 import { ResolutionOverlay } from './ResolutionOverlay';
 import { ZoneColumn } from './ZoneColumn';
@@ -18,14 +24,13 @@ import { getSideHighlight, isCreamCancelled } from './comboHighlight';
 
 /**
  * Landscape match board: 3 full-width zone columns + bottom hand + Lock In.
- * Owns tap-select + drag state; game rules stay in QuickPlay/src/game.
+ * Owns tap-select + drag state; game rules stay in src/game via controller.
  *
- * Hidden-info rule: foe current-round cards never render (not even a
- * placeholder) and unrevealed foe power never enters a displayed score.
+ * Hidden-info rule: the view carries only a per-zone COUNT for the
+ * opponent's current round, rendered here as face-down placeholders.
  */
 export function Board({
-  match,
-  player,
+  view,
   names,
   displayRound,
   isRevealing,
@@ -48,13 +53,12 @@ export function Board({
   onReturnMenu,
   explanations,
 }: {
-  match: MatchState;
-  player: Player;
+  view: PlayerView;
   names: Record<Player, string>;
   displayRound: number;
   isRevealing: boolean;
   isMatchOver?: boolean;
-  results?: ZoneResult[] | null;
+  results?: readonly ZoneResult[] | null;
   winner?: Player | null;
   /** Match-over only: pure explainZone data drives the resolution sequence. */
   explanations?: readonly ZoneExplanation[] | null;
@@ -75,11 +79,12 @@ export function Board({
 }) {
   const { t } = useI18n();
   const { scale } = useStageScale();
+  const player: Player = view.seat;
   const foe: Player = player === 'A' ? 'B' : 'A';
-  const map = placedMap(match, player);
-  const hand: readonly HandCard[] = match.hands[player];
+  const map = placedMapFromView(view);
+  const hand: readonly HandCard[] = view.hand;
 
-  const allUsed = allUsedIndices(match, player);
+  const allUsed = allUsedIndicesFromView(view);
   const visibleCards = hand
     .map((card, index) => ({ card, index }))
     .filter(({ index }) => !allUsed.has(index));
@@ -159,10 +164,10 @@ export function Board({
       const targetZone = zoneFromPoint(e.clientX, e.clientY);
       if (targetZone) {
         // Third-card guard mirrors tap: shake + toast instead of placing.
-        const alreadyPlaced = placedMap(match, player);
+        const alreadyPlaced = placedMapFromView(view);
         if (
           !alreadyPlaced.has(state.handIndex) &&
-          alreadyPlaced.size >= (match.maxPlacedPerRound ?? MAX_PLACE)
+          alreadyPlaced.size >= (view.config.maxPlacedPerRound ?? MAX_PLACE)
         ) {
           onTooMany();
         } else {
@@ -206,7 +211,7 @@ export function Board({
   const placedCount = map.size;
   const drawingRequired = drawPileCount !== undefined && drawsRemaining > 0;
   const canLock = placedCount >= MIN_PLACE && !drawingRequired;
-  const maxPlaced = match.maxPlacedPerRound ?? MAX_PLACE;
+  const maxPlaced = view.config.maxPlacedPerRound ?? MAX_PLACE;
 
   const zoneRules: Record<string, string> = {
     cool: t.zoneCoolRule,
@@ -223,9 +228,7 @@ export function Board({
 
   const views = new Map<string, ZoneView>();
 
-  // Shared strip builder (hidden-info rule inside): foe current-round
-  // picks are skipped entirely unless revealing.
-  const rawViews = buildZoneViews(match, player, foe, {
+  const rawViews = buildZoneViewsFromView(view, {
     foeVisible: isRevealing,
     recallable: !isRevealing,
   });
@@ -261,7 +264,7 @@ export function Board({
       <div className="board">
         <div className="match-main resolution-main">
           <ResolutionOverlay
-            match={match}
+            view={view}
             player={player}
             names={names}
             explanations={explanations}
@@ -289,12 +292,15 @@ export function Board({
             const v = views.get(z.id);
             if (!v) return null;
             const zResult = results?.find((r) => r.zoneId === z.id);
-            const myHi = getSideHighlight(v.myCards.map((c) => c.flavorId as FlavorId));
-            const foeHi = getSideHighlight(v.foeCards.map((c) => c.flavorId as FlavorId));
-            const cancelled = isCreamCancelled(
-              v.myCards.map((c) => c.flavorId as FlavorId),
-              v.foeCards.map((c) => c.flavorId as FlavorId)
-            );
+            const myFlavors = v.myCards
+              .filter((c) => !c.faceDown)
+              .map((c) => c.flavorId as FlavorId);
+            const foeFlavors = v.foeCards
+              .filter((c) => !c.faceDown)
+              .map((c) => c.flavorId as FlavorId);
+            const myHi = getSideHighlight(myFlavors);
+            const foeHi = getSideHighlight(foeFlavors);
+            const cancelled = isCreamCancelled(myFlavors, foeFlavors);
             const zoneEffectChips = cancelled
               ? []
               : [
@@ -399,7 +405,7 @@ export function Board({
         <div className="hand-row reveal-dock">
           <span className="dock-hint">{t.scoresAtEnd}</span>
           <button type="button" className="btn btn-primary lock-btn" onClick={onNextRound}>
-            {t.nextRound} {match.round})
+            {t.nextRound} {view.round})
           </button>
         </div>
       ) : null}

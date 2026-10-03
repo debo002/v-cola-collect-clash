@@ -128,8 +128,9 @@ export function ZoneColumn({
   const myFit = useStripFit(myCards.length);
 
   // Visual-only combo state (same predicates as the resolver, no logic fork).
-  const myFlavors = myCards.map((c) => c.flavorId as FlavorId);
-  const foeFlavors = foeCards.map((c) => c.flavorId as FlavorId);
+  // Face-down placeholders carry no flavor and never complete combos.
+  const myFlavors = myCards.filter((c) => !c.faceDown).map((c) => c.flavorId as FlavorId);
+  const foeFlavors = foeCards.filter((c) => !c.faceDown).map((c) => c.flavorId as FlavorId);
   const creamCancelled = isCreamCancelled(myFlavors, foeFlavors);
   const myHi = getSideHighlight(myFlavors);
   const foeHi = getSideHighlight(foeFlavors);
@@ -145,6 +146,18 @@ export function ZoneColumn({
   };
 
   const renderMini = (c: StripCard, side: 'foe' | 'mine', idx: number) => {
+    if (c.faceDown) {
+      const staggerMs = stagger != null ? stagger + idx * 90 : null;
+      const delay =
+        staggerMs != null
+          ? ({ animationDelay: `${staggerMs}ms`, '--pop-delay': `${staggerMs}ms` } as CSSProperties)
+          : undefined;
+      return (
+        <div key={c.key} className="strip-mini face-down" style={delay} aria-hidden="true">
+          <div className="card-back">V7</div>
+        </div>
+      );
+    }
     const flavor = getFlavorById(c.flavorId);
     if (!flavor) return null;
     const displayName = t.flavors[flavor.id] || flavor.name;

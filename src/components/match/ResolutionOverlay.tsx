@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MatchState, Player } from '../../game/match';
+import type { Player } from '../../game/match';
+import type { PlayerView } from '../../game/controller';
 import type { ZoneExplanation } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { CrownIcon } from '../icons';
-import { buildZoneViews, type StripCard } from './boardUtils';
+import { buildZoneViewsFromView, type StripCard } from './boardUtils';
 import { ZoneColumn } from './ZoneColumn';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
 
@@ -35,7 +36,7 @@ function keyOf(player: Player, owner: Player, round: number, handIndex: number):
  * states with a short fade.
  */
 export function ResolutionOverlay({
-  match,
+  view: matchView,
   player,
   names,
   explanations,
@@ -43,7 +44,7 @@ export function ResolutionOverlay({
   onRematch,
   onReturnMenu,
 }: {
-  match: MatchState;
+  view: PlayerView;
   player: Player;
   names: Record<Player, string>;
   explanations: readonly ZoneExplanation[];
@@ -62,8 +63,8 @@ export function ResolutionOverlay({
   );
 
   const views = useMemo(
-    () => buildZoneViews(match, player, foe, { foeVisible: true, recallable: false }),
-    [match, player, foe]
+    () => buildZoneViewsFromView(matchView, { foeVisible: true, recallable: false }),
+    [matchView]
   );
 
   const [view, setView] = useState<View>({ kind: reduced ? 'review' : 'sequence' });
