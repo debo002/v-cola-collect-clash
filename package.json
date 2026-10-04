@@ -10,6 +10,7 @@
     "smoke": "node scripts/smoke.mjs",
     "smoke:custom": "node scripts/smoke-custom.mjs",
     "dev:server": "wrangler dev --port 8787",
+    "deploy": "npm run build && wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",

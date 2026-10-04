@@ -21,12 +21,28 @@ export function serverBaseUrl(override?: string): string {
     override ??
     (typeof import.meta !== 'undefined'
       ? (import.meta.env?.VITE_SERVER_URL as string | undefined)
-      : undefined) ??
-    'http://localhost:8787';
-  return raw.replace(/\/+$/, '');
+      : undefined);
+  if (raw) {
+    return raw.replace(/\/+$/, '');
+  }
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    return '';
+  }
+  return 'http://localhost:8787';
 }
 
 export function wsUrl(baseUrl: string, code: string, seat: Player): string {
+  if (!baseUrl) {
+    if (typeof window !== 'undefined' && window.location) {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${proto}//${window.location.host}/api/rooms/${code}/ws?seat=${seat}`;
+    }
+  }
   const ws = baseUrl.replace(/^http/, 'ws');
   return `${ws}/api/rooms/${code}/ws?seat=${seat}`;
 }

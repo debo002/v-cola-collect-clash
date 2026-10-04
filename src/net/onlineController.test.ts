@@ -4,7 +4,7 @@ import { DEFAULT_GAME_CONFIG } from '../game/config';
 import { backoffForAttempt } from './socket';
 import { OnlineController, RETRY_BUDGET_MS } from './onlineController';
 import { parseSession } from './sessionStore';
-import { createOnlineRoom, joinOnlineRoom, serverBaseUrl } from './http';
+import { createOnlineRoom, joinOnlineRoom, serverBaseUrl, wsUrl } from './http';
 
 class FakeClock {
   nowMs = 1_000_000;
@@ -273,6 +273,18 @@ describe('online http', () => {
   it('maps failures to busy/unreachable/gone/full', async () => {
     expect(serverBaseUrl('http://x:8787/')).toBe('http://x:8787');
     expect(serverBaseUrl(undefined)).toBe('http://localhost:8787');
+    expect(wsUrl('http://localhost:8787', 'ROOM12', 'A')).toBe(
+      'ws://localhost:8787/api/rooms/ROOM12/ws?seat=A'
+    );
+    expect(wsUrl('https://example.com', 'ROOM12', 'B')).toBe(
+      'wss://example.com/api/rooms/ROOM12/ws?seat=B'
+    );
+    vi.stubGlobal('window', {
+      location: { hostname: 'v-cola.pages.dev', host: 'v-cola.pages.dev', protocol: 'https:' },
+    });
+    expect(serverBaseUrl(undefined)).toBe('');
+    expect(wsUrl('', 'ROOM12', 'A')).toBe('wss://v-cola.pages.dev/api/rooms/ROOM12/ws?seat=A');
+    vi.unstubAllGlobals();
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
@@ -309,21 +321,27 @@ describe('online http', () => {
 
   it('join-after-preview: gone and full map to OnlineHttpError that onlineRoomGone covers', async () => {
     // previewOnlineRoom: 404 → gone
-    const failing404 = vi.fn(async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 }));
+    const failing404 = vi.fn(
+      async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 })
+    );
     vi.stubGlobal('fetch', failing404);
     await expect(
       (await import('./http')).previewOnlineRoom('http://x', 'ABCDEF')
     ).rejects.toMatchObject({ failure: { kind: 'gone' } });
 
     // joinOnlineRoom: 404 → gone (room disappeared between preview and join)
-    const failing404join = vi.fn(async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 }));
+    const failing404join = vi.fn(
+      async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 })
+    );
     vi.stubGlobal('fetch', failing404join);
     await expect(
       (await import('./http')).joinOnlineRoom('http://x', 'ABCDEF', 'Bob')
     ).rejects.toMatchObject({ failure: { kind: 'gone' } });
 
     // joinOnlineRoom: 409 → full (room became full after the joiner previewed)
-    const failing409 = vi.fn(async () => new Response(JSON.stringify({ error: 'full' }), { status: 409 }));
+    const failing409 = vi.fn(
+      async () => new Response(JSON.stringify({ error: 'full' }), { status: 409 })
+    );
     vi.stubGlobal('fetch', failing409);
     await expect(
       (await import('./http')).joinOnlineRoom('http://x', 'ABCDEF', 'Bob')
