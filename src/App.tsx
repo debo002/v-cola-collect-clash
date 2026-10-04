@@ -11,9 +11,19 @@ import { OnlinePlay } from './screens/OnlinePlay';
 import { loadSession, type OnlineSession } from './net/sessionStore';
 import { I18nProvider, useI18n } from './i18n';
 import { Stage } from './components/Stage';
+import { NamesHarness } from './components/NamesHarness';
 import './App.css';
 
 type Tab = 'play' | 'deck' | 'online';
+
+/** Test-only harness route (?harness=names) for the card-names script. */
+function readHarness(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get('harness');
+  } catch {
+    return null;
+  }
+}
 
 function MainApp() {
   const { isRTL, t } = useI18n();
@@ -24,6 +34,7 @@ function MainApp() {
   const [session, setSession] = useState<OnlineSession | null>(null);
   const [resumeSession, setResumeSession] = useState<OnlineSession | null>(null);
   const [matchActive, setMatchActive] = useState(false);
+  const harness = readHarness();
 
   useEffect(() => {
     loadCollection()
@@ -63,6 +74,14 @@ function MainApp() {
     const next = FLAVOR_IDS.reduce((acc, id) => addCopy(acc, id), base);
     setCollection(next);
     saveCollection(next).catch(() => {});
+  }
+
+  if (harness === 'names') {
+    return (
+      <main className={`demo${isRTL ? ' rtl' : ''}`}>
+        <NamesHarness />
+      </main>
+    );
   }
 
   if (!collection) {

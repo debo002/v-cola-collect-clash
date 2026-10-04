@@ -1,8 +1,12 @@
 import type { CSSProperties } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import type { ComboGroup } from '../game/effects';
 import type { Flavor } from '../game/types';
 import { flavorImageUrl } from './assetPaths';
 import { comboArtBackground, comboBackground, comboGlow } from './comboTheme';
+
+/** Floor for name shrink-to-fit (~8px per item 5; never below). */
+const NAME_FLOOR_PX = 8;
 
 /**
  * Snap-like battle card: can art, power gem top-right,
@@ -54,7 +58,6 @@ export function GameCard({
   const frame = groups && groups.length > 0 ? comboBackground(groups) : undefined;
   const art = groups && groups.length > 0 ? comboArtBackground(groups) : undefined;
   const glow = groups && groups.length > 0 ? comboGlow(groups) : undefined;
-
   const style = {
     ...(highlightColor && !greyed
       ? { outline: `2px solid ${highlightColor}`, outlineOffset: '1px' }
@@ -64,6 +67,40 @@ export function GameCard({
     ...(glow && !greyed ? ({ '--combo-glow': glow } as CSSProperties) : undefined),
   } as CSSProperties;
 
+  // Shrink-to-fit for flavor names (item 5): CSS wraps to 2 lines, but a
+  // long name at a narrow width can still need 3 lines — step the font down
+  // to the 8px floor until it fits, so the line-clamp ellipsis never fires.
+  const nameRef = useRef<HTMLSpanElement | null>(null);
+  useLayoutEffect(() => {
+    const el = nameRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const fit = () => {
+      el.style.fontSize = '';
+      const base = parseFloat(getComputedStyle(el).fontSize);
+      if (!Number.isFinite(base)) return;
+      let fs = base;
+      while (
+        fs - 0.5 >= NAME_FLOOR_PX &&
+        (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)
+      ) {
+        fs -= 0.5;
+        el.style.fontSize = `${fs}px`;
+      }
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    const fonts = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
+    let cancelled = false;
+    fonts?.ready.then(() => {
+      if (!cancelled) fit();
+    });
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+    };
+  }, [label]);
   return (
     <article className={classes.join(' ')} aria-label={label} style={style}>
       {power !== undefined ? (
@@ -83,7 +120,7 @@ export function GameCard({
         />
       </div>
       <div className="name-plate">
-        <span>{label}</span>
+        <span ref={nameRef}>{label}</span>
       </div>
       {size === 'board' ? (
         <div className="board-status-row">

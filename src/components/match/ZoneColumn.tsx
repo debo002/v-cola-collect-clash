@@ -49,7 +49,7 @@ function useStripFit(count: number): {
     const byHeight = (box.h * 5) / 8;
     cardW = Math.max(1, Math.floor(Math.min(byWidth, byHeight)));
   }
-  const nameFs = Math.max(9, Math.min(13, Math.floor(cardW * 0.22)));
+  const nameFs = Math.max(8, Math.min(13, Math.floor(cardW * 0.22)));
   return {
     ref,
     style: { '--card-w': `${cardW}px`, '--name-fs': `${nameFs}px` } as CSSProperties,

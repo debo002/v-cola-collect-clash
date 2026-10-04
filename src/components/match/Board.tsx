@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { getFlavorById } from '../../game/cards';
 import { getCardGroups } from '../../game/effects';
@@ -18,6 +19,7 @@ import {
   type StripCard,
 } from './boardUtils';
 import { Hand } from './Hand';
+import { lockButton, nextRoundButton } from './lockLabels';
 import { ResolutionOverlay } from './ResolutionOverlay';
 import { ZoneColumn } from './ZoneColumn';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
@@ -50,6 +52,8 @@ export function Board({
   drawAnimating = false,
   onDraw,
   onNextRound,
+  awaitingOpponent = false,
+  readyCountdown,
   onRematch,
   onReturnMenu,
   explanations,
@@ -75,6 +79,10 @@ export function Board({
   drawAnimating?: boolean;
   onDraw?: () => void;
   onNextRound?: () => void;
+  /** Ready latched, waiting for the opponent (reveal dock goes disabled). */
+  awaitingOpponent?: boolean;
+  /** Auto-advance countdown element shown beside the waiting button. */
+  readyCountdown?: ReactNode;
   onRematch?: () => void;
   onReturnMenu?: () => void;
 }) {
@@ -216,6 +224,15 @@ export function Board({
   const nothingLeft = hand.length - allUsed.size <= 0;
   const canLock = placedCount >= MIN_PLACE && !drawingRequired;
   const maxPlaced = view.config.maxPlacedPerRound ?? MAX_PLACE;
+  // Latched pressed state comes from the view (survives reload/reconnect).
+  const lock = lockButton(t, {
+    locked: view.locks[player],
+    foeLocked: view.locks[foe],
+    canLock,
+    placedCount,
+    maxPlaced,
+    normalTip: '',
+  });
 
   const zoneRules: Record<string, string> = {
     cool: t.zoneCoolRule,
@@ -357,18 +374,18 @@ export function Board({
           shakeKey={shakeKey}
           handTitle={`${t.yourHand} (${visibleCards.length})`}
           handTip={
-            drawingRequired
-              ? t.drawTapHint
-              : nothingLeft
-                ? t.noCardsWaiting
-                : effectiveSelected !== null
-                  ? t.tapZoneToPlace
-                  : t.tapToPlaceHint
+            view.locks[player] && lock.tip !== ''
+              ? lock.tip
+              : drawingRequired
+                ? t.drawTapHint
+                : nothingLeft
+                  ? t.noCardsWaiting
+                  : effectiveSelected !== null
+                    ? t.tapZoneToPlace
+                    : t.tapToPlaceHint
           }
-          lockLabel={
-            canLock ? fmt(t.lockInCount, { placed: placedCount, max: maxPlaced }) : t.needOne
-          }
-          canLock={canLock}
+          lockLabel={lock.label}
+          canLock={!lock.disabled}
           drawPileCount={drawPileCount}
           drawsRemaining={drawsRemaining}
           drawAnimKey={drawAnimKey}
@@ -408,14 +425,29 @@ export function Board({
           )
         : null}
 
-      {isRevealing && !isMatchOver ? (
-        <div className="hand-row reveal-dock">
-          <span className="dock-hint">{t.scoresAtEnd}</span>
-          <button type="button" className="btn btn-primary lock-btn" onClick={onNextRound}>
-            {t.nextRound} {view.round})
-          </button>
-        </div>
-      ) : null}
+      {isRevealing && !isMatchOver
+        ? (() => {
+            const next = nextRoundButton(t, {
+              awaitingOpponent,
+              round: view.round,
+              nextRoundPrefix: t.nextRound,
+            });
+            return (
+              <div className="hand-row reveal-dock">
+                <span className="dock-hint">{t.scoresAtEnd}</span>
+                {awaitingOpponent && readyCountdown ? readyCountdown : null}
+                <button
+                  type="button"
+                  className="btn btn-primary lock-btn"
+                  disabled={next.disabled}
+                  onClick={onNextRound}
+                >
+                  {next.label}
+                </button>
+              </div>
+            );
+          })()
+        : null}
     </div>
   );
 }

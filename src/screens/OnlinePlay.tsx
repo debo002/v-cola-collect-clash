@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_GAME_CONFIG, validateGameConfig, type GameConfig } from '../game/config';
 import type { PlayerView } from '../game/controller';
-import { TIMER_SECONDS, type Player } from '../game/match';
+import { type Player } from '../game/match';
 import type { Players } from '../storage/playersStore';
 import { Stage } from '../components/Stage';
 import { Board } from '../components/match/Board';
 import { TopBar } from '../components/match/TopBar';
+import { ReadyCountdown, TimerCountdown } from '../components/match/TimerCountdown';
 import { CustomGameSetup } from './CustomGameSetup';
 import { fmt, useI18n } from '../i18n';
 import {
@@ -81,8 +82,6 @@ export function OnlinePlay({
   });
   const [notice, setNotice] = useState('');
   const [endedKind, setEndedKind] = useState<'forfeit' | 'ended'>('ended');
-  const [seconds, setSeconds] = useState(TIMER_SECONDS);
-  const [readyIn, setReadyIn] = useState(0);
   const [shakeKey, setShakeKey] = useState(0);
   const [copied, setCopied] = useState(false);
   const [pendingRematch, setPendingRematch] = useState(false);
@@ -172,31 +171,9 @@ export function OnlinePlay({
     }
   }, [meta.connection, meta.closeReason, t]);
 
-  // Skew-corrected countdowns (deadline + ready), ticking locally.
-  useEffect(() => {
-    const controller = controllerRef.current;
-    if (!controller || view.deadlineMs === null) {
-      setSeconds(TIMER_SECONDS);
-      return;
-    }
-    const update = () =>
-      setSeconds(Math.max(0, Math.ceil((view.deadlineMs ?? 0) - controller.serverNowMs()) / 1000));
-    update();
-    const id = window.setInterval(update, 250);
-    return () => window.clearInterval(id);
-  }, [view.deadlineMs]);
-  useEffect(() => {
-    const controller = controllerRef.current;
-    if (!controller || meta.readyDeadlineMs === null || stage !== 'roundReveal') {
-      setReadyIn(0);
-      return;
-    }
-    const update = () =>
-      setReadyIn(Math.max(0, Math.ceil(meta.readyDeadlineMs! - controller.serverNowMs())));
-    update();
-    const id = window.setInterval(update, 250);
-    return () => window.clearInterval(id);
-  }, [meta.readyDeadlineMs, stage]);
+  // Skew-corrected server clock for the memoized countdowns (they tick
+  // internally once per second; this screen never re-renders per tick).
+  const serverNow = useCallback(() => controllerRef.current?.serverNowMs() ?? Date.now(), []);
 
   async function create(config: GameConfig = DEFAULT_GAME_CONFIG) {
     const trimmed = name.trim();
@@ -321,7 +298,6 @@ export function OnlinePlay({
     seat === 'A' ? { A: myName, B: foeName } : { A: foeName, B: myName };
   const displayRound = stage === 'roundReveal' ? Math.max(1, view.round - 1) : view.round;
   const showTimer = stage === 'playing' && view.deadlineMs !== null;
-
   // ── customSetup: host customises config before creating the room ──────────
   if (stage === 'customSetup') {
     return (
@@ -408,8 +384,6 @@ export function OnlinePlay({
         <div className="match-screen">
           <TopBar
             displayRound={1}
-            seconds={TIMER_SECONDS}
-            showTimer={false}
             onMenu={() => {
               setPreviewData(null);
               setStage('lobby');
@@ -468,12 +442,7 @@ export function OnlinePlay({
     return (
       <Stage>
         <div className="match-screen">
-          <TopBar
-            displayRound={1}
-            seconds={TIMER_SECONDS}
-            showTimer={false}
-            onMenu={requestLeave}
-          />
+          <TopBar displayRound={1} onMenu={requestLeave} />
           <section className="online-waiting" aria-label={t.onlineWaiting}>
             <p className="online-room-code">{code || view.seat}</p>
             <button type="button" className="btn btn-secondary" onClick={copyCode}>
@@ -516,8 +485,11 @@ export function OnlinePlay({
       <div className="match-screen">
         <TopBar
           displayRound={displayRound}
-          seconds={seconds}
-          showTimer={showTimer}
+          timer={
+            showTimer && view.deadlineMs !== null ? (
+              <TimerCountdown deadlineMs={view.deadlineMs} nowFn={serverNow} />
+            ) : undefined
+          }
           onMenu={requestLeave}
           names={{ me: myName, opponent: foeName }}
         />
@@ -559,9 +531,9 @@ export function OnlinePlay({
             </button>
           </div>
         ) : null}
-        {stage === 'roundReveal' && readyIn > 0 ? (
+        {stage === 'roundReveal' && meta.readyDeadlineMs !== null ? (
           <div className="thin-banner" role="status">
-            <span className="resolution-text">{fmt(t.onlineReadyIn, { n: readyIn })}</span>
+            <ReadyCountdown readyDeadlineMs={meta.readyDeadlineMs} nowFn={serverNow} />
           </div>
         ) : null}
         <Board
@@ -595,6 +567,12 @@ export function OnlinePlay({
             send({ type: 'draw' });
           }}
           onNextRound={() => send({ type: 'ready' })}
+          awaitingOpponent={view.ready.me}
+          readyCountdown={
+            meta.readyDeadlineMs !== null ? (
+              <ReadyCountdown readyDeadlineMs={meta.readyDeadlineMs} nowFn={serverNow} />
+            ) : undefined
+          }
           onRematch={() => {
             send({ type: 'rematch' });
             setPendingRematch(true);

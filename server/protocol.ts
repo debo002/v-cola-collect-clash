@@ -156,7 +156,7 @@ export const MAX_NAME_CODE_POINTS = 20;
 export function sanitizePlayerName(raw: unknown, fallback: string): string {
   if (typeof raw !== 'string') return fallback;
   const stripped = raw.replace(
-    // eslint-disable-next-line no-control-regex, no-misleading-character-class
+    // eslint-disable-next-line no-control-regex -- strips C0 controls/newlines from names
     /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,
     ''
   );

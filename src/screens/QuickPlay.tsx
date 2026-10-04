@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Collection } from '../game/collection';
 import type { GameConfig } from '../game/config';
 import type { PlayerView } from '../game/controller';
 import { LocalController } from '../game/localController';
-import { TIMER_SECONDS, type Player } from '../game/match';
+import type { Player } from '../game/match';
 import type { Players } from '../storage/playersStore';
 import { Stage } from '../components/Stage';
 import { Board } from '../components/match/Board';
 import { PassScreen } from '../components/match/PassScreen';
 import { TitleScreen } from '../components/match/TitleScreen';
 import { TopBar } from '../components/match/TopBar';
+import { TimerCountdown } from '../components/match/TimerCountdown';
 import { CustomGameSetup } from './CustomGameSetup';
 import { fmt, useI18n } from '../i18n';
 
@@ -68,7 +69,6 @@ export function QuickPlay({
   viewRef.current = view;
   const [stage, setStage] = useState<ScreenStage>('idle');
   const [notice, setNotice] = useState('');
-  const [seconds, setSeconds] = useState(TIMER_SECONDS);
   const [shakeKey, setShakeKey] = useState(0);
   const [drawAnimKey, setDrawAnimKey] = useState(0);
   const [drawnHandIndex, setDrawnHandIndex] = useState(-1);
@@ -94,17 +94,9 @@ export function QuickPlay({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controller]);
-  useEffect(() => {
-    if (view.deadlineMs === null) {
-      setSeconds(TIMER_SECONDS);
-      return;
-    }
-    const update = () =>
-      setSeconds(Math.max(0, Math.ceil((view.deadlineMs ?? Date.now()) - Date.now()) / 1000));
-    update();
-    const id = window.setInterval(update, 250);
-    return () => window.clearInterval(id);
-  }, [view.deadlineMs]);
+  // Local clock for the memoized countdown (ticks internally; this screen
+  // never re-renders per tick, so Board stays still between moves).
+  const localNow = useCallback(() => Date.now(), []);
   useEffect(() => {
     if (view.phase === 'roundReveal') setStage('roundReveal');
     if (view.phase === 'complete') setStage('complete');
@@ -178,8 +170,11 @@ export function QuickPlay({
       <div className="match-screen">
         <TopBar
           displayRound={displayRound}
-          seconds={seconds}
-          showTimer={stage === 'playing'}
+          timer={
+            stage === 'playing' && view.deadlineMs !== null ? (
+              <TimerCountdown deadlineMs={view.deadlineMs} nowFn={localNow} />
+            ) : undefined
+          }
           onMenu={endMatch}
         />
         {stage === 'passA' ? (

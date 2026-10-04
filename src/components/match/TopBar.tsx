@@ -1,7 +1,7 @@
-import { TIMER_SECONDS } from '../../game/match';
 import { fmt, useI18n } from '../../i18n';
 import { QuickGuide } from '../QuickGuide';
 import { ExitIcon } from '../icons';
+import type { ReactNode } from 'react';
 
 /** Round pips: 3 dots, current lit. */
 export function RoundPips({ current, total = 3 }: { current: number; total?: number }) {
@@ -17,7 +17,7 @@ export function RoundPips({ current, total = 3 }: { current: number; total?: num
   );
 }
 
-/** Circular timer ring that drains as seconds run out. */
+/** Circular timer ring with the whole-second count BESIDE it (never over it). */
 export function TimerRing({ seconds, total }: { seconds: number; total: number }) {
   const r = 11;
   const c = 2 * Math.PI * r;
@@ -48,14 +48,13 @@ export function TimerRing({ seconds, total }: { seconds: number; total: number }
 /** Slim match top bar: menu left, round pips + timer + guide right. */
 export function TopBar({
   displayRound,
-  seconds,
-  showTimer,
+  timer,
   onMenu,
   names,
 }: {
   displayRound: number;
-  seconds: number;
-  showTimer: boolean;
+  /** Memoized countdown element (ticks internally; never re-renders the bar). */
+  timer?: ReactNode;
   onMenu: () => void;
   /** Optional "me · opponent" names (plain text, bidi-isolated). */
   names?: { readonly me: string; readonly opponent: string };
@@ -82,7 +81,7 @@ export function TopBar({
             <bdi>{names.opponent}</bdi>
           </span>
         ) : null}
-        {showTimer ? <TimerRing seconds={seconds} total={TIMER_SECONDS} /> : null}
+        {timer}
         <div className="legend-pop-wrap">
           <QuickGuide />
         </div>
