@@ -8,14 +8,20 @@ import { Board } from '../components/match/Board';
 import { TopBar } from '../components/match/TopBar';
 import { CustomGameSetup } from './CustomGameSetup';
 import { fmt, useI18n } from '../i18n';
-import { createOnlineRoom, joinOnlineRoom, OnlineHttpError, serverBaseUrl } from '../net/http';
+import {
+  createOnlineRoom,
+  joinOnlineRoom,
+  previewOnlineRoom,
+  OnlineHttpError,
+  serverBaseUrl,
+} from '../net/http';
 import { OnlineController, type OnlineMeta } from '../net/onlineController';
 import { clearSession, saveSession, type OnlineSession } from '../net/sessionStore';
 
 type OnlineStage =
   | 'lobby'
   | 'customSetup'
-  | 'settingsReview'
+  | 'preview'
   | 'waiting'
   | 'playing'
   | 'roundReveal'
@@ -78,6 +84,11 @@ export function OnlinePlay({
   const [copied, setCopied] = useState(false);
   const [pendingRematch, setPendingRematch] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    code: string;
+    config: GameConfig;
+    hostName: string;
+  } | null>(null);
   const [drawAnimKey, setDrawAnimKey] = useState(0);
   const [drawnHandIndex, setDrawnHandIndex] = useState(-1);
   const [drawAnimating, setDrawAnimating] = useState(false);
@@ -137,23 +148,17 @@ export function OnlinePlay({
     return () => window.clearTimeout(id);
   }, [notice]);
   useEffect(() => {
-    if (stage === 'lobby' || stage === 'customSetup' || stage === 'ended') return;
+    if (stage === 'lobby' || stage === 'customSetup' || stage === 'preview' || stage === 'ended')
+      return;
     if (view.phase === 'roundReveal') {
       setStage('roundReveal');
     } else if (view.phase === 'complete') {
       setStage('complete');
       setPendingRematch(false);
     } else if (view.phase === 'placing') {
-      // Joiner: if host used custom rules that differ from default, show review screen first
-      const isJoiner = view.seat === 'B';
-      const isCustom = view.config.mode === 'custom';
-      if (isJoiner && isCustom && stage === 'waiting') {
-        setStage('settingsReview');
-      } else {
-        setStage(meta.opponentConnected ? 'playing' : 'waiting');
-      }
+      setStage(meta.opponentConnected ? 'playing' : 'waiting');
     }
-  }, [view.phase, view.config, view.seat, meta.opponentConnected, stage]);
+  }, [view.phase, meta.opponentConnected, stage]);
   useEffect(() => {
     if (meta.connection === 'closed') {
       setEndedKind(meta.closeReason === 'forfeit' ? 'forfeit' : 'ended');
@@ -216,23 +221,40 @@ export function OnlinePlay({
     }
   }
 
-  async function join() {
+  async function startJoin() {
     const trimmed = name.trim();
     const clean = normalizeCode(code);
     if (!trimmed || clean.length !== 6 || busy !== 'idle') return;
     setBusy('joining');
     try {
-      const room = await joinOnlineRoom(baseUrl, clean, trimmed);
-      await saveSession({ code: clean, token: room.token, seat: room.seat });
-      const controller = new OnlineController(room.seat, clean, room.token, baseUrl, {
-        onSessionGone: handleSessionGone,
-      });
-      attach(controller, clean);
-      setStage('waiting');
+      const preview = await previewOnlineRoom(baseUrl, clean);
+      setPreviewData({ code: clean, config: preview.config, hostName: preview.hostName });
+      setStage('preview');
     } catch (error) {
       setNotice(errorMessage(error));
     } finally {
       setBusy('idle');
+    }
+  }
+
+  async function confirmJoin(roomCode: string) {
+    const trimmed = name.trim();
+    if (!trimmed || busy !== 'idle') return;
+    setBusy('joining');
+    try {
+      const room = await joinOnlineRoom(baseUrl, roomCode, trimmed);
+      await saveSession({ code: roomCode, token: room.token, seat: room.seat });
+      const controller = new OnlineController(room.seat, roomCode, room.token, baseUrl, {
+        onSessionGone: handleSessionGone,
+      });
+      attach(controller, roomCode);
+      setStage('waiting');
+    } catch (error) {
+      setNotice(errorMessage(error));
+      setStage('lobby');
+    } finally {
+      setBusy('idle');
+      setPreviewData(null);
     }
   }
 
@@ -345,7 +367,7 @@ export function OnlinePlay({
               type="button"
               className="btn btn-secondary"
               disabled={!name.trim() || normalizeCode(code).length !== 6 || busy !== 'idle'}
-              onClick={join}
+              onClick={startJoin}
             >
               {busy === 'joining' ? t.onlineJoining : t.onlineJoin}
             </button>
@@ -363,8 +385,9 @@ export function OnlinePlay({
     );
   }
 
-  if (stage === 'settingsReview') {
-    const cfg = view.config;
+  if (stage === 'preview' && previewData) {
+    const cfg = previewData.config;
+    const isCustom = cfg.mode === 'custom';
     const flavors = cfg.deck.kind === 'custom' ? cfg.deck.flavors : null;
     return (
       <Stage>
@@ -373,11 +396,16 @@ export function OnlinePlay({
             displayRound={1}
             seconds={TIMER_SECONDS}
             showTimer={false}
-            onMenu={requestLeave}
+            onMenu={() => {
+              setPreviewData(null);
+              setStage('lobby');
+            }}
           />
           <section className="online-waiting settings-review" aria-label={t.onlineMatchSettings}>
             <h3>{t.onlineMatchSettings}</h3>
-            <p className="settings-review-hint">{t.onlineRulesHeading}</p>
+            <p className="settings-review-hint">
+              {isCustom ? t.onlineRulesHeading : t.quickPlayTitle}
+            </p>
             <ul className="settings-review-list">
               {flavors ? (
                 <li>
@@ -399,12 +427,21 @@ export function OnlinePlay({
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setStage('playing')}
+                disabled={busy !== 'idle'}
+                onClick={() => confirmJoin(previewData.code)}
               >
-                {t.onlineAcceptSettings}
+                {busy === 'joining' ? t.onlineJoining : t.onlineAcceptSettings}
               </button>
-              <button type="button" className="btn btn-secondary" onClick={requestLeave}>
-                {t.setupBack}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={busy !== 'idle'}
+                onClick={() => {
+                  setPreviewData(null);
+                  setStage('lobby');
+                }}
+              >
+                {t.onlineLeave}
               </button>
             </div>
           </section>
@@ -414,8 +451,6 @@ export function OnlinePlay({
   }
 
   if (stage === 'waiting' && !meta.opponentConnected && view.phase !== 'complete') {
-    // If host sent custom rules, show awaiting-accept while joiner reviews
-    const awaitingAccept = view.seat === 'A' && view.config.mode === 'custom';
     return (
       <Stage>
         <div className="match-screen">
@@ -430,7 +465,7 @@ export function OnlinePlay({
             <button type="button" className="btn btn-secondary" onClick={copyCode}>
               {copied ? t.onlineCopied : t.onlineCopy}
             </button>
-            <p role="status">{awaitingAccept ? t.onlineWaitingAccept : t.onlineWaiting}</p>
+            <p role="status">{t.onlineWaiting}</p>
             {meta.connection === 'reconnecting' || meta.connection === 'connecting' ? (
               <p role="status">{t.onlineReconnecting}</p>
             ) : null}

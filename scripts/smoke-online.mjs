@@ -130,7 +130,7 @@ async function playTurn(page, ctx, tag, cards, zone = 'cool') {
     await clickWithLog(page, `[data-zone="${zone}"]`, ctx, `tap zone ${zone}`);
     await page.waitForFunction(
       (expected) => document.querySelector('.lock-btn')?.textContent?.includes(expected),
-      `(${k + 1}/2)`,
+      `(${k + 1}/`,
       { timeout: ACTION_TIMEOUT }
     );
   }
@@ -234,7 +234,7 @@ try {
   console.log('--- ctx1: Play Online -> Create ---');
   await gotoOnline(pageA, 'ctx1');
   await fillWithLog(pageA, '.online-lobby > label input', 'Alice', 'ctx1', 'fill name');
-  await clickWithLog(pageA, 'button:has-text("Create room")', 'ctx1', 'click create');
+  await clickWithLog(pageA, 'button:has-text("Create Quick Room")', 'ctx1', 'click create quick');
   await waitWithLog(pageA, '.online-waiting', 'ctx1', 'wait waiting');
   const code = (await pageA.locator('.online-room-code').innerText({ timeout: 5000 })).trim();
   console.log(`room code: ${code}`);
@@ -246,6 +246,8 @@ try {
   await fillWithLog(pageB, '.online-lobby > label input', 'Bob', 'ctx2', 'fill name');
   await fillWithLog(pageB, '.online-join input', code, 'ctx2', 'fill code');
   await clickWithLog(pageB, 'button:has-text("Join room")', 'ctx2', 'click join');
+  await waitWithLog(pageB, '.settings-review', 'ctx2', 'wait settings preview B');
+  await clickWithLog(pageB, 'button:has-text("Accept")', 'ctx2', 'click accept B');
   await waitWithLog(pageB, '.hand-fan', 'ctx2', 'wait hand B');
   await waitWithLog(pageA, '.hand-fan', 'ctx1', 'wait hand A');
   console.log('both seated');
@@ -288,6 +290,145 @@ try {
   console.log('rematch restarted for both');
   console.log(`frames captured: A=${framesA.length} B=${framesB.length}`);
   if (framesA.length === 0 || framesB.length === 0) throw new Error('no view frames captured');
+
+  // ── RUN 2: Custom Game Run (draw-per-round, 2 draws per round) ──────────────
+  console.log('--- Custom Game run (draw-per-round, 2 draws per round) ---');
+  const ctxA_c = await browser.newContext({ viewport });
+  const ctxB_c = await browser.newContext({ viewport });
+  const pageA_c = await ctxA_c.newPage();
+  const pageB_c = await ctxB_c.newPage();
+  const framesA_c = [];
+  const framesB_c = [];
+  watch(pageA_c, 'A-custom', framesA_c);
+  watch(pageB_c, 'B-custom', framesB_c);
+
+  // Host creates custom
+  await gotoOnline(pageA_c, 'ctx1-custom');
+  await fillWithLog(pageA_c, '.online-lobby > label input', 'Alice', 'ctx1-custom', 'fill name');
+  await clickWithLog(
+    pageA_c,
+    'button:has-text("Custom Settings…")',
+    'ctx1-custom',
+    'click custom settings'
+  );
+  await waitWithLog(pageA_c, '.custom-setup', 'ctx1-custom', 'wait custom setup');
+  await clickWithLog(
+    pageA_c,
+    'button:has-text("Draw per round")',
+    'ctx1-custom',
+    'select draw per round'
+  );
+  await clickWithLog(
+    pageA_c,
+    'button:has-text("Start Custom Game")',
+    'ctx1-custom',
+    'click start custom'
+  );
+  await waitWithLog(pageA_c, '.online-waiting', 'ctx1-custom', 'wait waiting');
+  const customCode = (
+    await pageA_c.locator('.online-room-code').innerText({ timeout: 5000 })
+  ).trim();
+  console.log(`custom room code: ${customCode}`);
+  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(customCode)) throw new Error(`bad custom code "${customCode}"`);
+
+  // Host waiting text check: "Waiting for an opponent to join"
+  const hostWaiting = (
+    await pageA_c.locator('.online-waiting p[role="status"]').first().innerText()
+  ).trim();
+  console.log(`host waiting text: "${hostWaiting}"`);
+  if (!hostWaiting.includes('Waiting for an opponent to join')) {
+    throw new Error(
+      `expected host waiting text "Waiting for an opponent to join", got "${hostWaiting}"`
+    );
+  }
+
+  // Joiner enters code
+  await gotoOnline(pageB_c, 'ctx2-custom');
+  await fillWithLog(pageB_c, '.online-lobby > label input', 'Bob', 'ctx2-custom', 'fill name');
+  await fillWithLog(pageB_c, '.online-join input', customCode, 'ctx2-custom', 'fill code');
+  await clickWithLog(pageB_c, 'button:has-text("Join room")', 'ctx2-custom', 'click join');
+
+  // Joiner sees settings screen BEFORE any match frames exist
+  await waitWithLog(pageB_c, '.settings-review', 'ctx2-custom', 'wait settings screen');
+  if (framesB_c.length !== 0) {
+    throw new Error(`Bob received ${framesB_c.length} WS frames before accepting settings!`);
+  }
+  console.log(
+    '[STEP] Joiner sees settings screen BEFORE any match frames exist (0 frames verified)'
+  );
+
+  // Joiner accepts
+  await clickWithLog(pageB_c, 'button:has-text("Accept")', 'ctx2-custom', 'click accept settings');
+  await waitWithLog(pageB_c, '.hand-fan', 'ctx2-custom', 'wait hand B');
+  await waitWithLog(pageA_c, '.hand-fan', 'ctx1-custom', 'wait hand A');
+  console.log('both seated in custom match');
+
+  // Draw helper:
+  async function performDraw(page, ctxTag) {
+    for (let d = 0; d < 2; d++) {
+      logStep(ctxTag, `draw ${d + 1}/2`);
+      const btn = page.locator('.draw-pile');
+      await btn.waitFor({ state: 'visible', timeout: ACTION_TIMEOUT });
+      await btn.click({ timeout: ACTION_TIMEOUT });
+      await page.waitForTimeout(800);
+    }
+  }
+
+  // 3 rounds of custom match
+  for (let r = 0; r < 3; r++) {
+    // Both draw 2 cards
+    await performDraw(pageA_c, 'ctx1-custom');
+    await performDraw(pageB_c, 'ctx2-custom');
+
+    // Both place cards and lock
+    await playTurn(pageA_c, 'ctx1-custom', `A-c r${r + 1}`, 2);
+    await playTurn(pageB_c, 'ctx2-custom', `B-c r${r + 1}`, 1);
+
+    logStep('ctx1-custom', `wait reveal/result r${r + 1}`);
+    await waitWithLog(pageA_c, '.reveal-dock, .resolution-panel', 'ctx1-custom', 'wait reveal A');
+    await waitWithLog(pageB_c, '.reveal-dock, .resolution-panel', 'ctx2-custom', 'wait reveal B');
+
+    // Mid-match reload at round 2
+    if (r === 1) {
+      logStep('ctx2-custom', 'mid-match reload B');
+      await pageB_c.reload({ waitUntil: 'networkidle' });
+      await waitWithLog(pageB_c, '.title-screen', 'ctx2-custom', 'wait title after reload');
+      await clickWithLog(
+        pageB_c,
+        'button:has-text("Rejoin your match")',
+        'ctx2-custom',
+        'click rejoin'
+      );
+      await waitWithLog(pageB_c, '.hand-fan, .reveal-dock', 'ctx2-custom', 'wait hand/reveal B');
+      console.log('B reloaded and resumed in custom match');
+    }
+
+    if (r < 2) {
+      logStep('ctx1-custom', 'next round');
+      await clickWithLog(pageA_c, '.reveal-dock .btn', 'ctx1-custom', 'next round A');
+      await clickWithLog(pageB_c, '.reveal-dock .btn', 'ctx2-custom', 'next round B');
+      await waitWithLog(pageA_c, '.hand-fan', 'ctx1-custom', 'wait hand A');
+      await waitWithLog(pageB_c, '.hand-fan', 'ctx2-custom', 'wait hand B');
+      console.log(`custom advanced to round ${r + 2}`);
+    }
+  }
+
+  await waitWithLog(pageA_c, '.resolution-panel', 'ctx1-custom', 'wait resolution');
+  await waitWithLog(pageA_c, '.review-dock', 'ctx1-custom', 'wait review A', { timeout: 25000 });
+  await waitWithLog(pageB_c, '.review-dock', 'ctx2-custom', 'wait review B', { timeout: 25000 });
+  console.log('both at review in custom match');
+
+  // Both Rematch
+  await clickWithLog(pageA_c, '.review-actions .btn-primary', 'ctx1-custom', 'rematch A');
+  await waitWithLog(pageA_c, '.toast-notice', 'ctx1-custom', 'wait toast A');
+  console.log('A waiting for rematch in custom match');
+  await clickWithLog(pageB_c, '.review-actions .btn-primary', 'ctx2-custom', 'rematch B');
+  await waitWithLog(pageA_c, '.hand-fan', 'ctx1-custom', 'wait hand A rematch');
+  await waitWithLog(pageB_c, '.hand-fan', 'ctx2-custom', 'wait hand B rematch');
+  console.log('rematch restarted for both in custom match');
+  console.log(`custom frames captured: A=${framesA_c.length} B=${framesB_c.length}`);
+  if (framesA_c.length === 0 || framesB_c.length === 0)
+    throw new Error('no custom view frames captured');
 } catch (e) {
   const msg = `RUN ERROR: ${String(e).split('\n')[0]}`;
   console.error(`FAIL ${msg}`);

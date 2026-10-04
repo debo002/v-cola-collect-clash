@@ -545,4 +545,169 @@ describe('roomServer', () => {
     expect(finalA.results).not.toBeNull();
     expect(finalA.winner).not.toBeUndefined();
   });
+
+  it('GET /rooms/:code preview: open room, unknown, full, closed, CORS, exact key set', async () => {
+    const worker = (await import('../../server/worker')).default;
+    type WorkerEnv = Parameters<typeof worker.fetch>[1];
+    const previewPayload = {
+      open: true,
+      config: config(),
+      hostName: 'Alice',
+    };
+    let mode: 'open' | 'unknown' | 'full' | 'closed' = 'open';
+    const stubFetch = async (url: string | URL | Request): Promise<Response> => {
+      const text = String(url);
+      if (text.endsWith('/internal/preview')) {
+        if (mode === 'open') return Response.json(previewPayload);
+        if (mode === 'unknown') return new Response('not found', { status: 404 });
+        if (mode === 'full') return Response.json({ error: 'full' }, { status: 404 });
+        if (mode === 'closed') return Response.json({ error: 'closed' }, { status: 404 });
+      }
+      return new Response('not found', { status: 404 });
+    };
+    const fakeEnv = {
+      ROOM: {
+        idFromName: (name: string) => ({ name }),
+        get: () => ({ fetch: stubFetch }),
+      },
+    } as unknown as WorkerEnv;
+
+    // 1. Open room returns 200 with CORS and exact key set (no seat, token, hands, room state)
+    mode = 'open';
+    const resOpen = await worker.fetch(new Request('http://x/rooms/ABCDEF'), fakeEnv);
+    expect(resOpen.status).toBe(200);
+    expect(resOpen.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(resOpen.headers.get('Access-Control-Allow-Methods')).toContain('GET');
+    const openBody = (await resOpen.json()) as Record<string, unknown>;
+    expect(openBody.open).toBe(true);
+    expect(openBody.hostName).toBe('Alice');
+    expect(openBody.config).toEqual(config());
+    expect(Object.keys(openBody).sort()).toEqual(['config', 'hostName', 'open']);
+    // Assert no hidden data leaked
+    expect('token' in openBody).toBe(false);
+    expect('seat' in openBody).toBe(false);
+    expect('hands' in openBody).toBe(false);
+    expect('room' in openBody).toBe(false);
+    expect('roomState' in openBody).toBe(false);
+
+    // Also supports /api/rooms/ABCDEF
+    const resApi = await worker.fetch(new Request('http://x/api/rooms/ABCDEF'), fakeEnv);
+    expect(resApi.status).toBe(200);
+
+    // 2. 404 for unknown room with CORS
+    mode = 'unknown';
+    const resUnknown = await worker.fetch(new Request('http://x/rooms/ABCDEF'), fakeEnv);
+    expect(resUnknown.status).toBe(404);
+    expect(resUnknown.headers.get('Access-Control-Allow-Origin')).toBe('*');
+
+    // 3. 404 for full room with CORS
+    mode = 'full';
+    const resFull = await worker.fetch(new Request('http://x/rooms/ABCDEF'), fakeEnv);
+    expect(resFull.status).toBe(404);
+    expect(resFull.headers.get('Access-Control-Allow-Origin')).toBe('*');
+
+    // 4. 404 for closed room with CORS
+    mode = 'closed';
+    const resClosed = await worker.fetch(new Request('http://x/rooms/ABCDEF'), fakeEnv);
+    expect(resClosed.status).toBe(404);
+    expect(resClosed.headers.get('Access-Control-Allow-Origin')).toBe('*');
+  });
+
+  it('match and timers do not start until joiner joins', () => {
+    const created = createRoom(deps(1_000_000, 7), 'Host', config());
+    if ('error' in created) throw new Error(created.error);
+
+    // Match is created, but placement/draw deadlines are not started yet
+    expect(created.row.room.deadlineMs).toBeNull();
+    expect(created.row.room.placeMs).toBeNull();
+    expect(created.row.room.drawMs).toBeNull();
+
+    // nextDueMs only has idle cleanup, not match turn deadlines
+    const dueBeforeJoin = nextDueMs(created.row.room, 1_000_000, { A: true, B: false });
+    expect(dueBeforeJoin).toBe(1_000_000 + 3_600_000);
+
+    // An alarm firing while waiting for an opponent does not time out or lock cards
+    const alarmResult = onAlarm(
+      created.row.room,
+      { A: true, B: false },
+      { now: 1_060_000, rng: Math.random }
+    );
+    expect(alarmResult.state.over).toBeNull();
+    expect(alarmResult.events).toEqual([]);
+    expect(alarmResult.state.deadlineMs).toBeNull();
+
+    // Now seat B joins
+    const joined = joinRoom(created.row, deps(1_000_000, 7), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    // Match timer is now active!
+    expect(joined.row.room.placeMs).toBe(1_000_000 + 60_000);
+    expect(joined.row.room.deadlineMs).toBe(1_000_000 + 60_000);
+    const dueAfterJoin = nextDueMs(joined.row.room, 1_000_000, { A: true, B: true });
+    expect(dueAfterJoin).toBe(1_000_000 + 60_000);
+  });
+
+  it('custom maxPlacedPerRound 3 runs through a full server match', () => {
+    const customConfig: GameConfig = {
+      ...config('reveal-all'),
+      maxPlacedPerRound: 3,
+    };
+    const created = createRoom(deps(1_000_000, 23), 'Host', customConfig);
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(1_000_000, 23), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    let row = joined.row;
+    expect(row.room.config.maxPlacedPerRound).toBe(3);
+
+    // Round 1: place 1 card each
+    row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' }, 23);
+    row = send(row, 'A', { type: 'lock' }, 23);
+
+    row = send(row, 'B', { type: 'place', handIndex: 0, zone: 'cool' }, 23);
+    row = send(row, 'B', { type: 'lock' }, 23);
+
+    expect(row.room.stage).toBe('roundReveal');
+    row = send(row, 'A', { type: 'ready' }, 23);
+    row = send(row, 'B', { type: 'ready' }, 23);
+
+    // Round 2: place 3 cards each (testing maxPlacedPerRound: 3 works)
+    expect(row.room.match.round).toBe(2);
+    row = send(row, 'A', { type: 'place', handIndex: 1, zone: 'cool' }, 23);
+    row = send(row, 'A', { type: 'place', handIndex: 2, zone: 'party' }, 23);
+    row = send(row, 'A', { type: 'place', handIndex: 3, zone: 'energy' }, 23);
+    // Placing a 4th card is rejected by the server
+    const tooMany = applyClientIntent(row, deps(1_000_000, 23), 'A', {
+      type: 'place',
+      handIndex: 4,
+      zone: 'cool',
+    });
+    if (tooMany.ok === true) throw new Error('expected reject on 4th placement');
+    expect(tooMany.reason).toBe('Place at most 3 cards per round');
+    row = send(row, 'A', { type: 'lock' }, 23);
+
+    row = send(row, 'B', { type: 'place', handIndex: 1, zone: 'cool' }, 23);
+    row = send(row, 'B', { type: 'place', handIndex: 2, zone: 'party' }, 23);
+    row = send(row, 'B', { type: 'place', handIndex: 3, zone: 'energy' }, 23);
+    row = send(row, 'B', { type: 'lock' }, 23);
+
+    expect(row.room.stage).toBe('roundReveal');
+    row = send(row, 'A', { type: 'ready' }, 23);
+    row = send(row, 'B', { type: 'ready' }, 23);
+
+    // Round 3: place remaining 2 cards each (hand indices 4, 5)
+    expect(row.room.match.round).toBe(3);
+    row = send(row, 'A', { type: 'place', handIndex: 4, zone: 'party' }, 23);
+    row = send(row, 'A', { type: 'place', handIndex: 5, zone: 'energy' }, 23);
+    row = send(row, 'A', { type: 'lock' }, 23);
+
+    row = send(row, 'B', { type: 'place', handIndex: 4, zone: 'party' }, 23);
+    row = send(row, 'B', { type: 'place', handIndex: 5, zone: 'energy' }, 23);
+    row = send(row, 'B', { type: 'lock' }, 23);
+
+    expect(row.room.stage).toBe('complete');
+    const finalA = buildPlayerView(row.room, 'A');
+    expect(finalA.results).not.toBeNull();
+    expect(finalA.winner).not.toBeUndefined();
+  });
 });

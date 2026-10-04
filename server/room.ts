@@ -45,6 +45,17 @@ export class Room extends DurableObject {
       const row = await this.ctx.storage.get<RoomRow>('row');
       return Response.json({ exists: row !== undefined });
     }
+    if (url.pathname.endsWith('/internal/preview')) {
+      const row = await this.ctx.storage.get<RoomRow>('row');
+      if (row === undefined || row.room.over !== null || row.tokens.B !== null) {
+        return Response.json({ error: 'gone' }, { status: 404 });
+      }
+      return Response.json({
+        open: true,
+        config: row.room.config,
+        hostName: row.names.A,
+      });
+    }
     if (url.pathname.endsWith('/internal/init') && request.method === 'POST') {
       const existing = await this.ctx.storage.get<RoomRow>('row');
       if (existing !== undefined) return Response.json({ error: 'exists' }, { status: 409 });

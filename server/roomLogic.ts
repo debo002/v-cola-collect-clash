@@ -46,7 +46,7 @@ export function createRoom(
   const invalid = validateGameConfig(config);
   if (invalid !== null) return { error: invalid };
   const dealt = dealMatchHands(config, deps.rng);
-  let room = createRoomState(
+  const room = createRoomState(
     config,
     dealt.handA,
     dealt.handB,
@@ -54,9 +54,6 @@ export function createRoom(
     dealt.poolB,
     deps.now()
   );
-  const ctx = { now: deps.now(), rng: deps.rng };
-  room = beginTurn(room, 'A', ctx);
-  room = beginTurn(room, 'B', ctx);
   const code = newRoomCode((n) => randomValues(deps, n));
   const row: RoomRow = {
     room,
@@ -75,9 +72,13 @@ export function joinRoom(
   if (row.room.over !== null) return { error: 'closed' };
   if (row.tokens.B !== null) return { error: 'full' };
   const token = newToken((n) => randomValues(deps, n));
+  const ctx = { now: deps.now(), rng: deps.rng };
+  let room = beginTurn(row.room, 'A', ctx);
+  room = beginTurn(room, 'B', ctx);
   return {
     row: {
       ...row,
+      room,
       tokens: { ...row.tokens, B: token },
       names: { ...row.names, B: guestName.trim() },
     },

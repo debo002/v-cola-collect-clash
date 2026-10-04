@@ -79,6 +79,45 @@ export async function createOnlineRoom(
   return { code: out.code, token: out.token, seat: 'A' as Player };
 }
 
+export interface RoomPreview {
+  open: boolean;
+  config: GameConfig;
+  hostName: string;
+}
+
+export async function previewOnlineRoom(baseUrl: string, code: string): Promise<RoomPreview> {
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}/rooms/${code}`, {
+      headers: { 'content-type': 'application/json' },
+    });
+  } catch {
+    throw new OnlineHttpError({ kind: 'unreachable' });
+  }
+  let out: Record<string, unknown> = {};
+  try {
+    out = (await res.json()) as Record<string, unknown>;
+  } catch {
+    out = {};
+  }
+  if (res.status === 404) {
+    throw new OnlineHttpError({ kind: 'gone' });
+  }
+  if (
+    res.status !== 200 ||
+    typeof out.open !== 'boolean' ||
+    typeof out.hostName !== 'string' ||
+    !out.config
+  ) {
+    throwForStatus(res.status, out);
+  }
+  return {
+    open: out.open,
+    config: out.config as GameConfig,
+    hostName: out.hostName,
+  };
+}
+
 export async function joinOnlineRoom(
   baseUrl: string,
   code: string,

@@ -67,11 +67,7 @@ export default {
         return jsonWithCors({ error: parsedConfig.error }, 400);
       }
       const { config } = parsedConfig;
-      const created = createRoom(
-        { now: () => Date.now(), rng: Math.random },
-        rec.name,
-        config
-      );
+      const created = createRoom({ now: () => Date.now(), rng: Math.random }, rec.name, config);
       if ('error' in created) return jsonWithCors({ error: created.error }, 400);
       const code = await uniqueCode(env);
       const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
@@ -81,6 +77,17 @@ export default {
       });
       if (!init.ok) return jsonWithCors({ error: 'exists' }, 409);
       return jsonWithCors({ code, token: created.row.tokens.A, seat: 'A' });
+    }
+    const previewMatch = url.pathname.match(/^(?:\/api)?\/rooms\/([A-Z2-9]{6})(?:\/preview)?$/);
+    if (request.method === 'GET' && previewMatch?.[1] !== undefined) {
+      const code = previewMatch[1];
+      const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
+      const res = await stub.fetch('https://room/internal/preview');
+      if (!res.ok) {
+        return jsonWithCors({ error: 'not-found' }, 404);
+      }
+      const out = (await res.json()) as Record<string, unknown>;
+      return jsonWithCors(out, 200);
     }
     const joinMatch = url.pathname.match(/^\/api\/rooms\/([A-Z2-9]{6})\/join$/);
     if (request.method === 'POST' && joinMatch?.[1] !== undefined) {
