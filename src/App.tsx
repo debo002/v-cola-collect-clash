@@ -7,18 +7,23 @@ import { DEFAULT_PLAYERS, loadPlayers, savePlayers, type Players } from './stora
 import type { FlavorId } from './game/types';
 import { Deck } from './screens/Deck';
 import { QuickPlay } from './screens/QuickPlay';
+import { OnlinePlay } from './screens/OnlinePlay';
+import { loadSession, type OnlineSession } from './net/sessionStore';
 import { I18nProvider, useI18n } from './i18n';
 import { Stage } from './components/Stage';
 import './App.css';
 
-type Tab = 'play' | 'deck';
+type Tab = 'play' | 'deck' | 'online';
 
 function MainApp() {
-  const { isRTL } = useI18n();
+  const { isRTL, t } = useI18n();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [deck, setDeck] = useState<FlavorId[]>([]);
   const [players, setPlayers] = useState<Players>(DEFAULT_PLAYERS);
   const [tab, setTab] = useState<Tab>('play');
+  const [session, setSession] = useState<OnlineSession | null>(null);
+  const [resumeSession, setResumeSession] = useState<OnlineSession | null>(null);
+  const [matchActive, setMatchActive] = useState(false);
 
   useEffect(() => {
     loadCollection()
@@ -30,6 +35,9 @@ function MainApp() {
     loadPlayers()
       .then(setPlayers)
       .catch(() => setPlayers(DEFAULT_PLAYERS));
+    loadSession()
+      .then(setSession)
+      .catch(() => setSession(null));
   }, []);
 
   function updateDeck(picks: FlavorId[]) {
@@ -68,14 +76,61 @@ function MainApp() {
   }
 
   // Active match renders its own stage (top bar + board); no web chrome.
+  if (tab === 'online') {
+    return (
+      <main className={`demo${isRTL ? ' rtl' : ''}`}>
+        <OnlinePlay
+          key={resumeSession ? `${resumeSession.code}-${resumeSession.seat}` : 'fresh'}
+          players={players}
+          resumeSession={resumeSession}
+          onExit={() => {
+            setResumeSession(null);
+            setTab('play');
+            loadSession()
+              .then(setSession)
+              .catch(() => setSession(null));
+          }}
+        />
+      </main>
+    );
+  }
+
   if (tab === 'play') {
     return (
       <main className={`demo${isRTL ? ' rtl' : ''}`}>
+        {session !== null && !matchActive ? (
+          <div className="rejoin-banner" role="status">
+            <span>{t.onlineRejoin}</span>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setResumeSession(session);
+                setTab('online');
+              }}
+            >
+              {t.onlineRejoin}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              aria-label="Dismiss"
+              onClick={() => setSession(null)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
         <QuickPlay
           collection={collection}
           players={players}
           onPlayersChange={updatePlayers}
+          onMatchActiveChange={setMatchActive}
           onOpenDeck={() => setTab('deck')}
+          onPlayOnline={() => {
+            setResumeSession(null);
+            setTab('online');
+          }}
         />
       </main>
     );

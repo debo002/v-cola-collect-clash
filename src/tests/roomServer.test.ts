@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// room.ts imports cloudflare:workers (DO runtime only): mock the module so
+// the Worker entrypoint loads under node. CORS logic lives in worker.
+vi.mock('../../server/room', () => ({ Room: class {} }));
 import type { GameConfig } from '../game/config';
 import type { Player } from '../game/match';
 import type { FlavorId } from '../game/types';
@@ -291,5 +295,81 @@ describe('roomServer', () => {
       B: false,
     });
     expect(over).toBe(row.room.activityMs + 3_600_000);
+  });
+
+  it('view envelope carries opponentConnected and readyDeadlineMs', async () => {
+    const { viewEnvelope } = await import('../../server/roomLogic');
+    const row = startRow();
+    // Join (both present): each side sees the opponent connected.
+    expect(viewEnvelope(row.room, 'A', { A: true, B: true }, 1_000_000).opponentConnected).toBe(
+      true
+    );
+    // Disconnect: the remaining side sees false.
+    expect(viewEnvelope(row.room, 'A', { A: true, B: false }, 1_000_000).opponentConnected).toBe(
+      false
+    );
+    // Reconnect: true again.
+    expect(viewEnvelope(row.room, 'A', { A: true, B: true }, 1_000_001).opponentConnected).toBe(
+      true
+    );
+    // No ready deadline while placing (view.deadlineMs is the placement clock).
+    const placing = viewEnvelope(row.room, 'A', { A: true, B: true }, 1_000_000);
+    expect(placing.readyDeadlineMs).toBeNull();
+    // Round reveal exposes the 8s auto-advance deadline in the envelope.
+    let revealed = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' });
+    revealed = send(revealed, 'A', { type: 'lock' });
+    revealed = send(revealed, 'B', { type: 'place', handIndex: 0, zone: 'cool' });
+    revealed = send(revealed, 'B', { type: 'lock' });
+    const envelope = viewEnvelope(revealed.room, 'A', { A: true, B: true }, 1_000_000);
+    expect(revealed.room.stage).toBe('roundReveal');
+    expect(envelope.readyDeadlineMs).toBe(revealed.room.readyMs);
+    expect(envelope.readyDeadlineMs).not.toBeNull();
+    expect(envelope.view.deadlineMs).toBeNull();
+  });
+
+  it('worker answers CORS preflight and headers', async () => {
+    const worker = (await import('../../server/worker')).default;
+    type WorkerEnv = Parameters<typeof worker.fetch>[1];
+    const stubFetch = async (url: string | URL | Request): Promise<Response> => {
+      const text = String(url);
+      if (text.endsWith('/internal/exists')) return Response.json({ exists: false });
+      if (text.endsWith('/internal/init')) return Response.json({ ok: true });
+      if (text.endsWith('/internal/join'))
+        return Response.json({ token: 't'.repeat(32), seat: 'B' });
+      return new Response('not found', { status: 404 });
+    };
+    const fakeEnv = {
+      ROOM: {
+        idFromName: (name: string) => ({ name }),
+        get: () => ({ fetch: stubFetch }),
+      },
+    } as unknown as WorkerEnv;
+    const preflight = await worker.fetch(
+      new Request('http://x/api/rooms', { method: 'OPTIONS' }),
+      fakeEnv
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    expect(preflight.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+    expect(preflight.headers.get('Access-Control-Allow-Headers')).toBe('content-type');
+    const created = await worker.fetch(
+      new Request('http://x/api/rooms', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Alice', config: config() }),
+      }),
+      fakeEnv
+    );
+    expect(created.status).toBe(200);
+    expect(created.headers.get('Access-Control-Allow-Origin')).toBe('*');
+    const joined = await worker.fetch(
+      new Request('http://x/api/rooms/ABCDEF/join', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Bob' }),
+      }),
+      fakeEnv
+    );
+    expect(joined.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
 });

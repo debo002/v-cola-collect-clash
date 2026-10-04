@@ -17,6 +17,10 @@ export type ServerMsg =
       readonly type: 'view';
       readonly view: import('../src/game/controller').PlayerView;
       readonly serverNowMs: number;
+      /** Additive: whether the other seat is currently connected. */
+      readonly opponentConnected: boolean;
+      /** Additive: round-reveal auto-advance deadline, null otherwise. */
+      readonly readyDeadlineMs: number | null;
     }
   | { readonly type: 'rejected'; readonly reason: string }
   | { readonly type: 'closed'; readonly reason: string };

@@ -1,9 +1,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { Player } from '../src/game/match';
 import { isIdleCleanupDue, nextDueMs, onAlarm, touchSeen } from '../src/game/matchEngine';
-import { buildPlayerView } from '../src/game/view';
 import { parseClientMessage, type ServerMsg } from './protocol';
-import { applyClientIntent, joinRoom, resumeSeat, type RoomRow } from './roomLogic';
+import { applyClientIntent, joinRoom, resumeSeat, viewEnvelope, type RoomRow } from './roomLogic';
 
 /**
  * One SQLite-backed Durable Object per room. Thin glue over the shared
@@ -125,7 +124,9 @@ export class Room extends DurableObject {
         ...row,
         room: touchSeen(row.room, seat, Date.now()),
       });
-      this.sendView(ws, seat, row.room);
+      // Broadcast (not just the resuming socket): the other seat learns
+      // opponentConnected flipped without polling.
+      this.broadcast({ ...row, room: touchSeen(row.room, seat, Date.now()) });
       await this.ensureAlarm();
       return;
     }
@@ -154,11 +155,24 @@ export class Room extends DurableObject {
   }
 
   async webSocketClose(): Promise<void> {
+    await this.announcePresence();
     await this.ensureAlarm();
   }
 
   async webSocketError(): Promise<void> {
+    await this.announcePresence();
     await this.ensureAlarm();
+  }
+
+  /** Re-send views so the remaining player learns the opponent flag flipped. */
+  private async announcePresence(): Promise<void> {
+    try {
+      const row = await this.ctx.storage.get<RoomRow>('row');
+      if (row === undefined || row.room.over !== null) return;
+      this.broadcast(row);
+    } catch {
+      // Presence announcement must never break close handling.
+    }
   }
 
   async alarm(): Promise<void> {
@@ -236,18 +250,15 @@ export class Room extends DurableObject {
     }
   }
 
-  private sendView(ws: WebSocket, seat: Player, row: RoomRow['room']): void {
-    this.send(ws, { type: 'view', view: buildPlayerView(row, seat), serverNowMs: Date.now() });
-  }
-
   private broadcast(row: RoomRow, closedReason?: string): void {
+    const present = this.presence();
     for (const ws of this.ctx.getWebSockets()) {
       const att = attachmentOf(ws);
       if (att === null || !att.authed) continue;
       if (closedReason !== undefined) {
         this.send(ws, { type: 'closed', reason: closedReason });
       } else {
-        this.sendView(ws, att.seat, row.room);
+        this.send(ws, viewEnvelope(row.room, att.seat, present, Date.now()));
       }
     }
   }

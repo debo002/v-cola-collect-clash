@@ -21,5 +21,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Server-integration tests live under the server project (they import the
+  // Worker entrypoint, which the DOM lib cannot type); vitest still runs them.
+  "exclude": ["src/tests/roomServer.test.ts"]
 }

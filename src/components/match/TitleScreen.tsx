@@ -15,12 +15,14 @@ export function TitleScreen({
   onPlay,
   onOpenDeck,
   onCustomGame,
+  onPlayOnline,
 }: {
   players: Players;
   onPlayersChange: (players: Players) => void;
   onPlay: () => void;
   onOpenDeck: () => void;
   onCustomGame: () => void;
+  onPlayOnline?: () => void;
 }) {
   const { lang, setLang, t } = useI18n();
   return (
@@ -57,6 +59,11 @@ export function TitleScreen({
         <button type="button" className="btn btn-secondary btn-xl" onClick={onCustomGame}>
           {t.customGame}
         </button>
+        {onPlayOnline ? (
+          <button type="button" className="btn btn-secondary btn-xl" onClick={onPlayOnline}>
+            {t.playOnline}
+          </button>
+        ) : null}
         <QuickGuide menu />
         <div className="lang-switcher" role="group" aria-label="Language">
           <button

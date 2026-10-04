@@ -160,6 +160,31 @@ export interface Translations {
   helpStepReveal: string;
   helpStepScore: string;
   helpMostZones: string;
+  // Online (Phase 3)
+  playOnline: string;
+  onlineTitle: string;
+  onlineName: string;
+  onlineCreate: string;
+  onlineJoin: string;
+  onlineCode: string;
+  onlineCodeHint: string;
+  onlineWaiting: string;
+  onlineCopy: string;
+  onlineCopied: string;
+  onlineReconnecting: string;
+  onlineOppGone: string;
+  onlineBusy: string;
+  onlineUnreachable: string;
+  onlineRetry: string;
+  onlineLeave: string;
+  onlineLeaveSure: string;
+  onlineMatchEnded: string;
+  onlineRejoin: string;
+  onlineYouWinForfeit: string;
+  onlineWaitingRematch: string;
+  onlineReadyIn: string;
+  onlineJoining: string;
+  onlineCreating: string;
   // Flavors map
   flavors: Record<string, string>;
 }
@@ -378,6 +403,31 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     helpStepReveal: 'Cards are revealed',
     helpStepScore: 'Zones score after round 3',
     helpMostZones: 'Win the most zones to win the match',
+    // Online (Phase 3)
+    playOnline: 'Play Online',
+    onlineTitle: 'Online Match',
+    onlineName: 'Your name',
+    onlineCreate: 'Create room',
+    onlineJoin: 'Join room',
+    onlineCode: 'Room code',
+    onlineCodeHint: 'Enter the 6-letter code (no 0, O, 1, I)',
+    onlineWaiting: 'Waiting for opponent…',
+    onlineCopy: 'Copy',
+    onlineCopied: 'Copied!',
+    onlineReconnecting: 'Reconnecting…',
+    onlineOppGone: 'Opponent disconnected',
+    onlineBusy: 'Server busy, try again later',
+    onlineUnreachable: "Can't reach server",
+    onlineRetry: 'Retry',
+    onlineLeave: 'Leave',
+    onlineLeaveSure: 'Leave this match?',
+    onlineMatchEnded: 'That match has ended',
+    onlineRejoin: 'Rejoin your match',
+    onlineYouWinForfeit: 'Opponent left — you win!',
+    onlineWaitingRematch: 'Waiting for opponent to rematch…',
+    onlineReadyIn: 'Next round in {n}s',
+    onlineJoining: 'Joining…',
+    onlineCreating: 'Creating…',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -576,6 +626,31 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     helpStepReveal: 'تُكشف البطاقات',
     helpStepScore: 'تُحسب المناطق بعد الجولة الثالثة',
     helpMostZones: 'الفوز بأكبر عدد من المناطق يحسم المباراة',
+    // Online (Phase 3)
+    playOnline: 'العب أونلاين',
+    onlineTitle: 'مباراة أونلاين',
+    onlineName: 'اسمك',
+    onlineCreate: 'إنشاء غرفة',
+    onlineJoin: 'الانضمام لغرفة',
+    onlineCode: 'رمز الغرفة',
+    onlineCodeHint: 'أدخل الرمز المكون من ٦ حروف (بدون ٠ أو O أو ١ أو I)',
+    onlineWaiting: 'بانتظار الخصم…',
+    onlineCopy: 'نسخ',
+    onlineCopied: 'تم النسخ!',
+    onlineReconnecting: 'جارٍ إعادة الاتصال…',
+    onlineOppGone: 'انقطع اتصال الخصم',
+    onlineBusy: 'الخادم مشغول، حاول لاحقًا',
+    onlineUnreachable: 'تعذر الوصول للخادم',
+    onlineRetry: 'إعادة المحاولة',
+    onlineLeave: 'مغادرة',
+    onlineLeaveSure: 'مغادرة هذه المباراة؟',
+    onlineMatchEnded: 'انتهت هذه المباراة',
+    onlineRejoin: 'العودة لمباراتك',
+    onlineYouWinForfeit: 'غادر الخصم — فزت!',
+    onlineWaitingRematch: 'بانتظار موافقة الخصم على مباراة جديدة…',
+    onlineReadyIn: 'الجولة التالية بعد {n} ث',
+    onlineJoining: 'جارٍ الانضمام…',
+    onlineCreating: 'جارٍ الإنشاء…',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',

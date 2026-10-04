@@ -20,6 +20,18 @@ function randomCode(): string {
   return newRoomCode((n) => cryptoRandom(n));
 }
 
+function corsHeaders(): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'content-type',
+  };
+}
+
+function jsonWithCors(value: unknown, status = 200): Response {
+  return Response.json(value, { status, headers: corsHeaders() });
+}
+
 async function roomExists(env: Env, code: string): Promise<boolean> {
   const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
   const res = await stub.fetch('https://room/internal/exists');
@@ -39,29 +51,32 @@ async function uniqueCode(env: Env): Promise<string> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
     if (request.method === 'POST' && url.pathname === '/api/rooms') {
       let body: unknown;
       try {
         body = await request.json();
       } catch {
-        return Response.json({ error: 'malformed' }, { status: 400 });
+        return jsonWithCors({ error: 'malformed' }, 400);
       }
       const rec = body as Record<string, unknown>;
-      if (!validPlayerName(rec.name)) return Response.json({ error: 'bad-name' }, { status: 400 });
+      if (!validPlayerName(rec.name)) return jsonWithCors({ error: 'bad-name' }, 400);
       const created = createRoom(
         { now: () => Date.now(), rng: Math.random },
         rec.name,
         rec.config as GameConfig
       );
-      if ('error' in created) return Response.json({ error: created.error }, { status: 400 });
+      if ('error' in created) return jsonWithCors({ error: created.error }, 400);
       const code = await uniqueCode(env);
       const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
       const init = await stub.fetch('https://room/internal/init', {
         method: 'POST',
         body: JSON.stringify(created.row),
       });
-      if (!init.ok) return Response.json({ error: 'exists' }, { status: 409 });
-      return Response.json({ code, token: created.row.tokens.A, seat: 'A' });
+      if (!init.ok) return jsonWithCors({ error: 'exists' }, 409);
+      return jsonWithCors({ code, token: created.row.tokens.A, seat: 'A' });
     }
     const joinMatch = url.pathname.match(/^\/api\/rooms\/([A-Z2-9]{6})\/join$/);
     if (request.method === 'POST' && joinMatch?.[1] !== undefined) {
@@ -70,17 +85,17 @@ export default {
       try {
         body = await request.json();
       } catch {
-        return Response.json({ error: 'malformed' }, { status: 400 });
+        return jsonWithCors({ error: 'malformed' }, 400);
       }
       const rec = body as { name?: unknown };
-      if (!validPlayerName(rec.name)) return Response.json({ error: 'bad-name' }, { status: 400 });
+      if (!validPlayerName(rec.name)) return jsonWithCors({ error: 'bad-name' }, 400);
       const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
       const res = await stub.fetch('https://room/internal/join', {
         method: 'POST',
         body: JSON.stringify({ name: (rec.name as string).trim() }),
       });
       const out = (await res.json()) as Record<string, unknown>;
-      return Response.json(out, { status: res.status });
+      return jsonWithCors(out, res.status);
     }
     const wsMatch = url.pathname.match(/^\/api\/rooms\/([A-Z2-9]{6})\/ws$/);
     if (wsMatch?.[1] !== undefined) {

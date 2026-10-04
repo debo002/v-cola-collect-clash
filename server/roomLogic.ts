@@ -9,7 +9,7 @@ import {
 } from '../src/game/matchEngine';
 import { dealMatchHands } from '../src/game/dealing';
 import { buildPlayerView } from '../src/game/view';
-import { newRoomCode, newToken, parseIntent, validPlayerName } from './protocol';
+import { newRoomCode, newToken, parseIntent, validPlayerName, type ServerMsg } from './protocol';
 import type { PlayerView } from '../src/game/controller';
 
 /**
@@ -95,6 +95,29 @@ export interface IntentOutcome {
   row: RoomRow;
   views: Record<Player, PlayerView>;
   events: readonly RoomEvent[];
+}
+
+export type SeatPresence = Readonly<Record<Player, boolean>>;
+
+/**
+ * The exact `view` envelope the DO sends (unit-testable without sockets).
+ * opponentConnected comes from live socket tags; readyDeadlineMs mirrors the
+ * room's ready auto-advance deadline (view.deadlineMs stays null in reveal).
+ */
+export function viewEnvelope(
+  room: RoomState,
+  seat: Player,
+  present: SeatPresence,
+  now: number
+): Extract<ServerMsg, { type: 'view' }> {
+  const foe: Player = seat === 'A' ? 'B' : 'A';
+  return {
+    type: 'view',
+    view: buildPlayerView(room, seat),
+    serverNowMs: now,
+    opponentConnected: present[foe],
+    readyDeadlineMs: room.readyMs,
+  };
 }
 
 export function applyClientIntent(

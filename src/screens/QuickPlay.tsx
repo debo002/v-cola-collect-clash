@@ -47,12 +47,14 @@ export function QuickPlay({
   onPlayersChange,
   onMatchActiveChange,
   onOpenDeck,
+  onPlayOnline,
 }: {
   collection: Collection;
   players: Players;
   onPlayersChange: (players: Players) => void;
   onMatchActiveChange?: (active: boolean) => void;
   onOpenDeck: () => void;
+  onPlayOnline?: () => void;
 }) {
   const { t } = useI18n();
   const controllerRef = useRef<LocalController | null>(null);
@@ -149,6 +151,7 @@ export function QuickPlay({
             onPlay={startQuickPlay}
             onOpenDeck={onOpenDeck}
             onCustomGame={() => setStage('customSetup')}
+            onPlayOnline={onPlayOnline}
           />
         )}
         {notice ? (

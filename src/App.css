@@ -2934,3 +2934,89 @@
     animation: none;
   }
 }
+
+/* Online rejoin banner + online lobby (landscape-thin, token-driven) */
+.rejoin-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--ink-2);
+  border-bottom: 2px solid var(--gold);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.rejoin-banner .btn {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.online-lobby,
+.online-waiting,
+.online-ended {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100%;
+  padding: 16px;
+  color: #fff;
+}
+.online-lobby h2 {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 28px;
+  margin: 0;
+}
+.online-lobby label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.online-lobby input {
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--ink);
+  text-transform: uppercase;
+}
+.online-lobby label:first-of-type input {
+  text-transform: none;
+}
+.online-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.online-room-code {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 44px;
+  letter-spacing: 6px;
+  margin: 0;
+}
+.online-actions,
+.online-join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.face-down .card-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+  border-radius: var(--r-card);
+  background: var(--v-red-deep);
+  color: #fff;
+  font-weight: 800;
+}
