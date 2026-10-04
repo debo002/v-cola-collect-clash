@@ -306,4 +306,27 @@ describe('online http', () => {
       seat: 'A',
     });
   });
+
+  it('join-after-preview: gone and full map to OnlineHttpError that onlineRoomGone covers', async () => {
+    // previewOnlineRoom: 404 → gone
+    const failing404 = vi.fn(async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 }));
+    vi.stubGlobal('fetch', failing404);
+    await expect(
+      (await import('./http')).previewOnlineRoom('http://x', 'ABCDEF')
+    ).rejects.toMatchObject({ failure: { kind: 'gone' } });
+
+    // joinOnlineRoom: 404 → gone (room disappeared between preview and join)
+    const failing404join = vi.fn(async () => new Response(JSON.stringify({ error: 'gone' }), { status: 404 }));
+    vi.stubGlobal('fetch', failing404join);
+    await expect(
+      (await import('./http')).joinOnlineRoom('http://x', 'ABCDEF', 'Bob')
+    ).rejects.toMatchObject({ failure: { kind: 'gone' } });
+
+    // joinOnlineRoom: 409 → full (room became full after the joiner previewed)
+    const failing409 = vi.fn(async () => new Response(JSON.stringify({ error: 'full' }), { status: 409 }));
+    vi.stubGlobal('fetch', failing409);
+    await expect(
+      (await import('./http')).joinOnlineRoom('http://x', 'ABCDEF', 'Bob')
+    ).rejects.toMatchObject({ failure: { kind: 'full' } });
+  });
 });

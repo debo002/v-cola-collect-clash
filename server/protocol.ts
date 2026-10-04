@@ -204,6 +204,12 @@ export function parseGameConfig(
     return { ok: false, error: 'config-invalid' };
   }
 
+  // Build fixedPower from the already-validated entries (every key passed isFlavorId
+  // and every value passed typeof v !== 'number'), so no cast is needed.
+  const fixedPower: Partial<Record<FlavorId, number>> = {};
+  for (const [k, v] of Object.entries(value.fixedPower)) {
+    if (isFlavorId(k) && typeof v === 'number') fixedPower[k] = v;
+  }
   const config: GameConfig = {
     mode: value.mode,
     deck,
@@ -211,7 +217,7 @@ export function parseGameConfig(
     drawPerRound: value.drawPerRound,
     maxPlacedPerRound: value.maxPlacedPerRound,
     power: value.power,
-    fixedPower: value.fixedPower as Readonly<Partial<Record<FlavorId, number>>>,
+    fixedPower,
     effectsEnabled: value.effectsEnabled,
   };
 

@@ -291,6 +291,39 @@ try {
   console.log(`frames captured: A=${framesA.length} B=${framesB.length}`);
   if (framesA.length === 0 || framesB.length === 0) throw new Error('no view frames captured');
 
+  // Redaction assertion: B's flavor IDs must not appear in A's placing-phase frames.
+  // Collect all flavors A could legitimately see in its own hand across all frames.
+  const aKnownFlavors = new Set();
+  for (const frame of framesA) {
+    for (const card of frame.view.hand ?? []) aKnownFlavors.add(card.flavor);
+    for (const board of frame.view.boards ?? []) {
+      if (board.kind !== 'current') continue;
+      for (const zone of Object.values(board.zones ?? {})) {
+        for (const card of zone.mine ?? []) aKnownFlavors.add(card.flavor);
+      }
+    }
+  }
+  // Collect all flavors that appeared in B's hand but never in A's known set.
+  const bOnlyFlavors = new Set();
+  for (const frame of framesB) {
+    for (const card of frame.view.hand ?? []) {
+      if (!aKnownFlavors.has(card.flavor)) bOnlyFlavors.add(card.flavor);
+    }
+  }
+  // Scan A's placing-phase frames for any B-exclusive flavor ID.
+  for (const frame of framesA) {
+    if (frame.view.phase !== 'placing') continue;
+    const text = JSON.stringify(frame);
+    for (const flavor of bOnlyFlavors) {
+      if (text.includes(`"flavor":"${flavor}"`)) {
+        failures.push(`Redaction: A's placing frame leaks B-only flavor "${flavor}"`);
+      }
+    }
+  }
+  console.log(
+    `[STEP] Redaction assertion: ${bOnlyFlavors.size} B-only flavor(s) checked across ${framesA.filter((f) => f.view.phase === 'placing').length} placing frame(s)`
+  );
+
   // ── RUN 2: Custom Game Run (draw-per-round, 2 draws per round) ──────────────
   console.log('--- Custom Game run (draw-per-round, 2 draws per round) ---');
   const ctxA_c = await browser.newContext({ viewport });

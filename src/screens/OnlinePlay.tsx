@@ -250,7 +250,13 @@ export function OnlinePlay({
       attach(controller, roomCode);
       setStage('waiting');
     } catch (error) {
-      setNotice(errorMessage(error));
+      // Room disappeared between preview and join: give a clear, specific message.
+      if (error instanceof OnlineHttpError) {
+        const k = error.failure.kind;
+        setNotice(k === 'gone' || k === 'full' ? t.onlineRoomGone : errorMessage(error));
+      } else {
+        setNotice(errorMessage(error));
+      }
       setStage('lobby');
     } finally {
       setBusy('idle');

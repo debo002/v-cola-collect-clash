@@ -710,4 +710,90 @@ describe('roomServer', () => {
     expect(finalA.results).not.toBeNull();
     expect(finalA.winner).not.toBeUndefined();
   });
+
+  it('deck pool too small (2 flavors) is rejected by validateGameConfig with cannot-finish', () => {
+    // 2 flavors is below the minimum 3; createRoom must reject before the engine runs.
+    const tinyConfig: GameConfig = {
+      mode: 'custom',
+      deck: { kind: 'custom', flavors: ['v-cola', 'v-diet-cola'] },
+      dealing: 'draw-per-round',
+      drawPerRound: 1,
+      maxPlacedPerRound: 1,
+      power: 'random',
+      fixedPower: {},
+      effectsEnabled: true,
+    };
+    const result = createRoom(deps(), 'Host', tinyConfig);
+    expect(result).toEqual({ error: 'cannot-finish' });
+  });
+
+  it('minimum valid pool (3 flavors, draw-per-round=1) runs to completion', () => {
+    // 3 flavors with 1 draw/round: each player draws 1 card per round for 3 rounds.
+    // Pool of 3 is exactly consumed; match must reach stage=complete.
+    const minConfig: GameConfig = {
+      mode: 'custom',
+      deck: { kind: 'custom', flavors: ['v-cola', 'v-diet-cola', 'cream-soda'] },
+      dealing: 'draw-per-round',
+      drawPerRound: 1,
+      maxPlacedPerRound: 1,
+      power: 'random',
+      fixedPower: {},
+      effectsEnabled: true,
+    };
+    const created = createRoom(deps(1_000_000, 5), 'Host', minConfig);
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(1_000_000, 5), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    let row = joined.row;
+    for (let r = 0; r < 3; r += 1) {
+      // Each player draws 1 card per round; new card arrives at index r
+      row = send(row, 'A', { type: 'draw' }, 5);
+      row = send(row, 'B', { type: 'draw' }, 5);
+      // Place the freshly drawn card (index r, since prior draws are already placed)
+      row = send(row, 'A', { type: 'place', handIndex: r, zone: 'cool' }, 5);
+      row = send(row, 'A', { type: 'lock' }, 5);
+      row = send(row, 'B', { type: 'place', handIndex: r, zone: 'cool' }, 5);
+      row = send(row, 'B', { type: 'lock' }, 5);
+      if (r < 2) {
+        row = send(row, 'A', { type: 'ready' }, 5);
+        row = send(row, 'B', { type: 'ready' }, 5);
+      }
+    }
+    expect(row.room.stage).toBe('complete');
+    const final = buildPlayerView(row.room, 'A');
+    expect(final.results).not.toBeNull();
+  });
+
+  it('effectsEnabled:false full match runs to completion without applying effects', () => {
+    const noFxConfig: GameConfig = {
+      ...config('reveal-all'),
+      effectsEnabled: false,
+    };
+    const created = createRoom(deps(1_000_000, 33), 'Host', noFxConfig);
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(1_000_000, 33), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    let row = joined.row;
+    expect(row.room.config.effectsEnabled).toBe(false);
+
+    // 3 rounds of placing 1 card each
+    for (let r = 0; r < 3; r += 1) {
+      row = send(row, 'A', { type: 'place', handIndex: r, zone: 'cool' }, 33);
+      row = send(row, 'A', { type: 'lock' }, 33);
+      row = send(row, 'B', { type: 'place', handIndex: r, zone: 'cool' }, 33);
+      row = send(row, 'B', { type: 'lock' }, 33);
+      if (r < 2) {
+        row = send(row, 'A', { type: 'ready' }, 33);
+        row = send(row, 'B', { type: 'ready' }, 33);
+      }
+    }
+    expect(row.room.stage).toBe('complete');
+    const final = buildPlayerView(row.room, 'A');
+    expect(final.results).not.toBeNull();
+    expect(final.winner).not.toBeUndefined();
+    // Config preserved with effects disabled
+    expect(final.config.effectsEnabled).toBe(false);
+  });
 });

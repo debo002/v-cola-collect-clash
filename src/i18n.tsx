@@ -179,6 +179,7 @@ export interface Translations {
   onlineLeave: string;
   onlineLeaveSure: string;
   onlineMatchEnded: string;
+  onlineRoomGone: string;
   onlineRejoin: string;
   onlineYouWinForfeit: string;
   onlineWaitingRematch: string;
@@ -428,6 +429,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineLeave: 'Leave',
     onlineLeaveSure: 'Leave this match?',
     onlineMatchEnded: 'That match has ended',
+    onlineRoomGone: 'That room is no longer available',
     onlineRejoin: 'Rejoin your match',
     onlineYouWinForfeit: 'Opponent left — you win!',
     onlineWaitingRematch: 'Waiting for opponent to rematch…',
@@ -657,6 +659,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineLeave: 'مغادرة',
     onlineLeaveSure: 'مغادرة هذه المباراة؟',
     onlineMatchEnded: 'انتهت هذه المباراة',
+    onlineRoomGone: 'لم تعد هذه الغرفة متاحة',
     onlineRejoin: 'العودة لمباراتك',
     onlineYouWinForfeit: 'غادر الخصم — فزت!',
     onlineWaitingRematch: 'بانتظار موافقة الخصم على مباراة جديدة…',
