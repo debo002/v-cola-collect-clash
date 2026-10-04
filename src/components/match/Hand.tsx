@@ -147,4 +147,4 @@ export const Hand = memo(function Hand({
       </div>
     </div>
   );
-})
+});

@@ -48,6 +48,7 @@ To test on physical devices (e.g. two phones on the same Wi-Fi):
 ## Production deployment (Cloudflare Workers)
 
 The application deploys as a single-origin service on Cloudflare Workers:
+
 - **Frontend SPA**: Static assets in `./dist` served directly with SPA routing fallback.
 - **Backend API & WebSockets**: Worker + SQLite Durable Objects handling room creation, preview, join, and hibernatable WebSockets.
 
@@ -66,6 +67,7 @@ The application deploys as a single-origin service on Cloudflare Workers:
 ### Rollback
 
 To instantly revert to a previous deployment without rebuilding:
+
 ```sh
 npx wrangler rollback
 ```
@@ -73,6 +75,7 @@ npx wrangler rollback
 ### Cloudflare Free-Plan Safety Audit
 
 This project is specifically architected to stay comfortably within the Cloudflare Workers Free Tier:
+
 - **Static Assets bypass Worker compute**: Configured with `run_worker_first: ["/api/*", "/rooms/*"]`, meaning all HTML, CSS, JS, font, and image requests are served directly by Cloudflare's global CDN cache without invoking the Worker. These requests consume 0ms of Worker CPU and do not count against the 100,000 requests/day Worker limit.
 - **Worker CPU usage**: API endpoints (`/api/rooms`, `/rooms/:code`, `/api/rooms/:code/join`) execute lightweight in-memory and SQLite checks taking < 1ms, far below the free tier's 10ms CPU limit per invocation.
 - **WebSocket Hibernation**: Connected player WebSockets use the Cloudflare Hibernatable WebSocket API in Durable Objects, meaning idle sockets waiting for player turns do not consume CPU time or wall-clock billing.

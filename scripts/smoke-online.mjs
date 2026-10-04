@@ -182,10 +182,7 @@ async function probeHiddenInfo(actorPage, actorCtx, victimFrames, victimTag, pla
   for (let k = 0; k < placements.length; k++) {
     logStep(actorCtx, 'click .recallable(first)', `probe recall ${k}`);
     try {
-      await actorPage
-        .locator('.recallable')
-        .first()
-        .click({ timeout: ACTION_TIMEOUT });
+      await actorPage.locator('.recallable').first().click({ timeout: ACTION_TIMEOUT });
     } catch (err) {
       await saveFail(actorCtx, `probe recall ${k}`, actorPage, victimFrames);
       throw err;

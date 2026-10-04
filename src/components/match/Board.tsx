@@ -110,8 +110,7 @@ export function Board({
 
   const allUsed = useMemo(() => allUsedIndicesFromView(view), [view]);
   const visibleCards = useMemo(
-    () =>
-      hand.map((card, index) => ({ card, index })).filter(({ index }) => !allUsed.has(index)),
+    () => hand.map((card, index) => ({ card, index })).filter(({ index }) => !allUsed.has(index)),
     [hand, allUsed]
   );
 
@@ -192,39 +191,42 @@ export function Board({
     });
   }, []);
 
-  const onWindowPointerUp = useCallback((e: PointerEvent) => {
-    const state = pointerState.current;
-    if (!state || e.pointerId !== state.pointerId) return;
-    detachRef.current();
-    cancelDragFrame();
-    pointerState.current = null;
-    const L = live.current;
-    if (state.isDragging) {
-      const targetZone = zoneFromPoint(e.clientX, e.clientY);
-      if (targetZone) {
-        // Third-card guard mirrors tap: shake + toast instead of placing.
-        const alreadyPlaced = placedMapFromView(L.view);
-        if (
-          !alreadyPlaced.has(state.handIndex) &&
-          alreadyPlaced.size >= (L.view.config.maxPlacedPerRound ?? MAX_PLACE)
-        ) {
-          L.onTooMany();
-        } else {
-          L.onPlace(state.handIndex, targetZone);
-          setSelected(null);
+  const onWindowPointerUp = useCallback(
+    (e: PointerEvent) => {
+      const state = pointerState.current;
+      if (!state || e.pointerId !== state.pointerId) return;
+      detachRef.current();
+      cancelDragFrame();
+      pointerState.current = null;
+      const L = live.current;
+      if (state.isDragging) {
+        const targetZone = zoneFromPoint(e.clientX, e.clientY);
+        if (targetZone) {
+          // Third-card guard mirrors tap: shake + toast instead of placing.
+          const alreadyPlaced = placedMapFromView(L.view);
+          if (
+            !alreadyPlaced.has(state.handIndex) &&
+            alreadyPlaced.size >= (L.view.config.maxPlacedPerRound ?? MAX_PLACE)
+          ) {
+            L.onTooMany();
+          } else {
+            L.onPlace(state.handIndex, targetZone);
+            setSelected(null);
+          }
         }
+        setDrag(null);
+        setHoverZone(null);
+      } else if (
+        !state.longPressed &&
+        !L.isRevealing &&
+        !(L.drawPileCount !== undefined && L.drawsRemaining > 0)
+      ) {
+        const i = state.handIndex;
+        setSelected((prev) => (prev === i ? null : i));
       }
-      setDrag(null);
-      setHoverZone(null);
-    } else if (
-      !state.longPressed &&
-      !L.isRevealing &&
-      !(L.drawPileCount !== undefined && L.drawsRemaining > 0)
-    ) {
-      const i = state.handIndex;
-      setSelected((prev) => (prev === i ? null : i));
-    }
-  }, [cancelDragFrame]);
+    },
+    [cancelDragFrame]
+  );
 
   const onWindowPointerCancel = useCallback(
     (e: PointerEvent) => {
