@@ -71,8 +71,10 @@ function watch(page, tag, frames) {
       for (const board of msg.view.boards ?? []) {
         if (board.kind !== 'current') continue;
         for (const [id, zone] of Object.entries(board.zones ?? {})) {
-          if (!('foeCount' in zone) || 'foe' in zone) {
-            failures.push(`${tag} redaction: zone ${id} leaks foe cards`);
+          // Hidden-info rule: current boards carry NOTHING about the
+          // opponent — no cards, no backs, no counts. Only `mine` may exist.
+          if ('foeCount' in zone || 'foe' in zone) {
+            failures.push(`${tag} hidden-info leak: zone ${id} exposes opponent data`);
           }
         }
       }
@@ -135,6 +137,76 @@ async function playTurn(page, ctx, tag, cards, zone = 'cool') {
     );
   }
   await clickWithLog(page, '.lock-btn', ctx, 'lock');
+}
+
+/** Current-round data of the victim's latest frame, for leak comparison. */
+function victimCurrentJson(frames) {
+  const placing = [...frames].reverse().find((f) => f.view.phase === 'placing');
+  if (!placing) return null;
+  const current = (placing.view.boards ?? []).filter((b) => b.kind === 'current');
+  return JSON.stringify({
+    boards: current,
+    locks: placing.view.locks,
+    opponentHandCount: placing.view.opponentHandCount,
+    drawsRemaining: placing.view.drawsRemaining,
+    drawPileCount: placing.view.drawPileCount ?? null,
+    deadlineMs: placing.view.deadlineMs,
+  });
+}
+
+async function settle(page, ms = 800) {
+  await page.waitForTimeout(ms);
+}
+
+/**
+ * Hidden-info probe: the actor places (and recalls) cards while the victim
+ * watches. The victim's received frames must carry NO change in
+ * current-round data (the server only sends a view frame when that seat's
+ * serialized view changed).
+ */
+async function probeHiddenInfo(actorPage, actorCtx, victimFrames, victimTag, placements) {
+  const before = victimFrames.length;
+  const beforeJson = victimCurrentJson(victimFrames);
+  for (const [card, zone] of placements) {
+    void card;
+    await clickWithLog(actorPage, '.fan-card:first-child', actorCtx, 'probe tap card');
+    await clickWithLog(actorPage, `[data-zone="${zone}"]`, actorCtx, `probe tap zone ${zone}`);
+  }
+  await settle(actorPage);
+  if (victimFrames.length !== before) {
+    throw new Error(
+      `${victimTag} received ${victimFrames.length - before} frame(s) while opponent placed cards`
+    );
+  }
+  // Recall everything the probe placed, then verify silence again.
+  for (let k = 0; k < placements.length; k++) {
+    logStep(actorCtx, 'click .recallable(first)', `probe recall ${k}`);
+    try {
+      await actorPage
+        .locator('.recallable')
+        .first()
+        .click({ timeout: ACTION_TIMEOUT });
+    } catch (err) {
+      await saveFail(actorCtx, `probe recall ${k}`, actorPage, victimFrames);
+      throw err;
+    }
+  }
+  await actorPage.waitForFunction(
+    () => !document.querySelector('.lock-btn')?.textContent?.includes('/'),
+    null,
+    { timeout: ACTION_TIMEOUT }
+  );
+  await settle(actorPage);
+  if (victimFrames.length !== before) {
+    throw new Error(`${victimTag} received frames while opponent recalled cards`);
+  }
+  const afterJson = victimCurrentJson(victimFrames);
+  if (beforeJson !== afterJson) {
+    throw new Error(`${victimTag} current-round data changed while opponent acted`);
+  }
+  console.log(
+    `[STEP] hidden-info probe passed (${placements.length} place + recall, no victim delta)`
+  );
 }
 
 function assertPortFree(port) {
@@ -252,6 +324,10 @@ try {
   await waitWithLog(pageA, '.hand-fan', 'ctx1', 'wait hand A');
   console.log('both seated');
 
+  // Hidden-info probe (quick): A places 1 card, then recalls it. B's
+  // received frames must carry no change in current-round data.
+  await probeHiddenInfo(pageA, 'ctx1', framesB, 'B', [['x', 'cool']]);
+
   for (let r = 0; r < 3; r++) {
     await playTurn(pageA, 'ctx1', `A r${r + 1}`, 2);
     await playTurn(pageB, 'ctx2', `B r${r + 1}`, 1);
@@ -291,7 +367,9 @@ try {
   console.log(`frames captured: A=${framesA.length} B=${framesB.length}`);
   if (framesA.length === 0 || framesB.length === 0) throw new Error('no view frames captured');
 
-  // Redaction assertion: B's flavor IDs must not appear in A's placing-phase frames.
+  // Hidden-info assertion: B's flavor IDs must not appear in the CURRENT
+  // boards of A's placing-phase frames. (Revealed past rounds legitimately
+  // name B's cards; scanning whole frames would false-positive there.)
   // Collect all flavors A could legitimately see in its own hand across all frames.
   const aKnownFlavors = new Set();
   for (const frame of framesA) {
@@ -310,18 +388,19 @@ try {
       if (!aKnownFlavors.has(card.flavor)) bOnlyFlavors.add(card.flavor);
     }
   }
-  // Scan A's placing-phase frames for any B-exclusive flavor ID.
+  // Scan only the current boards of A's placing-phase frames.
   for (const frame of framesA) {
     if (frame.view.phase !== 'placing') continue;
-    const text = JSON.stringify(frame);
+    const current = (frame.view.boards ?? []).filter((b) => b.kind === 'current');
+    const text = JSON.stringify(current);
     for (const flavor of bOnlyFlavors) {
       if (text.includes(`"flavor":"${flavor}"`)) {
-        failures.push(`Redaction: A's placing frame leaks B-only flavor "${flavor}"`);
+        failures.push(`Hidden-info: A's current board leaks B-only flavor "${flavor}"`);
       }
     }
   }
   console.log(
-    `[STEP] Redaction assertion: ${bOnlyFlavors.size} B-only flavor(s) checked across ${framesA.filter((f) => f.view.phase === 'placing').length} placing frame(s)`
+    `[STEP] Hidden-info assertion: ${bOnlyFlavors.size} B-only flavor(s) checked across ${framesA.filter((f) => f.view.phase === 'placing').length} placing frame(s)`
   );
 
   // ── RUN 2: Custom Game Run (draw-per-round, 2 draws per round) ──────────────
@@ -350,6 +429,13 @@ try {
     'button:has-text("Draw per round")',
     'ctx1-custom',
     'select draw per round'
+  );
+  // 3 draws/round so round 1 can probe 3 placements in other zones.
+  await clickWithLog(
+    pageA_c,
+    'button[aria-label="Draw each round +"]',
+    'ctx1-custom',
+    'raise draws to 3'
   );
   await clickWithLog(
     pageA_c,
@@ -396,12 +482,16 @@ try {
   await waitWithLog(pageA_c, '.hand-fan', 'ctx1-custom', 'wait hand A');
   console.log('both seated in custom match');
 
-  // Draw helper:
-  async function performDraw(page, ctxTag) {
-    for (let d = 0; d < 2; d++) {
-      logStep(ctxTag, `draw ${d + 1}/2`);
+  // Draw helper (stops early when the pile is empty):
+  async function performDraw(page, ctxTag, count = 2) {
+    for (let d = 0; d < count; d++) {
+      logStep(ctxTag, `draw ${d + 1}/${count}`);
       const btn = page.locator('.draw-pile');
       await btn.waitFor({ state: 'visible', timeout: ACTION_TIMEOUT });
+      if (await btn.isDisabled()) {
+        logStep(ctxTag, 'draw pile empty, stop');
+        break;
+      }
       await btn.click({ timeout: ACTION_TIMEOUT });
       await page.waitForTimeout(800);
     }
@@ -409,9 +499,19 @@ try {
 
   // 3 rounds of custom match
   for (let r = 0; r < 3; r++) {
-    // Both draw 2 cards
-    await performDraw(pageA_c, 'ctx1-custom');
-    await performDraw(pageB_c, 'ctx2-custom');
+    // Both draw up to 3 cards
+    await performDraw(pageA_c, 'ctx1-custom', 3);
+    await performDraw(pageB_c, 'ctx2-custom', 3);
+
+    // Hidden-info probe (custom, round 1): A places 3 cards in other zones,
+    // then recalls them. B's frames must carry no change.
+    if (r === 0) {
+      await probeHiddenInfo(pageA_c, 'ctx1-custom', framesB_c, 'B-custom', [
+        ['x', 'party'],
+        ['x', 'energy'],
+        ['x', 'cool'],
+      ]);
+    }
 
     // Both place cards and lock
     await playTurn(pageA_c, 'ctx1-custom', `A-c r${r + 1}`, 2);

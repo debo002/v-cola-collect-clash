@@ -88,8 +88,11 @@ function send(row: RoomRow, seat: Player, intent: unknown, seed = 7): RoomRow {
 }
 
 describe('roomServer', () => {
-  it('create validates name and config; join fills seat B', () => {
-    expect(createRoom(deps(), '', config())).toEqual({ error: 'bad-name' });
+  it('create sanitizes names (fallback, never rejects); join fills seat B', () => {
+    // Empty/blank names fall back instead of erroring.
+    const empty = createRoom(deps(), '   ', config());
+    if ('error' in empty) throw new Error(empty.error);
+    expect(empty.row.names.A).toBe('Player A');
     expect(createRoom(deps(), 'Host', { ...config(), maxPlacedPerRound: 99 })).toEqual({
       error: 'placed-invalid',
     });
@@ -98,7 +101,9 @@ describe('roomServer', () => {
     expect(created.code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
     expect(created.row.tokens.A).toMatch(/^[0-9a-f]{32}$/);
     expect(created.row.tokens.B).toBeNull();
-    expect(joinRoom(created.row, deps(), '')).toEqual({ error: 'bad-name' });
+    const blankGuest = joinRoom(created.row, deps(), '  \n ');
+    if ('error' in blankGuest) throw new Error(blankGuest.error);
+    expect(blankGuest.row.names.B).toBe('Player B');
     const joined = joinRoom(created.row, deps(), 'Guest');
     if ('error' in joined) throw new Error(joined.error);
     expect(joinRoom(joined.row, deps(), 'Third')).toEqual({ error: 'full' });
@@ -795,5 +800,316 @@ describe('roomServer', () => {
     expect(final.winner).not.toBeUndefined();
     // Config preserved with effects disabled
     expect(final.config.effectsEnabled).toBe(false);
+  });
+
+  it('hidden info: opponent count/zones/recall invisible pre-reveal (both seats, both rounds)', () => {
+    const hiddenConfig: GameConfig = { ...config(), maxPlacedPerRound: 3 };
+    const mk = (): RoomRow => {
+      const created = createRoom(deps(1_000_000, 7), 'Host', hiddenConfig);
+      if ('error' in created) throw new Error(created.error);
+      const joined = joinRoom(created.row, deps(1_000_000, 7), 'Guest');
+      if ('error' in joined) throw new Error(joined.error);
+      return joined.row;
+    };
+    type Run = (row: RoomRow, seat: Player, base: number) => RoomRow;
+    const variants: Array<[string, Run, number]> = [
+      ['none', (r) => r, 0],
+      ['one', (r, seat, b) => send(r, seat, { type: 'place', handIndex: b, zone: 'cool' }), 1],
+      [
+        'three',
+        (r, seat, b) => {
+          let next = send(r, seat, { type: 'place', handIndex: b, zone: 'party' });
+          next = send(next, seat, { type: 'place', handIndex: b + 1, zone: 'energy' });
+          return send(next, seat, { type: 'place', handIndex: b + 2, zone: 'party' });
+        },
+        3,
+      ],
+      [
+        'recall',
+        (r, seat, b) => {
+          let next = send(r, seat, { type: 'place', handIndex: b, zone: 'energy' });
+          next = send(next, seat, { type: 'place', handIndex: b + 1, zone: 'party' });
+          next = send(next, seat, { type: 'unplace', handIndex: b });
+          return send(next, seat, { type: 'unplace', handIndex: b + 1 });
+        },
+        0,
+      ],
+    ];
+    for (const viewer of ['A', 'B'] as const) {
+      const opponent: Player = viewer === 'A' ? 'B' : 'A';
+      for (const round of [1, 2] as const) {
+        const own = round === 1 ? 0 : 1;
+        const base = round === 1 ? 0 : 1;
+        const snapshots = variants.map(([name, run]) => {
+          let row = mk();
+          if (round === 2) {
+            row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' });
+            row = send(row, 'A', { type: 'lock' });
+            row = send(row, 'B', { type: 'place', handIndex: 0, zone: 'cool' });
+            row = send(row, 'B', { type: 'lock' });
+            row = send(row, 'A', { type: 'ready' });
+            row = send(row, 'B', { type: 'ready' });
+          }
+          row = send(row, viewer, { type: 'place', handIndex: own, zone: 'cool' });
+          row = run(row, opponent, base);
+          return { name, json: JSON.stringify(buildPlayerView(row.room, viewer)) };
+        });
+        const first = snapshots[0]?.json ?? '';
+        for (const { name, json } of snapshots) {
+          expect(json, `${viewer} round ${round} variant ${name}`).toBe(first);
+        }
+        for (const { name, json } of snapshots) {
+          const parsed = JSON.parse(json) as ReturnType<typeof buildPlayerView>;
+          const ref = JSON.parse(first) as ReturnType<typeof buildPlayerView>;
+          expect(parsed.opponentHandCount, name).toBe(ref.opponentHandCount);
+          expect(parsed.drawsRemaining, name).toBe(ref.drawsRemaining);
+          expect(parsed.drawPileCount, name).toBe(ref.drawPileCount);
+          expect(parsed.deadlineMs, name).toBe(ref.deadlineMs);
+          expect(parsed.locks, name).toEqual(ref.locks);
+          for (const board of parsed.boards) {
+            if (board.kind !== 'current') continue;
+            for (const zone of Object.values(board.zones)) {
+              expect(zone, name).not.toHaveProperty('foe');
+              expect(zone, name).not.toHaveProperty('foeCount');
+              expect(Object.keys(zone).sort(), name).toEqual(['mine']);
+            }
+          }
+        }
+        if (round === 2) {
+          const past = JSON.parse(first) as ReturnType<typeof buildPlayerView>;
+          const revealed = past.boards[0];
+          expect(revealed?.kind).toBe('revealed');
+          if (revealed?.kind === 'revealed') {
+            expect(revealed.zones['cool']?.foe.length).toBe(1);
+          }
+        }
+        // Reveal: the opponent's cards ARE present with the variant's count.
+        variants.forEach(([vname, run, expected]) => {
+          if (expected === 0) return;
+          let row = mk();
+          if (round === 2) {
+            row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' });
+            row = send(row, 'A', { type: 'lock' });
+            row = send(row, 'B', { type: 'place', handIndex: 0, zone: 'cool' });
+            row = send(row, 'B', { type: 'lock' });
+            row = send(row, 'A', { type: 'ready' });
+            row = send(row, 'B', { type: 'ready' });
+          }
+          row = send(row, viewer, { type: 'place', handIndex: own, zone: 'cool' });
+          row = send(row, viewer, { type: 'lock' });
+          row = run(row, opponent, base);
+          row = send(row, opponent, { type: 'lock' });
+          expect(row.room.stage).toBe('roundReveal');
+          const view = buildPlayerView(row.room, viewer);
+          const board = view.boards[round - 1];
+          expect(board?.kind).toBe('revealed');
+          if (board?.kind === 'revealed') {
+            let foeCards = 0;
+            for (const zone of Object.values(board.zones)) foeCards += zone.foe.length;
+            expect(foeCards, `variant ${vname}`).toBe(expected);
+          }
+        });
+      }
+    }
+  });
+
+  it('hidden info: draw-per-round draws leave no per-opponent trace in the view', () => {
+    const drawConfig: GameConfig = {
+      ...config('draw-per-round'),
+      maxPlacedPerRound: 2,
+    };
+    const mk = (): RoomRow => {
+      const created = createRoom(deps(1_000_000, 9), 'Host', drawConfig);
+      if ('error' in created) throw new Error(created.error);
+      const joined = joinRoom(created.row, deps(1_000_000, 9), 'Guest');
+      if ('error' in joined) throw new Error(joined.error);
+      return joined.row;
+    };
+    // Same draws both sides; B then varies 0 / 1 / place-then-recall.
+    const runs: Array<[string, (row: RoomRow) => RoomRow]> = [
+      ['none', (r) => r],
+      ['one', (r) => send(r, 'B', { type: 'place', handIndex: 0, zone: 'cool' }, 9)],
+      [
+        'recall',
+        (r) =>
+          send(
+            send(r, 'B', { type: 'place', handIndex: 0, zone: 'energy' }, 9),
+            'B',
+            { type: 'unplace', handIndex: 0 },
+            9
+          ),
+      ],
+    ];
+    const snapshots = runs.map(([name, run]) => {
+      let row = mk();
+      row = send(row, 'A', { type: 'draw' }, 9);
+      row = send(row, 'A', { type: 'draw' }, 9);
+      row = send(row, 'B', { type: 'draw' }, 9);
+      row = send(row, 'B', { type: 'draw' }, 9);
+      row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' }, 9);
+      row = run(row);
+      return { name, json: JSON.stringify(buildPlayerView(row.room, 'A')) };
+    });
+    const first = snapshots[0]?.json ?? '';
+    for (const { name, json } of snapshots) {
+      expect(json, `draw variant ${name}`).toBe(first);
+    }
+    const ref = JSON.parse(first) as ReturnType<typeof buildPlayerView>;
+    expect(typeof ref.opponentHandCount).toBe('number');
+    expect(typeof ref.drawsRemaining).toBe('number');
+    expect(typeof ref.drawPileCount).toBe('number');
+    expect(ref.deadlineMs).not.toBeNull();
+  });
+
+  it('view envelope carries sanitized names for both seats', async () => {
+    const { viewEnvelope } = await import('../../server/roomLogic');
+    const { sanitizePlayerName } = await import('../../server/protocol');
+    // Sanitization matrix (amendment 3).
+    expect(sanitizePlayerName('  Alice  ', 'Player A')).toBe('Alice');
+    expect(sanitizePlayerName('', 'Player A')).toBe('Player A');
+    expect(sanitizePlayerName('   ', 'Player B')).toBe('Player B');
+    expect(sanitizePlayerName('a\nb\rc\td', 'Player A')).toBe('abcd');
+    expect(sanitizePlayerName('x\u200By\u200Fz\uFEFFend', 'Player A')).toBe('xyzend');
+    expect(sanitizePlayerName('Evil\u202Eolleh', 'Player A')).toBe('Evilolleh');
+    expect(sanitizePlayerName('a'.repeat(25), 'Player A')).toBe('a'.repeat(20));
+    // Emoji counts as one code point: 19 chars + emoji fits, 20 chars + emoji cuts.
+    expect(Array.from(sanitizePlayerName(`${'a'.repeat(19)}🎉`, 'P')).length).toBe(20);
+    expect(sanitizePlayerName(`${'a'.repeat(20)}🎉`, 'P')).toBe('a'.repeat(20));
+    // Arabic letters pass through intact.
+    expect(sanitizePlayerName('  عبدالله  ', 'Player A')).toBe('عبدالله');
+    expect(sanitizePlayerName(123, 'Player B')).toBe('Player B');
+    // Both seats get both names.
+    const created = createRoom(deps(), '  Alice\n ', config());
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(), 'Bob\u202E');
+    if ('error' in joined) throw new Error(joined.error);
+    expect(joined.row.names).toEqual({ A: 'Alice', B: 'Bob' });
+    const envA = viewEnvelope(
+      joined.row.room,
+      'A',
+      { A: true, B: true },
+      1_000_000,
+      joined.row.names
+    );
+    expect(envA.names).toEqual({ me: 'Alice', opponent: 'Bob' });
+    const envB = viewEnvelope(
+      joined.row.room,
+      'B',
+      { A: true, B: true },
+      1_000_000,
+      joined.row.names
+    );
+    expect(envB.names).toEqual({ me: 'Bob', opponent: 'Alice' });
+    // Reload/resume: a fresh envelope from persisted state keeps the names.
+    const reloaded = JSON.parse(JSON.stringify(joined.row)) as RoomRow;
+    const again = viewEnvelope(
+      reloaded.room,
+      'A',
+      { A: true, B: false },
+      1_000_001,
+      reloaded.names
+    );
+    expect(again.names).toEqual({ me: 'Alice', opponent: 'Bob' });
+    // Pre-join (B null) falls back.
+    const pre = viewEnvelope(
+      created.row.room,
+      'A',
+      { A: true, B: false },
+      1_000_000,
+      created.row.names
+    );
+    expect(pre.names).toEqual({ me: 'Alice', opponent: 'Player B' });
+  });
+
+  it('ready flags ride the view per seat and survive reload while waiting', () => {
+    let row = startRow();
+    row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' });
+    row = send(row, 'A', { type: 'lock' });
+    // Locked-waiting: A latched, B still placing.
+    expect(buildPlayerView(row.room, 'A').locks).toEqual({ A: true, B: false });
+    expect(buildPlayerView(row.room, 'B').locks).toEqual({ A: true, B: false });
+    row = send(row, 'B', { type: 'place', handIndex: 0, zone: 'cool' });
+    row = send(row, 'B', { type: 'lock' });
+    expect(row.room.stage).toBe('roundReveal');
+    // Locked-waiting state: A locked while B pending; reveal resets locks.
+    expect(buildPlayerView(row.room, 'A').ready).toEqual({ me: false, opponent: false });
+    // Ready-waiting: A ready, B pending — mirrored per seat.
+    row = send(row, 'A', { type: 'ready' });
+    expect(row.room.stage).toBe('roundReveal');
+    expect(buildPlayerView(row.room, 'A').ready).toEqual({ me: true, opponent: false });
+    expect(buildPlayerView(row.room, 'B').ready).toEqual({ me: false, opponent: true });
+    // Reload while waiting: a fresh view from persisted state keeps the flags.
+    const reloaded = JSON.parse(JSON.stringify(row)) as RoomRow;
+    expect(buildPlayerView(reloaded.room, 'A').ready).toEqual({ me: true, opponent: false });
+    expect(buildPlayerView(reloaded.room, 'B').ready).toEqual({ me: false, opponent: true });
+    row = send(row, 'B', { type: 'ready' });
+    expect(row.room.stage).toBe('placing');
+  });
+
+  it('empty hand auto-locks; both empty reveals immediately (small + large maxPlaced)', () => {
+    const tiny: GameConfig = {
+      mode: 'custom',
+      deck: { kind: 'custom', flavors: ['v-cola', 'v-diet-cola', 'cream-soda'] },
+      dealing: 'reveal-all',
+      drawPerRound: 1,
+      maxPlacedPerRound: 3,
+      power: 'fixed',
+      fixedPower: { 'v-cola': 4, 'v-diet-cola': 4, 'cream-soda': 5 },
+      effectsEnabled: true,
+    };
+    const mkTiny = (): RoomRow => {
+      const created = createRoom(deps(1_000_000, 7), 'Host', tiny);
+      if ('error' in created) throw new Error(created.error);
+      const joined = joinRoom(created.row, deps(1_000_000, 7), 'Guest');
+      if ('error' in joined) throw new Error(joined.error);
+      return joined.row;
+    };
+    // Round 1 spends everything (3 of 3 each).
+    let row = mkTiny();
+    for (const seat of ['A', 'B'] as const) {
+      row = send(row, seat, { type: 'place', handIndex: 0, zone: 'cool' });
+      row = send(row, seat, { type: 'place', handIndex: 1, zone: 'party' });
+      row = send(row, seat, { type: 'place', handIndex: 2, zone: 'energy' });
+      row = send(row, seat, { type: 'lock' });
+    }
+    expect(row.room.stage).toBe('roundReveal');
+    // Advancing with both hands empty auto-locks both and reveals round 2
+    // with ZERO place/lock intents — no timer wait involved.
+    row = send(row, 'A', { type: 'ready' });
+    row = send(row, 'B', { type: 'ready' });
+    expect(row.room.match.round).toBe(3);
+    expect(row.room.stage).toBe('roundReveal');
+    expect(buildPlayerView(row.room, 'A').locks).toEqual({ A: false, B: false });
+    // Round 3 is empty too: both ready auto-completes the match.
+    row = send(row, 'A', { type: 'ready' });
+    row = send(row, 'B', { type: 'ready' });
+    expect(row.room.stage).toBe('complete');
+    expect(buildPlayerView(row.room, 'A').results).not.toBeNull();
+
+    // Large maxPlacedPerRound (6): one round also spends a full 6-card hand.
+    const big: GameConfig = { ...config(), maxPlacedPerRound: 6 };
+    const mkBig = (): RoomRow => {
+      const created = createRoom(deps(1_000_000, 7), 'Host', big);
+      if ('error' in created) throw new Error(created.error);
+      const joined = joinRoom(created.row, deps(1_000_000, 7), 'Guest');
+      if ('error' in joined) throw new Error(joined.error);
+      return joined.row;
+    };
+    let bigRow = mkBig();
+    for (const idx of [0, 1, 2, 3, 4, 5]) {
+      bigRow = send(bigRow, 'A', { type: 'place', handIndex: idx, zone: 'cool' });
+    }
+    bigRow = send(bigRow, 'A', { type: 'lock' });
+    bigRow = send(bigRow, 'B', { type: 'place', handIndex: 0, zone: 'cool' });
+    bigRow = send(bigRow, 'B', { type: 'lock' });
+    bigRow = send(bigRow, 'A', { type: 'ready' });
+    bigRow = send(bigRow, 'B', { type: 'ready' });
+    // A is empty in round 2 (auto-locked, no intent); B plays on normally.
+    expect(bigRow.room.stage).toBe('placing');
+    expect(bigRow.room.match.locks.A).toBe(true);
+    expect(bigRow.room.match.locks.B).toBe(false);
+    bigRow = send(bigRow, 'B', { type: 'place', handIndex: 1, zone: 'party' });
+    bigRow = send(bigRow, 'B', { type: 'lock' });
+    expect(bigRow.room.stage).toBe('roundReveal');
   });
 });

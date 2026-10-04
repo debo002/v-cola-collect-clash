@@ -75,6 +75,11 @@ export interface Translations {
   roundN: string;
   takeBack: string;
   oppWaiting: string;
+  oppPlacing: string;
+  oppLocked: string;
+  lockedWaiting: string;
+  waitingOpp: string;
+  noCardsWaiting: string;
   yourTurnHint: string;
   // Zones
   zoneCoolRule: string;
@@ -186,6 +191,7 @@ export interface Translations {
   onlineReadyIn: string;
   onlineJoining: string;
   onlineCreating: string;
+  onlineUpdateReload: string;
   onlineCreateQuick: string;
   onlineCreateCustom: string;
   onlineMatchSettings: string;
@@ -300,6 +306,11 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundN: 'Round {n} of 3',
     takeBack: 'Take back {name}',
     oppWaiting: 'waiting for their turn',
+    oppPlacing: 'Opponent: placing…',
+    oppLocked: 'Opponent locked',
+    lockedWaiting: 'Locked — waiting for opponent…',
+    waitingOpp: 'Waiting for opponent…',
+    noCardsWaiting: 'No cards left — waiting for opponent',
     yourTurnHint: 'place 1 or 2 cans',
     // Zones
     zoneCoolRule: 'Lowest Power +1',
@@ -436,6 +447,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineReadyIn: 'Next round in {n}s',
     onlineJoining: 'Joining…',
     onlineCreating: 'Creating…',
+    onlineUpdateReload: 'A new version is available — please reload to update',
     onlineCreateQuick: 'Create Quick Room',
     onlineCreateCustom: 'Custom Settings…',
     onlineMatchSettings: 'Match Settings',
@@ -531,6 +543,11 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundN: 'الجولة {n} من 3',
     takeBack: 'استرجاع {name}',
     oppWaiting: 'بانتظار دوره',
+    oppPlacing: 'الخصم: يضع الكروت…',
+    oppLocked: 'الخصم أكّد',
+    lockedWaiting: 'تم التأكيد — بانتظار الخصم…',
+    waitingOpp: 'بانتظار الخصم…',
+    noCardsWaiting: 'لا كروت متبقية — بانتظار الخصم',
     yourTurnHint: 'ضع كانًا أو كانين',
     // Zones
     zoneCoolRule: 'الأقل قوة +1',
@@ -666,6 +683,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineReadyIn: 'الجولة التالية بعد {n} ث',
     onlineJoining: 'جارٍ الانضمام…',
     onlineCreating: 'جارٍ الإنشاء…',
+    onlineUpdateReload: 'يتوفر إصدار جديد — يرجى تحديث الصفحة',
     onlineCreateQuick: 'إنشاء غرفة سريعة',
     onlineCreateCustom: 'إعدادات مخصصة…',
     onlineMatchSettings: 'إعدادات المباراة',

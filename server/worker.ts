@@ -1,5 +1,5 @@
 import { createRoom } from './roomLogic';
-import { cryptoRandom, newRoomCode, parseGameConfig, validPlayerName } from './protocol';
+import { cryptoRandom, newRoomCode, parseGameConfig, sanitizePlayerName } from './protocol';
 
 export { Room } from './room';
 
@@ -61,13 +61,15 @@ export default {
         return jsonWithCors({ error: 'malformed' }, 400);
       }
       const rec = body as Record<string, unknown>;
-      if (!validPlayerName(rec.name)) return jsonWithCors({ error: 'bad-name' }, 400);
+      // Names are sanitized with fallback (never rejected): trim, strip
+      // controls/bidi/zero-width, cap 20 code points.
+      const name = sanitizePlayerName(rec.name, 'Player A');
       const parsedConfig = parseGameConfig(rec.config);
       if ('error' in parsedConfig) {
         return jsonWithCors({ error: parsedConfig.error }, 400);
       }
       const { config } = parsedConfig;
-      const created = createRoom({ now: () => Date.now(), rng: Math.random }, rec.name, config);
+      const created = createRoom({ now: () => Date.now(), rng: Math.random }, name, config);
       if ('error' in created) return jsonWithCors({ error: created.error }, 400);
       const code = await uniqueCode(env);
       const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
@@ -99,11 +101,11 @@ export default {
         return jsonWithCors({ error: 'malformed' }, 400);
       }
       const rec = body as { name?: unknown };
-      if (!validPlayerName(rec.name)) return jsonWithCors({ error: 'bad-name' }, 400);
+      const name = sanitizePlayerName(rec.name, 'Player B');
       const stub = env.ROOM.get(env.ROOM.idFromName(`room-${code}`));
       const res = await stub.fetch('https://room/internal/join', {
         method: 'POST',
-        body: JSON.stringify({ name: (rec.name as string).trim() }),
+        body: JSON.stringify({ name }),
       });
       const out = (await res.json()) as Record<string, unknown>;
       return jsonWithCors(out, res.status);

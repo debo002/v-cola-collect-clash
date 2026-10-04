@@ -24,6 +24,8 @@ export type ServerMsg =
       readonly opponentConnected: boolean;
       /** Additive: round-reveal auto-advance deadline, null otherwise. */
       readonly readyDeadlineMs: number | null;
+      /** Additive: sanitized display names, relative to the viewing seat. */
+      readonly names: { readonly me: string; readonly opponent: string };
     }
   | { readonly type: 'rejected'; readonly reason: string }
   | { readonly type: 'closed'; readonly reason: string };
@@ -140,6 +142,27 @@ export function parseClientMessage(
 
 export function validPlayerName(name: unknown): name is string {
   return typeof name === 'string' && name.trim().length >= 1 && name.trim().length <= 24;
+}
+
+/** Display names are capped at 20 CODE POINTS (not UTF-16 units). */
+export const MAX_NAME_CODE_POINTS = 20;
+
+/**
+ * Sanitize a display name: strip control characters, newlines, zero-width
+ * and Unicode bidi controls (U+200B–U+200F, U+202A–U+202E, U+2066–U+2069,
+ * U+FEFF), trim, cap at 20 code points. Arabic letters pass through intact.
+ * Empty after sanitizing → fallback ("Player A" / "Player B").
+ */
+export function sanitizePlayerName(raw: unknown, fallback: string): string {
+  if (typeof raw !== 'string') return fallback;
+  const stripped = raw.replace(
+    // eslint-disable-next-line no-control-regex, no-misleading-character-class
+    /[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,
+    ''
+  );
+  const trimmed = stripped.trim();
+  if (trimmed.length === 0) return fallback;
+  return Array.from(trimmed).slice(0, MAX_NAME_CODE_POINTS).join('');
 }
 
 export function parseGameConfig(

@@ -19,6 +19,13 @@ export interface OnlineMeta {
   readonly opponentConnected: boolean;
   readonly readyDeadlineMs: number | null;
   readonly closeReason: string | null;
+  /** Sanitized display names from the server envelope (relative to my seat). */
+  readonly names: { readonly me: string; readonly opponent: string };
+  /**
+   * The server sent a view shape this client does not recognize (newer
+   * protocol): the UI should show "reload to update" instead of guessing.
+   */
+  readonly needsRefresh: boolean;
 }
 
 interface EnvelopeView {
@@ -26,6 +33,7 @@ interface EnvelopeView {
   readonly serverNowMs: number;
   readonly opponentConnected?: boolean;
   readonly readyDeadlineMs?: number | null;
+  readonly names?: { readonly me?: unknown; readonly opponent?: unknown };
 }
 
 /** Give up auto-retry after this long without a server frame. */
@@ -43,6 +51,22 @@ function defaultClock(): SocketClock & { now(): number } {
     clearTimeout: (id) => globalThis.clearTimeout(id),
     now: () => Date.now(),
   };
+}
+
+/**
+ * Minimal view-shape gate for client/server version skew. Only the fields
+ * the client renders are required; anything extra is ignored. Returns false
+ * for unrecognized shapes (caller latches needsRefresh).
+ */
+function isRecognizedView(view: PlayerView): boolean {
+  if (view === null || typeof view !== 'object') return false;
+  const v = view as unknown as Record<string, unknown>;
+  if (v['seat'] !== 'A' && v['seat'] !== 'B') return false;
+  if (typeof v['phase'] !== 'string' || typeof v['round'] !== 'number') return false;
+  if (!Array.isArray(v['boards']) || !Array.isArray(v['hand'])) return false;
+  const locks = v['locks'] as Record<string, unknown> | undefined;
+  if (typeof locks?.['A'] !== 'boolean' || typeof locks?.['B'] !== 'boolean') return false;
+  return true;
 }
 
 function matchStarted(view: PlayerView): boolean {
@@ -73,6 +97,8 @@ export class OnlineController implements GameController {
   private offsetMs = 0;
   private opponentConnected = false;
   private readyDeadlineMs: number | null = null;
+  private names: { me: string; opponent: string } = { me: '', opponent: '' };
+  private needsRefresh = false;
   private connection: OnlineConnection = 'connecting';
   private closeReason: string | null = null;
   private started = false;
@@ -160,6 +186,8 @@ export class OnlineController implements GameController {
       opponentConnected: this.opponentConnected,
       readyDeadlineMs: this.readyDeadlineMs,
       closeReason: this.closeReason,
+      names: { ...this.names },
+      needsRefresh: this.needsRefresh,
     };
   }
 
@@ -188,12 +216,25 @@ export class OnlineController implements GameController {
     }
     if (msg.type === 'view' && msg.view !== undefined) {
       const envelope = msg as EnvelopeView;
+      // Version skew: an old client may receive a newer view shape (or vice
+      // versa). Validate the load-bearing fields; unknown fields are
+      // ignored. An unrecognized shape latches needsRefresh ("reload to
+      // update") instead of rendering guesses.
+      if (!isRecognizedView(envelope.view)) {
+        this.needsRefresh = true;
+        this.emitMeta();
+        return;
+      }
       if (typeof envelope.serverNowMs === 'number') {
         this.offsetMs = envelope.serverNowMs - this.clock.now();
       }
       this.opponentConnected = envelope.opponentConnected === true;
       this.readyDeadlineMs =
         typeof envelope.readyDeadlineMs === 'number' ? envelope.readyDeadlineMs : null;
+      // Old servers omit names: keep the previous (or local fallback) names.
+      if (typeof envelope.names?.me === 'string' && typeof envelope.names?.opponent === 'string') {
+        this.names = { me: envelope.names.me, opponent: envelope.names.opponent };
+      }
       this.view = envelope.view;
       if (matchStarted(envelope.view)) this.started = true;
       this.firstFailureAt = null;
@@ -245,6 +286,10 @@ export class OnlineController implements GameController {
   private setConnection(connection: OnlineConnection): void {
     if (this.connection === connection) return;
     this.connection = connection;
+    this.emitMeta();
+  }
+
+  private emitMeta(): void {
     const meta = this.meta();
     for (const listener of this.connectionListeners) listener(meta);
   }

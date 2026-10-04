@@ -22,8 +22,6 @@ export interface RevealedZoneView {
 
 export interface CurrentZoneView {
   readonly mine: readonly VisiblePlacedCard[];
-  /** Opponent current-round placements: COUNT only, no card objects. */
-  readonly foeCount: number;
 }
 
 export interface RevealedBoardView {
@@ -41,8 +39,9 @@ export type BoardView = RevealedBoardView | CurrentBoardView;
 /**
  * The only match shape a game screen receives. Safe to serialize: the
  * opponent's hand is a count, and the opponent's current-round placements
- * are per-zone counts. Accessing flavor/power/loaner/handIndex on the
- * opponent's current round is a COMPILE error (no such field exists).
+ * are NOT included at all — not cards, not counts, not zones. Accessing
+ * anything about the opponent's current round is a COMPILE error (no such
+ * field exists). Opponent cards appear only on revealed boards.
  */
 export interface PlayerView {
   readonly seat: Player;
@@ -52,6 +51,11 @@ export interface PlayerView {
   readonly hand: readonly HandCard[];
   readonly boards: readonly BoardView[];
   readonly locks: Readonly<Record<Player, boolean>>;
+  /**
+   * Round-reveal confirmations, per viewer: additive, non-secret, survives
+   * reload/reconnect (drives "Waiting for opponent…" UI).
+   */
+  readonly ready: Readonly<{ me: boolean; opponent: boolean }>;
   readonly opponentHandCount: number;
   readonly deadlineMs: number | null;
   readonly drawPileCount?: number;

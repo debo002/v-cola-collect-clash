@@ -243,73 +243,162 @@ describe('LocalController', () => {
     expect(view.round).toBe(1);
   });
 
-  it('redaction: identical own state with different opponent secrets gives identical JSON', () => {
-    const phases: Array<'placing' | 'roundReveal' | 'complete'> = [
-      'placing',
-      'roundReveal',
-      'complete',
+  it('empty hand auto-locks locally and never dead-waits (both + one empty)', () => {
+    const tiny: GameConfig = {
+      mode: 'custom',
+      deck: { kind: 'custom', flavors: ['v-cola', 'v-diet-cola', 'cream-soda'] },
+      dealing: 'reveal-all',
+      drawPerRound: 1,
+      maxPlacedPerRound: 3,
+      power: 'fixed',
+      fixedPower: { 'v-cola': 4, 'v-diet-cola': 4, 'cream-soda': 5 },
+      effectsEnabled: true,
+    };
+    // Both empty: round 1 spends everything, later rounds auto-pass.
+    const { controller } = make();
+    controller.startCustomGame(tiny);
+    controller.setSeat('A');
+    expect(controller.isSeatEmpty('A')).toBe(false);
+    for (const idx of [0, 1, 2]) controller.send({ type: 'place', handIndex: idx, zone: 'cool' });
+    controller.send({ type: 'lock' });
+    controller.setSeat('B');
+    for (const idx of [0, 1, 2]) controller.send({ type: 'place', handIndex: idx, zone: 'cool' });
+    controller.send({ type: 'lock' });
+    expect(latest(controller).phase).toBe('roundReveal');
+    controller.nextRound();
+    // Round 2 auto-revealed with zero intents; round 3 showing as reveal.
+    expect(latest(controller).phase).toBe('roundReveal');
+    expect(latest(controller).round).toBe(3);
+    controller.nextRound();
+    expect(latest(controller).phase).toBe('complete');
+
+    // One empty (large maxPlaced 6 spends A's full hand in round 1).
+    const big = make().controller;
+    big.startCustomGame({ ...customConfig(), maxPlacedPerRound: 6 });
+    big.setSeat('A');
+    for (const idx of [0, 1, 2, 3, 4, 5]) big.send({ type: 'place', handIndex: idx, zone: 'cool' });
+    big.send({ type: 'lock' });
+    big.setSeat('B');
+    big.send({ type: 'place', handIndex: 0, zone: 'cool' });
+    big.send({ type: 'lock' });
+    expect(latest(big).phase).toBe('roundReveal');
+    big.nextRound();
+    expect(big.isSeatEmpty('A')).toBe(true);
+    expect(big.isSeatEmpty('B')).toBe(false);
+    expect(latest(big).locks.A).toBe(true);
+    big.setSeat('B');
+    big.send({ type: 'place', handIndex: 1, zone: 'party' });
+    big.send({ type: 'lock' });
+    expect(latest(big).phase).toBe('roundReveal');
+  });
+
+  it('hidden info: opponent count/zones/recall invisible pre-reveal, visible after', () => {
+    const cfg: GameConfig = { ...customConfig(), maxPlacedPerRound: 3 };
+    type Run = (c: LocalController, base: number) => void;
+    const variants: Array<[string, Run, number]> = [
+      ['none', () => {}, 0],
+      ['one', (c, b) => void c.send({ type: 'place', handIndex: b, zone: 'cool' }), 1],
+      [
+        'three',
+        (c, b) => {
+          c.send({ type: 'place', handIndex: b, zone: 'party' });
+          c.send({ type: 'place', handIndex: b + 1, zone: 'energy' });
+          c.send({ type: 'place', handIndex: b + 2, zone: 'party' });
+        },
+        3,
+      ],
+      [
+        'recall',
+        (c, b) => {
+          c.send({ type: 'place', handIndex: b, zone: 'energy' });
+          c.send({ type: 'place', handIndex: b + 1, zone: 'party' });
+          c.send({ type: 'unplace', handIndex: b });
+          c.send({ type: 'unplace', handIndex: b + 1 });
+        },
+        0,
+      ],
     ];
     for (const seat of ['A', 'B'] as const) {
-      for (const phase of phases) {
-        const first = make().controller;
-        const second = make().controller;
-        first.startCustomGame(customConfig());
-        second.startCustomGame(customConfig());
-        if (phase === 'placing') {
-          first.setSeat(seat);
-          second.setSeat(seat);
-          first.send({ type: 'place', handIndex: 0, zone: 'cool' });
-          second.send({ type: 'place', handIndex: 0, zone: 'cool' });
-          const foe: Player = seat === 'A' ? 'B' : 'A';
-          first.setSeat(foe);
-          second.setSeat(foe);
-          // Same count (1 in cool), different hidden card.
-          first.send({ type: 'place', handIndex: 0, zone: 'cool' });
-          second.send({ type: 'place', handIndex: 1, zone: 'cool' });
-          first.setSeat(seat);
-          second.setSeat(seat);
-        } else if (phase === 'roundReveal') {
-          lockBothForRound(first, 0);
-          lockBothForRound(second, 0);
-          first.setSeat(seat);
-          second.setSeat(seat);
-        } else {
-          for (let round = 0; round < 3; round += 1) {
-            lockBothForRound(first, round);
-            lockBothForRound(second, round);
-            if (round < 2) {
-              first.nextRound();
-              second.nextRound();
-            }
+      const foe: Player = seat === 'A' ? 'B' : 'A';
+      for (const round of [1, 2] as const) {
+        // Fresh hand indices per round (earlier rounds' cards stay spent).
+        const own = round === 1 ? 0 : 1;
+        const base = round === 1 ? 0 : 1;
+        const snapshots = variants.map(([name, run]) => {
+          const { controller } = make();
+          controller.startCustomGame(cfg);
+          if (round === 2) {
+            // Identical round 1 first, so round 2 also covers "later rounds".
+            lockBothForRound(controller, 0);
+            controller.nextRound();
           }
-          first.setSeat(seat);
-          second.setSeat(seat);
+          controller.setSeat(seat);
+          controller.send({ type: 'place', handIndex: own, zone: 'cool' });
+          controller.setSeat(foe);
+          run(controller, base);
+          controller.setSeat(seat);
+          return { name, json: JSON.stringify(latest(controller)) };
+        });
+        const first = snapshots[0]?.json ?? '';
+        for (const { name, json } of snapshots) {
+          expect(json, `${seat} round ${round} variant ${name}`).toBe(first);
         }
-        let viewA: PlayerView | null = null;
-        let viewB: PlayerView | null = null;
-        const offA = first.subscribe((v) => {
-          viewA = v;
-        });
-        const offB = second.subscribe((v) => {
-          viewB = v;
-        });
-        offA();
-        offB();
-        expect(viewA?.phase).toBe(phase === 'placing' ? 'placing' : phase);
-        expect(JSON.stringify(viewB)).toBe(JSON.stringify(viewA));
-        // Current-round opponent data is a count only.
-        const parsed = JSON.parse(JSON.stringify(viewA)) as PlayerView;
-        for (const board of parsed.boards) {
-          if (board.kind === 'current') {
-            for (const zoneId of Object.keys(board.zones)) {
-              const zone = board.zones[zoneId];
-              expect(zone).toHaveProperty('foeCount');
-              expect(zone).not.toHaveProperty('foe');
-              expect(typeof zone?.foeCount).toBe('number');
+        // Entire serialized view is identical: spot-check the fields that
+        // could plausibly move when the opponent acts.
+        for (const { name, json } of snapshots) {
+          const parsed = JSON.parse(json) as PlayerView;
+          const ref = JSON.parse(first) as PlayerView;
+          expect(parsed.opponentHandCount, name).toBe(ref.opponentHandCount);
+          expect(parsed.drawsRemaining, name).toBe(ref.drawsRemaining);
+          expect(parsed.drawPileCount, name).toBe(ref.drawPileCount);
+          expect(parsed.deadlineMs, name).toBe(ref.deadlineMs);
+          expect(parsed.locks, name).toEqual(ref.locks);
+          for (const board of parsed.boards) {
+            if (board.kind !== 'current') continue;
+            for (const zone of Object.values(board.zones)) {
+              expect(zone, name).not.toHaveProperty('foe');
+              expect(zone, name).not.toHaveProperty('foeCount');
+              expect(Object.keys(zone).sort(), name).toEqual(['mine']);
             }
           }
         }
-        expect(typeof parsed.opponentHandCount).toBe('number');
+        if (round === 2) {
+          // Past round stays visible: identical round 1 revealed both sides.
+          const past = JSON.parse(first) as PlayerView;
+          const revealed = past.boards[0];
+          expect(revealed?.kind).toBe('revealed');
+          if (revealed?.kind === 'revealed') {
+            expect(revealed.zones['cool']?.foe.length).toBe(1);
+          }
+        }
+        // Reveal: the opponent's cards ARE present, with the variant's count.
+        // (Empty variants cannot lock pre-item-4, so only placed variants
+        // reveal here; emptiness-visibility is covered by the placing check.)
+        variants.forEach(([vname, run, expected]) => {
+          if (expected === 0) return;
+          const { controller } = make();
+          controller.startCustomGame(cfg);
+          if (round === 2) {
+            lockBothForRound(controller, 0);
+            controller.nextRound();
+          }
+          controller.setSeat(seat);
+          controller.send({ type: 'place', handIndex: own, zone: 'cool' });
+          controller.send({ type: 'lock' });
+          controller.setSeat(foe);
+          run(controller, base);
+          controller.send({ type: 'lock' });
+          controller.setSeat(seat);
+          const view = latest(controller);
+          expect(view.phase).toBe('roundReveal');
+          const board = view.boards[round - 1];
+          expect(board?.kind).toBe('revealed');
+          if (board?.kind === 'revealed') {
+            let foeCards = 0;
+            for (const zone of Object.values(board.zones)) foeCards += zone.foe.length;
+            expect(foeCards, `variant ${vname}`).toBe(expected);
+          }
+        });
       }
     }
   });

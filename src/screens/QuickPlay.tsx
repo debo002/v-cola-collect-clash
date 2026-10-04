@@ -33,6 +33,7 @@ const emptyView: PlayerView = {
   hand: [],
   boards: [],
   locks: { A: false, B: false },
+  ready: { me: false, opponent: false },
   opponentHandCount: 0,
   deadlineMs: null,
   drawsRemaining: 0,
@@ -119,11 +120,20 @@ export function QuickPlay({
   }
   function beginSeat(seat: Player) {
     controller.setSeat(seat);
+    // Empty-hand auto-lock may have revealed already (both locked).
+    if (controller.phase() !== 'placing') return;
+    // Skip an empty seat's turn entirely: nothing to place, hand straight on.
+    if (seat === 'A' && controller.isSeatEmpty('A')) {
+      setStage('passB');
+      return;
+    }
     setStage('playing');
   }
   function lock() {
     controller.send({ type: 'lock' });
-    if (view.seat === 'A') setStage('passB');
+    // B auto-locked-empty (or a reveal already fired): no pass screen.
+    if (controller.phase() !== 'placing') return;
+    if (view.seat === 'A' && !controller.isSeatEmpty('B')) setStage('passB');
   }
   function draw() {
     setDrawnHandIndex(view.hand.length);
@@ -221,7 +231,9 @@ export function QuickPlay({
             onDraw={draw}
             onNextRound={() => {
               controller.nextRound();
-              setStage('passA');
+              // Both-empty rounds auto-reveal; the phase effect sets the stage.
+              if (controller.phase() !== 'placing') return;
+              setStage(controller.isSeatEmpty('A') ? 'passB' : 'passA');
             }}
             onRematch={() => {
               controller.send({ type: 'rematch' });

@@ -39,6 +39,14 @@ function attachmentOf(ws: WebSocket): Attachment | null {
 }
 
 export class Room extends DurableObject {
+  /**
+   * Last serialized view-frame per socket. A seat gets a new `view` frame
+   * only when its serialized view (or presence/ready extras) changed, so
+   * frame timing reveals nothing about the opponent's activity. serverNowMs
+   * is deliberately excluded from the comparison (it changes every send).
+   */
+  private readonly lastSent = new WeakMap<object, string>();
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname.endsWith('/internal/exists')) {
@@ -269,7 +277,15 @@ export class Room extends DurableObject {
       if (closedReason !== undefined) {
         this.send(ws, { type: 'closed', reason: closedReason });
       } else {
-        this.send(ws, viewEnvelope(row.room, att.seat, present, Date.now()));
+        const envelope = viewEnvelope(row.room, att.seat, present, Date.now(), row.names);
+        const key = JSON.stringify({
+          view: envelope.view,
+          opponentConnected: envelope.opponentConnected,
+          readyDeadlineMs: envelope.readyDeadlineMs,
+        });
+        if (this.lastSent.get(ws) === key) continue;
+        this.lastSent.set(ws, key);
+        this.send(ws, envelope);
       }
     }
   }

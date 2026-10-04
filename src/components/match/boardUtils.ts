@@ -40,7 +40,6 @@ export interface StripCard {
   /** Null = hidden (never rendered with a value). */
   power: number | null;
   recallable: boolean;
-  faceDown?: boolean;
 }
 
 export interface ZoneViewData {
@@ -53,8 +52,9 @@ export interface ZoneViewData {
 
 /**
  * Per-zone strips + raw bases from a redacted PlayerView.
- * Hidden-info rule: the opponent's current-round placements exist only as
- * counts, rendered as face-down placeholders (never scored).
+ * Hidden-info rule: the opponent's current-round placements are absent from
+ * the view entirely, so current boards render only the viewer's own cards.
+ * The opponent's cards appear on revealed boards only (never scored here).
  */
 export function buildZoneViewsFromView(
   view: PlayerView,
@@ -99,19 +99,9 @@ export function buildZoneViewsFromView(
           });
           foeBase += card.power;
         }
-      } else if (!opts.foeVisible) {
-        const count = board.zones[zoneId]?.foeCount ?? 0;
-        for (let i = 0; i < count; i += 1) {
-          foeCards.push({
-            key: `f-${bi}-${zoneId}-${i}`,
-            handIndex: -1,
-            flavorId: '',
-            power: null,
-            recallable: false,
-            faceDown: true,
-          });
-        }
       }
+      // Current boards carry nothing about the opponent (no cards, no
+      // counts, no placeholders) — only lock status is shown, from `locks`.
     });
     views.set(zoneId, { foeCards, myCards, myBase, foeBase });
   }

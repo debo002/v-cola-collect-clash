@@ -9,7 +9,7 @@ import {
 } from '../src/game/matchEngine';
 import { dealMatchHands } from '../src/game/dealing';
 import { buildPlayerView } from '../src/game/view';
-import { newRoomCode, newToken, parseIntent, validPlayerName, type ServerMsg } from './protocol';
+import { newRoomCode, newToken, parseIntent, sanitizePlayerName, type ServerMsg } from './protocol';
 import type { PlayerView } from '../src/game/controller';
 
 /**
@@ -42,7 +42,7 @@ export function createRoom(
   hostName: string,
   config: GameConfig
 ): { row: RoomRow; code: string } | { error: string } {
-  if (!validPlayerName(hostName)) return { error: 'bad-name' };
+  const clean = sanitizePlayerName(hostName, 'Player A');
   const invalid = validateGameConfig(config);
   if (invalid !== null) return { error: invalid };
   const dealt = dealMatchHands(config, deps.rng);
@@ -58,7 +58,7 @@ export function createRoom(
   const row: RoomRow = {
     room,
     tokens: { A: newToken((n) => randomValues(deps, n)), B: null },
-    names: { A: hostName.trim(), B: null },
+    names: { A: clean, B: null },
   };
   return { row, code };
 }
@@ -68,9 +68,9 @@ export function joinRoom(
   deps: RoomDeps,
   guestName: unknown
 ): { row: RoomRow; token: string } | { error: string } {
-  if (!validPlayerName(guestName)) return { error: 'bad-name' };
   if (row.room.over !== null) return { error: 'closed' };
   if (row.tokens.B !== null) return { error: 'full' };
+  const clean = sanitizePlayerName(guestName, 'Player B');
   const token = newToken((n) => randomValues(deps, n));
   const ctx = { now: deps.now(), rng: deps.rng };
   let room = beginTurn(row.room, 'A', ctx);
@@ -80,7 +80,7 @@ export function joinRoom(
       ...row,
       room,
       tokens: { ...row.tokens, B: token },
-      names: { ...row.names, B: guestName.trim() },
+      names: { ...row.names, B: clean },
     },
     token,
   };
@@ -109,7 +109,8 @@ export function viewEnvelope(
   room: RoomState,
   seat: Player,
   present: SeatPresence,
-  now: number
+  now: number,
+  names: { A: string; B: string | null } = { A: 'Player A', B: 'Player B' }
 ): Extract<ServerMsg, { type: 'view' }> {
   const foe: Player = seat === 'A' ? 'B' : 'A';
   return {
@@ -118,6 +119,10 @@ export function viewEnvelope(
     serverNowMs: now,
     opponentConnected: present[foe],
     readyDeadlineMs: room.readyMs,
+    names: {
+      me: sanitizePlayerName(names[seat], seat === 'A' ? 'Player A' : 'Player B'),
+      opponent: sanitizePlayerName(names[foe], foe === 'A' ? 'Player A' : 'Player B'),
+    },
   };
 }
 

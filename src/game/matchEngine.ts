@@ -9,6 +9,7 @@ import {
   revealRound,
   TIMER_SECONDS,
   unplaceCard,
+  unusedIndices,
   type MatchState,
   type Player,
 } from './match';
@@ -112,6 +113,42 @@ function syncDisplay(state: RoomState): RoomState {
 }
 
 /**
+ * Empty-hand rule (the one allowed engine behavior change): a seat with no
+ * unplaced cards left when placing starts (after draws) counts as locked
+ * automatically — no MIN_PLACE gate, since there is nothing to place. Seats
+ * still drawing are never touched. If both seats end up locked, reveal
+ * immediately. Hot-seat skips the empty seat's turn via the resulting locks
+ * (see LocalController.isSeatEmpty + pass-screen skip).
+ *
+ * `seats` scopes who may lock: beginTurn passes only the seat whose turn
+ * begins (the other seat's draws may not be set up yet), while round
+ * transitions and timeouts pass both seats.
+ */
+function autoLockEmpty(
+  state: RoomState,
+  ctx: EngineCtx,
+  seats: readonly Player[]
+): { state: RoomState; events: RoomEvent[] } {
+  if (state.stage !== 'placing' || state.over !== null) return { state, events: [] };
+  let match = state.match;
+  let changed = false;
+  for (const seat of seats) {
+    if (match.locks[seat]) continue;
+    if (state.drawsLeft[seat] > 0) continue;
+    if (unusedIndices(match, seat).length > 0) continue;
+    match = { ...match, locks: { ...match.locks, [seat]: true } };
+    changed = true;
+  }
+  if (!changed) return { state, events: [] };
+  const next: RoomState = { ...state, match, activityMs: ctx.now };
+  if (bothLocked(match)) {
+    const { state: revealed, event } = reveal(next, ctx);
+    return { state: revealed, events: [event] };
+  }
+  return { state: next, events: [] };
+}
+
+/**
  * Hot-seat turn start: set this seat's required draws and reset the 60s
  * clock (each hot-seat turn has its own deadline). No-op unless placing.
  */
@@ -127,7 +164,7 @@ export function beginTurn(state: RoomState, seat: Player, ctx: EngineCtx): RoomS
     drawMs: count > 0 ? ctx.now + DRAW_SECONDS * 1000 : null,
     placeMs: count === 0 ? ctx.now + PLACE_SECONDS * 1000 : null,
   };
-  return syncDisplay(next);
+  return autoLockEmpty(syncDisplay(next), ctx, [seat]).state;
 }
 
 /** Shared deadline for simultaneous play: start once all required draws are done. */
@@ -138,7 +175,8 @@ function maybeStartPlacement(state: RoomState, ctx: EngineCtx): RoomState {
     state.drawsLeft.A === 0 &&
     state.drawsLeft.B === 0
   ) {
-    return syncDisplay({ ...state, placeMs: ctx.now + PLACE_SECONDS * 1000 });
+    const started = syncDisplay({ ...state, placeMs: ctx.now + PLACE_SECONDS * 1000 });
+    return autoLockEmpty(started, ctx, ['A', 'B']).state;
   }
   return syncDisplay(state);
 }
@@ -193,7 +231,8 @@ function advanceRound(state: RoomState, ctx: EngineCtx): RoomState {
   } else {
     next = { ...next, drawMs: ctx.now + DRAW_SECONDS * 1000, placeMs: null };
   }
-  return syncDisplay({ ...next, activityMs: ctx.now });
+  const placed = syncDisplay({ ...next, activityMs: ctx.now });
+  return autoLockEmpty(placed, ctx, ['A', 'B']).state;
 }
 
 function currentPlacements(state: RoomState, seat: Player): Map<number, string> {
@@ -339,11 +378,15 @@ export function applyTimeout(
   for (const seat of seats) {
     if (!match.locks[seat]) match = autoPlaceForTimeout(match, seat, ctx.rng);
   }
+  // Empty seats cannot lock via the timeout auto-place (nothing to place):
+  // catch them here so the match never dead-waits for the timer.
+  const locked = autoLockEmpty({ ...state, match }, ctx, seats);
+  match = locked.state.match;
   if (bothLocked(match)) {
     const { state: revealed, event } = reveal({ ...state, match }, ctx);
-    return { state: revealed, events: [event] };
+    return { state: revealed, events: [...locked.events, event] };
   }
-  return { state: syncDisplay({ ...state, match, activityMs: ctx.now }), events: [] };
+  return { state: syncDisplay({ ...locked.state, activityMs: ctx.now }), events: locked.events };
 }
 
 /**

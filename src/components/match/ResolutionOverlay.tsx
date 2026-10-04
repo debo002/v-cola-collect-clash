@@ -244,14 +244,17 @@ export function ResolutionOverlay({
   };
 
   // Review banner: crown + majority winner (same slot as the sequence banner).
+  // Names render inside <bdi> (bidi-isolated plain text).
   const reviewBanner = (
     <div className="resolution-banner review-banner" role="status">
       <span className="winner-crown" aria-hidden="true">
         <CrownIcon size={28} />
       </span>
       <span className="resolution-text">
-        {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}{' '}
-        {winner ? t.winsTheMatch : t.allTied}
+        <bdi>
+          {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}{' '}
+          {winner ? t.winsTheMatch : t.allTied}
+        </bdi>
       </span>
     </div>
   );
@@ -269,7 +272,9 @@ export function ResolutionOverlay({
         reviewBanner
       ) : (
         <div className="resolution-banner" onClick={(e) => e.stopPropagation()}>
-          <span className="resolution-text">{banner ?? t.resTapFaster}</span>
+          <span className="resolution-text">
+            <bdi>{banner ?? t.resTapFaster}</bdi>
+          </span>
           <button
             type="button"
             className="btn btn-secondary skip-btn"

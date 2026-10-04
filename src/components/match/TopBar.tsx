@@ -51,11 +51,14 @@ export function TopBar({
   seconds,
   showTimer,
   onMenu,
+  names,
 }: {
   displayRound: number;
   seconds: number;
   showTimer: boolean;
   onMenu: () => void;
+  /** Optional "me · opponent" names (plain text, bidi-isolated). */
+  names?: { readonly me: string; readonly opponent: string };
 }) {
   const { t } = useI18n();
   return (
@@ -72,6 +75,13 @@ export function TopBar({
       <div className="game-topbar-info">
         <RoundPips current={displayRound} />
         <span className="game-round-indicator">{fmt(t.roundN, { n: displayRound })}</span>
+        {names ? (
+          <span className="topbar-names" aria-label={`${names.me} vs ${names.opponent}`}>
+            <bdi>{names.me}</bdi>
+            <span aria-hidden="true"> · </span>
+            <bdi>{names.opponent}</bdi>
+          </span>
+        ) : null}
         {showTimer ? <TimerRing seconds={seconds} total={TIMER_SECONDS} /> : null}
         <div className="legend-pop-wrap">
           <QuickGuide />

@@ -26,8 +26,9 @@ import { getSideHighlight, isCreamCancelled } from './comboHighlight';
  * Landscape match board: 3 full-width zone columns + bottom hand + Lock In.
  * Owns tap-select + drag state; game rules stay in src/game via controller.
  *
- * Hidden-info rule: the view carries only a per-zone COUNT for the
- * opponent's current round, rendered here as face-down placeholders.
+ * Hidden-info rule: the view carries NOTHING about the opponent's current
+ * round (no cards, no backs, no counts, no zone highlights). Only lock
+ * status from `locks` is shown: "Opponent: placing…" / "Opponent locked".
  */
 export function Board({
   view,
@@ -210,6 +211,9 @@ export function Board({
 
   const placedCount = map.size;
   const drawingRequired = drawPileCount !== undefined && drawsRemaining > 0;
+  // Empty hand (all cards spent in earlier rounds): the engine auto-locked
+  // this seat — say so instead of "place at least 1".
+  const nothingLeft = hand.length - allUsed.size <= 0;
   const canLock = placedCount >= MIN_PLACE && !drawingRequired;
   const maxPlaced = view.config.maxPlacedPerRound ?? MAX_PLACE;
 
@@ -287,17 +291,18 @@ export function Board({
         </div>
       ) : null}
       <div className="match-main zones-full">
+        {!isRevealing ? (
+          <div className="opp-lock-status" role="status">
+            {view.locks[foe] ? t.oppLocked : t.oppPlacing}
+          </div>
+        ) : null}
         <div className="zones-row">
           {ZONES.map((z, zi) => {
             const v = views.get(z.id);
             if (!v) return null;
             const zResult = results?.find((r) => r.zoneId === z.id);
-            const myFlavors = v.myCards
-              .filter((c) => !c.faceDown)
-              .map((c) => c.flavorId as FlavorId);
-            const foeFlavors = v.foeCards
-              .filter((c) => !c.faceDown)
-              .map((c) => c.flavorId as FlavorId);
+            const myFlavors = v.myCards.map((c) => c.flavorId as FlavorId);
+            const foeFlavors = v.foeCards.map((c) => c.flavorId as FlavorId);
             const myHi = getSideHighlight(myFlavors);
             const foeHi = getSideHighlight(foeFlavors);
             const cancelled = isCreamCancelled(myFlavors, foeFlavors);
@@ -354,9 +359,11 @@ export function Board({
           handTip={
             drawingRequired
               ? t.drawTapHint
-              : effectiveSelected !== null
-                ? t.tapZoneToPlace
-                : t.tapToPlaceHint
+              : nothingLeft
+                ? t.noCardsWaiting
+                : effectiveSelected !== null
+                  ? t.tapZoneToPlace
+                  : t.tapToPlaceHint
           }
           lockLabel={
             canLock ? fmt(t.lockInCount, { placed: placedCount, max: maxPlaced }) : t.needOne

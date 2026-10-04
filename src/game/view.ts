@@ -14,8 +14,10 @@ import type { RoomState } from './matchEngine';
 /**
  * Pure redacted view builder (no DOM, no timers, no randomness).
  * The server owns the RoomState; each player only ever receives their own
- * PlayerView. The opponent's current-round placements are per-zone counts,
- * so leaking hidden info is a type error, not a runtime check. Results,
+ * PlayerView. The opponent's current-round placements are NOT included —
+ * no cards, no counts, no zone presence — so leaking hidden info is a type
+ * error, not a runtime check. The opponent's cards appear only on revealed
+ * boards (past rounds, or the round being shown during reveal). Results,
  * winner and explanations are computed here when the match is complete —
  * callers never pass them in.
  */
@@ -63,7 +65,6 @@ export function buildPlayerView(room: RoomState, seat: Player): PlayerView {
       for (const zone of ZONES) {
         const side = board[zone.id];
         const mine: VisiblePlacedCard[] = [];
-        let foeCount = 0;
         if (side !== undefined) {
           for (const card of side[seat]) {
             const held = match.hands[seat][card.handIndex];
@@ -75,9 +76,9 @@ export function buildPlayerView(room: RoomState, seat: Player): PlayerView {
               loaner: held.loaner,
             });
           }
-          foeCount = side[foe].length;
         }
-        zones[zone.id] = { mine, foeCount };
+        // Intentionally nothing about the opponent: no cards, no counts.
+        zones[zone.id] = { mine };
       }
       boards.push({ kind: 'current', zones });
     }
@@ -92,6 +93,7 @@ export function buildPlayerView(room: RoomState, seat: Player): PlayerView {
     hand: match.hands[seat],
     boards,
     locks: match.locks,
+    ready: { me: room.ready[seat], opponent: room.ready[foe] },
     opponentHandCount: match.hands[foe].length,
     deadlineMs: room.deadlineMs,
     drawPileCount: room.config.dealing === 'draw-per-round' ? room.decks[seat].length : undefined,

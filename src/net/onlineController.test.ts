@@ -2,7 +2,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import type { PlayerView } from '../game/controller';
 import { DEFAULT_GAME_CONFIG } from '../game/config';
 import { backoffForAttempt } from './socket';
-import { OnlineController, RETRY_BUDGET_MS } from './onlineController';
+import { OnlineController, RETRY_BUDGET_MS, type OnlineMeta } from './onlineController';
 import { parseSession } from './sessionStore';
 import { createOnlineRoom, joinOnlineRoom, serverBaseUrl, wsUrl } from './http';
 
@@ -71,6 +71,7 @@ const emptyView: PlayerView = {
   hand: [],
   boards: [],
   locks: { A: false, B: false },
+  ready: { me: false, opponent: false },
   opponentHandCount: 0,
   deadlineMs: null,
   drawsRemaining: 0,
@@ -219,7 +220,6 @@ describe('onlineController', () => {
               zones: {
                 cool: {
                   mine: [{ handIndex: 0, flavor: 'v-cola', power: 4, loaner: true }],
-                  foeCount: 0,
                 },
               },
             },
@@ -247,6 +247,57 @@ describe('onlineController', () => {
     controller.connect();
     controller.send({ type: 'lock' });
     expect(rejects).toEqual(['not-connected']);
+    controller.dispose();
+  });
+
+  it('parses envelope names; old servers without names keep prior names', () => {
+    const clock = new FakeClock();
+    const sockets: FakeSocket[] = [];
+    const controller = new OnlineController('A', 'ABCDEF', 'tok', 'http://x', {
+      clock,
+      openSocket: fakeFactory(sockets),
+    });
+    const metas: OnlineMeta[] = [];
+    controller.onConnection((m) => metas.push(m));
+    controller.connect();
+    sockets[0]?.open();
+    expect(metas[metas.length - 1]?.names).toEqual({ me: '', opponent: '' });
+    sockets[0]?.message(
+      JSON.stringify({
+        type: 'view',
+        view: { ...emptyView },
+        serverNowMs: clock.now(),
+        opponentConnected: true,
+        readyDeadlineMs: null,
+        names: { me: 'Alice', opponent: 'Bob' },
+      })
+    );
+    expect(metas[metas.length - 1]?.names).toEqual({ me: 'Alice', opponent: 'Bob' });
+    // Old server without names: keep the previous names, stay fresh.
+    sockets[0]?.message(viewFrame({}, clock.now(), true));
+    expect(metas[metas.length - 1]?.names).toEqual({ me: 'Alice', opponent: 'Bob' });
+    expect(metas[metas.length - 1]?.needsRefresh).toBe(false);
+    controller.dispose();
+  });
+
+  it('unrecognized view shape latches needsRefresh and emits no view', () => {
+    const clock = new FakeClock();
+    const sockets: FakeSocket[] = [];
+    const controller = new OnlineController('A', 'ABCDEF', 'tok', 'http://x', {
+      clock,
+      openSocket: fakeFactory(sockets),
+    });
+    const views: PlayerView[] = [];
+    controller.subscribe((v) => views.push(v));
+    const metas: OnlineMeta[] = [];
+    controller.onConnection((m) => metas.push(m));
+    controller.connect();
+    sockets[0]?.open();
+    sockets[0]?.message(
+      JSON.stringify({ type: 'view', view: { bogus: 1 }, serverNowMs: clock.now() })
+    );
+    expect(views).toEqual([]);
+    expect(metas[metas.length - 1]?.needsRefresh).toBe(true);
     controller.dispose();
   });
 });

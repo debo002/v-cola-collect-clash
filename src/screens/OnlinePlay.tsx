@@ -36,6 +36,7 @@ const emptyView: PlayerView = {
   hand: [],
   boards: [],
   locks: { A: false, B: false },
+  ready: { me: false, opponent: false },
   opponentHandCount: 0,
   deadlineMs: null,
   drawsRemaining: 0,
@@ -75,6 +76,8 @@ export function OnlinePlay({
     opponentConnected: false,
     readyDeadlineMs: null,
     closeReason: null,
+    names: { me: '', opponent: '' },
+    needsRefresh: false,
   });
   const [notice, setNotice] = useState('');
   const [endedKind, setEndedKind] = useState<'forfeit' | 'ended'>('ended');
@@ -310,7 +313,12 @@ export function OnlinePlay({
   }
 
   const me = name.trim() || players.p1;
-  const names: Record<Player, string> = seat === 'A' ? { A: me, B: '···' } : { A: '···', B: me };
+  // Server envelope names (sanitized, max 20 code points); local name until
+  // the first frame arrives. Rendered as plain text inside <bdi> only.
+  const myName = meta.names.me || me;
+  const foeName = meta.names.opponent || (seat === 'A' ? 'Player B' : 'Player A');
+  const names: Record<Player, string> =
+    seat === 'A' ? { A: myName, B: foeName } : { A: foeName, B: myName };
   const displayRound = stage === 'roundReveal' ? Math.max(1, view.round - 1) : view.round;
   const showTimer = stage === 'playing' && view.deadlineMs !== null;
 
@@ -336,7 +344,7 @@ export function OnlinePlay({
           <h2>{t.onlineTitle}</h2>
           <label>
             {t.onlineName}
-            <input value={name} maxLength={24} onChange={(e) => setName(e.target.value)} />
+            <input value={name} maxLength={20} onChange={(e) => setName(e.target.value)} />
           </label>
           <div className="online-actions">
             <button
@@ -511,15 +519,25 @@ export function OnlinePlay({
           seconds={seconds}
           showTimer={showTimer}
           onMenu={requestLeave}
+          names={{ me: myName, opponent: foeName }}
         />
+        {meta.needsRefresh ? (
+          <div className="thin-banner" role="alert">
+            <span className="resolution-text">{t.onlineUpdateReload}</span>
+          </div>
+        ) : null}
         {meta.connection === 'reconnecting' || meta.connection === 'connecting' ? (
           <div className="thin-banner" role="status">
-            <span className="resolution-text">{t.onlineReconnecting}</span>
+            <span className="resolution-text">
+              {t.onlineReconnecting} <bdi>{foeName}</bdi>
+            </span>
           </div>
         ) : null}
         {meta.connection === 'opponent-disconnected' ? (
           <div className="thin-banner" role="status">
-            <span className="resolution-text">{t.onlineOppGone}</span>
+            <span className="resolution-text">
+              {t.onlineOppGone} <bdi>{foeName}</bdi>
+            </span>
           </div>
         ) : null}
         {meta.connection === 'unreachable' ? (

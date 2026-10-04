@@ -11,6 +11,7 @@ import {
   createRoomState,
   type RoomState,
 } from './matchEngine';
+import { unusedIndices } from './match';
 import { rollPower, shuffled } from './rng';
 import { buildPlayerView } from './view';
 
@@ -36,6 +37,7 @@ const idleView = (seat: Player, config: GameConfig): PlayerView => ({
   hand: [],
   boards: [],
   locks: { A: false, B: false },
+  ready: { me: false, opponent: false },
   opponentHandCount: 0,
   deadlineMs: null,
   drawsRemaining: 0,
@@ -128,6 +130,22 @@ export class LocalController implements GameController {
     }
     this.syncTimer();
     this.emit();
+  }
+
+  /** Room stage for pass-screen skip decisions (null room reads as idle). */
+  phase(): RoomState['stage'] {
+    return this.room?.stage ?? 'idle';
+  }
+
+  /**
+   * Item-4 helper: the seat has no unplaced cards left and is done drawing,
+   * so the engine auto-locked it. Hot-seat uses this to skip that seat's
+   * turn and its pass screen.
+   */
+  isSeatEmpty(seat: Player): boolean {
+    if (this.room === null || this.room.stage !== 'placing') return false;
+    if (this.room.drawsLeft[seat] > 0) return false;
+    return unusedIndices(this.room.match, seat).length === 0;
   }
 
   /** Hot-seat convenience: both seats confirm the reveal, advancing the round. */

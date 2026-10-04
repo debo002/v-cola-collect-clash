@@ -41,7 +41,7 @@ function summarize(tag, view) {
       const zones = Object.entries(b.zones)
         .map(([id, z]) => {
           const mine = z.mine?.length ?? 0;
-          const foe = z.foe !== undefined ? `foe[${z.foe.length}]` : `foeCount=${z.foeCount}`;
+          const foe = z.foe !== undefined ? `foe[${z.foe.length}]` : 'foe[hidden]';
           return `${id}:m${mine},${foe}`;
         })
         .join(' ');
@@ -57,8 +57,10 @@ function checkRedacted(tag, view) {
   for (const board of view.boards) {
     if (board.kind === 'current') {
       for (const [id, zone] of Object.entries(board.zones)) {
-        if (!('foeCount' in zone) || 'foe' in zone) {
-          throw new Error(`${tag}: zone ${id} leaks foe cards: ${JSON.stringify(zone)}`);
+        // Hidden-info rule: current boards carry NOTHING about the
+        // opponent — no cards, no counts. Only `mine` may exist.
+        if ('foeCount' in zone || 'foe' in zone) {
+          throw new Error(`${tag}: zone ${id} leaks foe data: ${JSON.stringify(zone)}`);
         }
       }
     }
@@ -128,10 +130,13 @@ function waitViews(clients, counts) {
 }
 
 async function sendIntent(clients, seat, intent) {
-  const counts = clients.map((c) => c.views.length);
+  // The server only sends a view frame to a seat whose serialized view
+  // changed, so the victim of a placement gets nothing new: wait for the
+  // sender's frame only.
   const sender = clients.find((c) => c.seat === seat);
+  const count = sender.views.length;
   sender.ws.send(JSON.stringify({ type: 'intent', intent }));
-  return waitViews(clients, counts);
+  return waitViews([sender], [count]);
 }
 
 async function sendRawAndExpectReject(clients, seat, raw) {

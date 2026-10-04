@@ -371,13 +371,18 @@ describe('LocalController timer parity', () => {
     const view = latestView(controller);
     expect(view.locks.A).toBe(true);
     expect(view.locks.B).toBe(false);
+    // Hidden info: the current board carries nothing about the opponent —
+    // no cards, no counts. Only `mine` keys exist on current zones, and the
+    // timed-out seat's own auto-placement (exactly 1 card) is visible.
     const current = view.boards.find((b) => b.kind === 'current');
-    let foePlaced = 0;
+    let minePlaced = 0;
     if (current) {
-      for (const zoneId of Object.keys(current.zones))
-        foePlaced += current.zones[zoneId]?.foeCount ?? 0;
+      for (const zoneId of Object.keys(current.zones)) {
+        expect(Object.keys(current.zones[zoneId] ?? {}).sort()).toEqual(['mine']);
+        minePlaced += current.zones[zoneId]?.mine.length ?? 0;
+      }
     }
-    expect(foePlaced).toBe(0);
+    expect(minePlaced).toBe(1);
   });
 
   it('deadline resets on setSeat', () => {
