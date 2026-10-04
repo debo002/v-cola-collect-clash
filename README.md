@@ -18,6 +18,69 @@ npm run smoke               # Run the Playwright match smoke flow (with preview 
 
 `npm run smoke` expects the app to be served with `npm run preview -- --port 4173` in another terminal. Other available scripts are `npm run lint`, `npm run format`, `npm run format:check`, and `npm run typecheck`.
 
+## Online multiplayer (local dev & testing)
+
+The online room server runs on Cloudflare Workers and Durable Objects.
+
+```sh
+# Terminal 1: start the room server locally
+npm run dev:server          # or: npx wrangler dev --port 8787
+
+# Terminal 2: start the client
+npm run dev
+```
+
+### Phone testing on LAN
+
+To test on physical devices (e.g. two phones on the same Wi-Fi):
+
+1. Start the room server bound to all interfaces:
+   ```sh
+   npx wrangler dev --port 8787 --ip 0.0.0.0
+   ```
+2. Find your PC's LAN IP (e.g. `192.168.1.50`).
+3. Set `VITE_SERVER_URL` when starting Vite so mobile clients connect to your PC's room server:
+   ```sh
+   VITE_SERVER_URL=http://<YOUR_LAN_IP>:8787 npm run dev -- --host
+   ```
+4. Open `http://<YOUR_LAN_IP>:5173/` on both phones.
+
+## Production deployment (Cloudflare Workers)
+
+The application deploys as a single-origin service on Cloudflare Workers:
+
+- **Frontend SPA**: Static assets in `./dist` served directly with SPA routing fallback.
+- **Backend API & WebSockets**: Worker + SQLite Durable Objects handling room creation, preview, join, and hibernatable WebSockets.
+
+### Deploying to Cloudflare
+
+1. Ensure the production build is ready and you are logged into Wrangler:
+   ```sh
+   npx wrangler login           # One-time Cloudflare login via browser
+   ```
+2. Deploy the combined SPA and Worker:
+   ```sh
+   npm run deploy               # Runs "npm run build && wrangler deploy"
+   ```
+3. Once deployed, Wrangler outputs your production URL (e.g., `https://v-cola-rooms.<your-subdomain>.workers.dev`). No extra environment variables (like `VITE_SERVER_URL`) are needed because the client automatically detects same-origin hosting in production.
+
+### Rollback
+
+To instantly revert to a previous deployment without rebuilding:
+
+```sh
+npx wrangler rollback
+```
+
+### Cloudflare Free-Plan Safety Audit
+
+This project is specifically architected to stay comfortably within the Cloudflare Workers Free Tier:
+
+- **Static Assets bypass Worker compute**: Configured with `run_worker_first: ["/api/*", "/rooms/*"]`, meaning all HTML, CSS, JS, font, and image requests are served directly by Cloudflare's global CDN cache without invoking the Worker. These requests consume 0ms of Worker CPU and do not count against the 100,000 requests/day Worker limit.
+- **Worker CPU usage**: API endpoints (`/api/rooms`, `/rooms/:code`, `/api/rooms/:code/join`) execute lightweight in-memory and SQLite checks taking < 1ms, far below the free tier's 10ms CPU limit per invocation.
+- **WebSocket Hibernation**: Connected player WebSockets use the Cloudflare Hibernatable WebSocket API in Durable Objects, meaning idle sockets waiting for player turns do not consume CPU time or wall-clock billing.
+- **Zero Paid Dependencies**: Does not use Cloudflare KV, R2, D1, or Queues. Room state is stored exclusively in ephemeral SQLite-backed Durable Objects and automatically cleaned up when matches finish.
+
 ## Match flow
 
 Quick Play starts with player setup, then passes the device between players. Each player plans cards in a zone and locks in; both players' placements are revealed after both lock in. The `?` help sheet explains the match, zones, combos, card effects, tags, and board indicators without changing the match. After the third round, the game runs the zone-resolution sequence, shows the match review, and lets players tap a zone to replay its resolution. Players can rematch or return to the menu.

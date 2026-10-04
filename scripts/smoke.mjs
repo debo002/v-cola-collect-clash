@@ -3,12 +3,52 @@
  * Fails on console errors, page overflow, or stuck states. Exits non-zero.
  */
 import { chromium } from 'playwright';
+import { spawn, execSync } from 'node:child_process';
+import net from 'node:net';
+import path from 'node:path';
 
-const BASE = process.env.SMOKE_URL || 'http://localhost:4173/';
+const APP_PORT = 4173;
+const BASE = process.env.SMOKE_URL || `http://localhost:${APP_PORT}/`;
 const VIEWPORTS = [
   { w: 720, h: 480 },
   { w: 1100, h: 480 },
 ];
+
+function assertPortFree(port) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once('error', (err) => {
+      reject(new Error(`Port ${port} is not free: ${err.message}`));
+    });
+    server.once('listening', () => {
+      server.close(() => resolve());
+    });
+    server.listen(port);
+  });
+}
+
+async function waitForHttp(url, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 200) return;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error(`Timeout waiting for HTTP 200 on ${url}`);
+}
+
+function killProcessTree(proc) {
+  if (!proc || !proc.pid) return;
+  try {
+    if (process.platform === 'win32') {
+      execSync(`taskkill /pid ${proc.pid} /t /f`, { stdio: 'ignore' });
+    } else {
+      proc.kill('SIGTERM');
+    }
+  } catch {}
+}
 
 let failures = 0;
 function fail(label, detail) {
@@ -240,8 +280,23 @@ async function playMatch(page, tag, { skipResolution }) {
   pass(`${tag} full match`);
 }
 
-const browser = await chromium.launch();
+let previewProc = null;
+let browser = null;
 try {
+  if (!process.env.SMOKE_URL) {
+    await assertPortFree(APP_PORT);
+    const viteBin = path.resolve('node_modules/vite/bin/vite.js');
+    previewProc = spawn(
+      process.execPath,
+      [viteBin, 'preview', '--port', String(APP_PORT), '--strictPort'],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    );
+    await waitForHttp(BASE, 30000);
+  }
+
+  browser = await chromium.launch();
   for (const vp of VIEWPORTS) {
     const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h } });
     const page = await ctx.newPage();
@@ -281,23 +336,40 @@ try {
     await ctx.close();
   }
 
-  // Portrait gate.
+  // Portrait match layout stays within the phone viewport and keeps timer text clear.
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await ctx.newPage();
     try {
-      await step(page, 'portrait gate', async () => {
+      await step(page, 'portrait match', async () => {
         await page.goto(BASE, { waitUntil: 'networkidle' });
-        await page.waitForSelector('.rotate-gate', { timeout: 10000 });
+        await page.waitForSelector('.title-screen', { timeout: 10000 });
+        if ((await page.locator('.rotate-gate').count()) > 0)
+          throw new Error('portrait still shows the rotate gate');
+        await page.locator('.title-actions .btn-primary').click();
+        await page.waitForSelector('.lookaway .btn', { timeout: 5000 });
+        await page.locator('.lookaway .btn').click();
+        await page.waitForSelector('.hand-fan', { timeout: 5000 });
+        const timer = page.locator('.timer-readout');
+        await timer.waitFor({ timeout: 5000 });
+        if (!/^\d+$/.test((await timer.innerText()).trim()))
+          throw new Error('timer is not an integer countdown');
+        const roundBox = await page.locator('.game-round-indicator').boundingBox();
+        const timerBox = await timer.boundingBox();
+        if (roundBox && timerBox && timerBox.x < roundBox.x + roundBox.width)
+          throw new Error('timer overlaps the round label');
       });
-      pass('portrait gate');
+      pass('portrait match');
     } catch {
       // Recorded already.
     }
     await ctx.close();
   }
 } finally {
-  await browser.close();
+  try {
+    await browser?.close();
+  } catch {}
+  if (previewProc) killProcessTree(previewProc);
 }
 
 if (failures > 0) {

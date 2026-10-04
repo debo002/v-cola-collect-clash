@@ -190,6 +190,7 @@
   justify-content: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
+  position: relative;
   background: radial-gradient(
     circle at 50% 30%,
     rgba(230, 30, 43, 0.15) 0%,
@@ -495,26 +496,13 @@
   border-color: rgba(245, 166, 35, 0.5);
 }
 
-/* Drop affordances */
+/* Drop affordances: static glow — an animated box-shadow pulse repaints every
+   frame and stutters during placement on phones. */
 .zone-col.drop-ready {
   border-color: #ffd875;
   box-shadow:
     0 0 0 2px #ffd875,
-    0 0 16px rgba(255, 216, 117, 0.4);
-  animation: readyPulse 1.2s infinite alternate;
-}
-
-@keyframes readyPulse {
-  from {
-    box-shadow:
-      0 0 0 2px #ffd875,
-      0 0 8px rgba(255, 216, 117, 0.3);
-  }
-  to {
-    box-shadow:
-      0 0 0 3px #ffd875,
-      0 0 22px rgba(255, 216, 117, 0.7);
-  }
+    0 0 18px rgba(255, 216, 117, 0.45);
 }
 
 .zone-col.drop-target {
@@ -700,7 +688,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-  animation: readyPulse 1s infinite alternate;
+  background: rgba(255, 216, 117, 0.12);
   border-radius: 6px;
 }
 
@@ -720,63 +708,29 @@
   }
 }
 
-/* Circular timer ring */
-.timer-ring {
-  position: relative;
+/* Compact timer pill keeps the countdown separate from the round label. */
+.timer-readout {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-}
-
-.timer-ring svg {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) rotate(-90deg);
-}
-
-.timer-ring .ring-track {
-  fill: none;
-  stroke: #2b3550;
-  stroke-width: 3.5;
-}
-
-.timer-ring .ring-fill {
-  fill: none;
-  stroke: var(--gold);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-}
-
-.timer-ring .ring-num {
-  font-family: var(--heading);
-  font-size: 15px;
+  min-width: 38px;
+  height: 28px;
+  padding: 0 7px;
+  box-sizing: border-box;
+  border: 1px solid #3b4763;
+  border-radius: 999px;
+  background: #1d2438;
   color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8);
+  font-family: var(--heading);
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-.timer-ring.urgent .ring-fill {
-  stroke: var(--v-red);
-}
-
-.timer-ring.urgent .ring-num {
-  color: #ff8a8a;
-}
-
-.timer-ring.urgent {
-  animation: lowTimePulse 600ms infinite alternate ease-in-out;
-}
-
-@keyframes lowTimePulse {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.12);
-  }
+.timer-readout.urgent {
+  border-color: var(--v-red);
+  background: var(--v-red-deep);
 }
 
 /* ==========================================================================
@@ -873,6 +827,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -1607,6 +1562,9 @@
 
 .name-plate span {
   display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-family: var(--heading);
   font-size: 11px;
   letter-spacing: 0.03em;
@@ -1617,6 +1575,7 @@
   text-align: center;
   white-space: nowrap;
   overflow: visible;
+  overflow-wrap: anywhere;
   max-width: none;
 }
 
@@ -1656,6 +1615,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
   line-height: 1.15;
 }
 
@@ -2932,5 +2892,453 @@
 @media (prefers-reduced-motion: reduce) {
   .fan-card.card-drawn-in {
     animation: none;
+  }
+}
+
+/* Online rejoin banner + online lobby (landscape-thin, token-driven) */
+.rejoin-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--ink-2);
+  border-bottom: 2px solid var(--gold);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.rejoin-banner .btn {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.online-lobby,
+.online-waiting,
+.online-ended {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 100%;
+  padding: 16px;
+  color: #fff;
+}
+.online-lobby h2 {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 28px;
+  margin: 0;
+}
+.online-lobby label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.online-lobby input {
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--ink);
+  text-transform: uppercase;
+}
+.online-lobby label:first-of-type input {
+  text-transform: none;
+}
+.online-hint {
+  font-size: 12px;
+  opacity: 0.8;
+}
+.online-room-code {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 44px;
+  letter-spacing: 6px;
+  margin: 0;
+}
+.online-actions,
+.online-join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.face-down .card-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+  border-radius: var(--r-card);
+  background: var(--v-red-deep);
+  color: #fff;
+  font-weight: 800;
+}
+.settings-review {
+  justify-content: flex-start;
+  padding-top: 24px;
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+}
+.settings-review h3 {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+.settings-review-hint {
+  font-size: 13px;
+  opacity: 0.75;
+  margin: 0 0 8px;
+}
+.settings-review-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+
+/* Small screens: cut glow/paint cost (box-shadow keyframes + static combo
+ * glows are the most expensive paints on phones). Transform/opacity
+ * one-shots (cardPop, flipCard, chipFloat) keep running. */
+@media (max-height: 480px), (pointer: coarse) {
+  .zone-energy .zone-pillar,
+  .pillar-verdict,
+  .review-actions .btn,
+  .mini-col .pillar-rule,
+  .glow-pulse,
+  .timer-readout.urgent {
+    animation: none !important;
+  }
+  .game-card.has-combo {
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.55);
+  }
+  .game-card.selected {
+    box-shadow:
+      0 5px 0 rgba(0, 0, 0, 0.55),
+      0 0 0 2px #ffd875;
+  }
+  .legend-pop {
+    backdrop-filter: none;
+  }
+}
+
+/* Fullscreen toggle: absolute corner so the main action row keeps its width. */
+.title-fullscreen {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  min-height: 0;
+  z-index: 2;
+}
+
+@media (orientation: portrait) {
+  .viewport {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .stage.stage-portrait {
+    width: 100% !important;
+    height: 100% !important;
+    transform: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .title-screen {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+
+  .title-brand {
+    gap: 8px;
+  }
+
+  .title-logo {
+    width: 76px;
+    height: 76px;
+  }
+
+  .title-game {
+    font-size: clamp(22px, 7vw, 34px);
+  }
+
+  .title-sub {
+    font-size: 13px;
+  }
+
+  .arena-brand-badge {
+    max-width: 100%;
+    white-space: normal;
+    font-size: 10px;
+  }
+
+  .title-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .title-actions > .btn,
+  .title-actions > .menu-guide-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+
+  .title-players {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .title-players label {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  .title-players input {
+    min-height: 48px;
+  }
+
+  .match-screen {
+    min-height: 0;
+  }
+
+  .game-topbar {
+    height: 44px;
+    flex-basis: 44px;
+    padding: 2px 6px;
+  }
+
+  .game-topbar .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .game-topbar-info {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .game-round-indicator {
+    font-size: 14px;
+  }
+
+  .round-pips .pip {
+    width: 9px;
+    height: 9px;
+  }
+
+  .topbar-names {
+    max-width: 36vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .match-main.zones-full {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .zones-row {
+    flex-direction: column;
+    gap: 5px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .zone-col {
+    flex: 1 0 150px;
+    grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 2px;
+    padding: 3px;
+    border-radius: 12px;
+  }
+
+  .strip {
+    gap: 3px;
+    padding: 2px 3px;
+  }
+
+  .zone-pillar {
+    min-width: 0;
+    min-height: 72px;
+    padding: 2px;
+  }
+
+  .pillar-score {
+    font-size: 14px;
+  }
+
+  .pillar-name {
+    font-size: 10px;
+  }
+
+  .pillar-rule {
+    font-size: 9px;
+    white-space: normal;
+  }
+
+  .hand-row:not(.reveal-dock):not(.review-dock) {
+    flex: 0 0 205px;
+    height: 205px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px 6px max(5px, env(safe-area-inset-bottom));
+  }
+
+  .hand-main {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .hand-fan {
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 2px 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .fan-card {
+    flex: 0 0 70px;
+    max-width: 70px;
+    min-height: 0;
+  }
+
+  .fan-card .name-plate {
+    min-height: 24px;
+  }
+
+  .fan-card .name-plate span {
+    font-size: 8px;
+  }
+
+  .dock-side {
+    flex: 0 0 46px;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+  }
+
+  .dock-count {
+    display: none;
+  }
+
+  .dock-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 11px;
+  }
+
+  .dock-side .lock-btn {
+    flex: 0 0 142px;
+    width: 142px;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .reveal-dock {
+    flex: 0 0 76px;
+    height: 76px;
+    flex-direction: row;
+    padding: 6px;
+  }
+
+  .reveal-dock .dock-hint {
+    font-size: 11px;
+  }
+
+  .reveal-dock .lock-btn {
+    flex: 0 0 42%;
+    width: 42%;
+    min-height: 44px;
+    font-size: 12px;
+  }
+
+  .resolution-main {
+    padding: 4px;
+  }
+
+  .resolution-banner {
+    min-height: 44px;
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .resolution-text {
+    font-size: 12px;
+  }
+
+  .skip-btn {
+    min-height: 38px;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .resolution-footer {
+    flex-basis: 66px;
+  }
+
+  .review-actions .btn {
+    min-height: 44px;
+    padding: 5px 9px;
+    font-size: 12px;
+  }
+
+  .review-dock .dock-hint {
+    font-size: 10px;
+  }
+
+  .custom-setup,
+  .deck-container,
+  .online-lobby,
+  .online-waiting,
+  .online-ended {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (pointer: coarse) {
+  .zone-col,
+  .game-card,
+  .fan-card,
+  .strip-mini {
+    transition: none !important;
+  }
+
+  .zone-col.drop-ready {
+    animation: none;
+  }
+
+  .game-art img {
+    filter: none;
   }
 }

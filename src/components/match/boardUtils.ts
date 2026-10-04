@@ -1,24 +1,32 @@
 import { getFlavorById } from '../../game/cards';
-import type { HandCard } from '../../game/hands';
-import { currentBoard, type MatchState, type Player } from '../../game/match';
-import { ZONES } from '../../game/zones';
+import type { PlayerView } from '../../game/controller';
 
-/** handIndex -> zone for a player's CURRENT-round placements. */
-export function placedMap(match: MatchState, player: Player): Map<number, string> {
+/** handIndex -> zone for the viewer's CURRENT-round placements. */
+export function placedMapFromView(view: PlayerView): Map<number, string> {
   const map = new Map<number, string>();
-  const board = currentBoard(match);
-  for (const zoneId of Object.keys(board)) {
-    for (const card of board[zoneId][player]) map.set(card.handIndex, zoneId);
+  for (const board of view.boards) {
+    if (board.kind !== 'current') continue;
+    for (const zoneId of Object.keys(board.zones)) {
+      const zone = board.zones[zoneId];
+      if (zone === undefined) continue;
+      for (const card of zone.mine) {
+        map.set(card.handIndex, zoneId);
+      }
+    }
   }
   return map;
 }
 
-/** All hand-indices used by a player across every round (incl. current). */
-export function allUsedIndices(match: MatchState, player: Player): Set<number> {
+/** All hand-indices used by the viewer across every round (incl. current). */
+export function allUsedIndicesFromView(view: PlayerView): Set<number> {
   const used = new Set<number>();
-  for (const board of match.boards) {
-    for (const zoneId of Object.keys(board)) {
-      for (const card of board[zoneId][player]) used.add(card.handIndex);
+  for (const board of view.boards) {
+    for (const zoneId of Object.keys(board.zones)) {
+      const zone = board.zones[zoneId];
+      if (zone === undefined) continue;
+      for (const card of zone.mine) {
+        used.add(card.handIndex);
+      }
     }
   }
   return used;
@@ -37,58 +45,66 @@ export interface StripCard {
 export interface ZoneViewData {
   foeCards: StripCard[];
   myCards: StripCard[];
-  /** Raw sums. Mine from hand powers; foe from revealed powers only. */
+  /** Raw sums. Mine from visible powers; foe from revealed powers only. */
   myBase: number;
   foeBase: number;
 }
 
 /**
- * Per-zone strips + raw bases. Hidden-info rule lives here: with
- * foeVisible=false the foe's current-round picks are skipped entirely —
- * never rendered, never scored.
+ * Per-zone strips + raw bases from a redacted PlayerView.
+ * Hidden-info rule: the opponent's current-round placements are absent from
+ * the view entirely, so current boards render only the viewer's own cards.
+ * The opponent's cards appear on revealed boards only (never scored here).
  */
-export function buildZoneViews(
-  match: MatchState,
-  player: Player,
-  foe: Player,
+export function buildZoneViewsFromView(
+  view: PlayerView,
   opts: { foeVisible: boolean; recallable: boolean }
 ): Map<string, ZoneViewData> {
   const views = new Map<string, ZoneViewData>();
-  for (const z of ZONES) {
+  const zoneIds = new Set<string>();
+  for (const board of view.boards) {
+    for (const zoneId of Object.keys(board.zones)) {
+      zoneIds.add(zoneId);
+    }
+  }
+  for (const zoneId of zoneIds) {
     const foeCards: StripCard[] = [];
     const myCards: StripCard[] = [];
     let myBase = 0;
     let foeBase = 0;
-    match.boards.forEach((board, bi) => {
-      const side = board[z.id];
-      if (!side) return;
-      const isCurrent = bi === match.round - 1;
-      for (const c of side[player]) {
-        const hc: HandCard | undefined = match.hands[player][c.handIndex];
-        if (!hc || !getFlavorById(hc.flavor)) continue;
+    view.boards.forEach((board, bi) => {
+      const zone = board.zones[zoneId];
+      if (zone === undefined) return;
+      const foeVisible = view.phase === 'complete' || bi < view.round - 1;
+      for (const card of zone.mine) {
+        if (!getFlavorById(card.flavor)) continue;
+        const isCurrent = board.kind === 'current';
         myCards.push({
-          key: `m-${bi}-${c.handIndex}`,
-          handIndex: c.handIndex,
-          flavorId: hc.flavor,
-          power: hc.power,
+          key: `m-${bi}-${card.handIndex}`,
+          handIndex: card.handIndex,
+          flavorId: card.flavor,
+          power: card.power,
           recallable: opts.recallable && isCurrent,
         });
-        myBase += hc.power;
+        myBase += card.power;
       }
-      for (const c of side[foe]) {
-        if (!opts.foeVisible && isCurrent) continue;
-        if (!getFlavorById(c.flavor)) continue;
-        foeCards.push({
-          key: `f-${bi}-${c.handIndex}`,
-          handIndex: c.handIndex,
-          flavorId: c.flavor,
-          power: c.power,
-          recallable: false,
-        });
-        if (c.power != null) foeBase += c.power;
+      if (board.kind === 'revealed' && foeVisible) {
+        for (const card of board.zones[zoneId]?.foe ?? []) {
+          if (!getFlavorById(card.flavor)) continue;
+          foeCards.push({
+            key: `f-${bi}-${card.handIndex}`,
+            handIndex: card.handIndex,
+            flavorId: card.flavor,
+            power: card.power,
+            recallable: false,
+          });
+          foeBase += card.power;
+        }
       }
+      // Current boards carry nothing about the opponent (no cards, no
+      // counts, no placeholders, no lock status).
     });
-    views.set(z.id, { foeCards, myCards, myBase, foeBase });
+    views.set(zoneId, { foeCards, myCards, myBase, foeBase });
   }
   return views;
 }

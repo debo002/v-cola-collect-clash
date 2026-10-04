@@ -3,7 +3,7 @@
   "short_name": "V Cola",
   "description": "1v1 collectible card battle — local pass-and-play",
   "start_url": ".",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#090b10",
   "theme_color": "#e61e2b",

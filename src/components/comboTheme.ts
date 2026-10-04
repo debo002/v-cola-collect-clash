@@ -1,4 +1,6 @@
 import type { ComboGroup } from '../game/effects';
+import { getCardGroups } from '../game/effects';
+import type { FlavorId } from '../game/types';
 
 /**
  * Combo-identification colors (UI only).
@@ -38,6 +40,20 @@ export function comboGlow(groups: readonly ComboGroup[]): string | undefined {
 /** Thin outline color for a completed combo (first group color). */
 export function comboOutline(group: ComboGroup): string {
   return COMBO_COLORS[group];
+}
+
+/**
+ * Referentially stable getCardGroups (11-flavor domain, pure): one cached
+ * readonly array per flavor so memoized cards can rely on prop identity.
+ */
+const groupCache = new Map<string, readonly ComboGroup[]>();
+
+export function cardGroups(flavorId: FlavorId): readonly ComboGroup[] {
+  const hit = groupCache.get(flavorId);
+  if (hit) return hit;
+  const groups = Object.freeze(getCardGroups(flavorId));
+  groupCache.set(flavorId, groups);
+  return groups;
 }
 
 function hexToRgb(hex: string): [number, number, number] {

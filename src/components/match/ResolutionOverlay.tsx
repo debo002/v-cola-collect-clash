@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { MatchState, Player } from '../../game/match';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Player } from '../../game/match';
+import type { PlayerView } from '../../game/controller';
 import type { ZoneExplanation } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { CrownIcon } from '../icons';
-import { buildZoneViews, type StripCard } from './boardUtils';
+import { buildZoneViewsFromView, type StripCard } from './boardUtils';
 import { ZoneColumn } from './ZoneColumn';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
+import { displayPlayerName } from './resolutionNames';
 
 type Phase = 'count' | 'reason' | 'apply' | 'verdict';
 
@@ -35,7 +37,7 @@ function keyOf(player: Player, owner: Player, round: number, handIndex: number):
  * states with a short fade.
  */
 export function ResolutionOverlay({
-  match,
+  view: matchView,
   player,
   names,
   explanations,
@@ -43,7 +45,7 @@ export function ResolutionOverlay({
   onRematch,
   onReturnMenu,
 }: {
-  match: MatchState;
+  view: PlayerView;
   player: Player;
   names: Record<Player, string>;
   explanations: readonly ZoneExplanation[];
@@ -53,6 +55,10 @@ export function ResolutionOverlay({
 }) {
   const { t } = useI18n();
   const foe: Player = player === 'A' ? 'B' : 'A';
+  const playerNames = {
+    A: displayPlayerName(names.A, 'A'),
+    B: displayPlayerName(names.B, 'B'),
+  };
   const reduced = useMemo(
     () =>
       typeof window !== 'undefined' &&
@@ -62,8 +68,8 @@ export function ResolutionOverlay({
   );
 
   const views = useMemo(
-    () => buildZoneViews(match, player, foe, { foeVisible: true, recallable: false }),
-    [match, player, foe]
+    () => buildZoneViewsFromView(matchView, { foeVisible: true, recallable: false }),
+    [matchView]
   );
 
   const [view, setView] = useState<View>({ kind: reduced ? 'review' : 'sequence' });
@@ -155,17 +161,17 @@ export function ResolutionOverlay({
     const other: Player = owner === 'A' ? 'B' : 'A';
     const counts = first?.counts ?? { A: 0, B: 0 };
     if (first?.reason === 'stay-frosty') {
-      return fmt(t.resCool, { name: names[owner], power: first.from });
+      return fmt(t.resCool, { name: playerNames[owner], power: first.from });
     }
     if (first?.reason === 'more-merrier') {
-      return fmt(t.resParty, { name: names[owner], a: counts[owner], b: counts[other] });
+      return fmt(t.resParty, { name: playerNames[owner], a: counts[owner], b: counts[other] });
     }
-    return fmt(t.resEnergy, { name: names[owner], a: counts[owner], b: counts[other] });
+    return fmt(t.resEnergy, { name: playerNames[owner], a: counts[owner], b: counts[other] });
   }
 
   function verdictFor(ex: ZoneExplanation): string | null {
     if (ex.winner === null) return t.resTiedZone;
-    return fmt(t.resTakesZone, { name: names[ex.winner], zone: ex.zoneId.toUpperCase() });
+    return fmt(t.resTakesZone, { name: playerNames[ex.winner], zone: ex.zoneId.toUpperCase() });
   }
 
   // Displayed scores per zone: past → finals, animated → ticking, future → base.
@@ -182,53 +188,96 @@ export function ResolutionOverlay({
   };
 
   // Card power ticks + pulse/chip keys for the animated zone in apply/verdict.
-  const tick = new Map<string, number>();
-  const pulse = new Set<string>();
-  const chips = new Set<string>();
-  const zoneChipsFor = (ex: ZoneExplanation) => {
-    const effects = ex.adjustments.flatMap((a, i) => {
-      if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
-      const delta = a.to - a.from;
-      return [
-        {
-          key: `${a.owner}-${a.reason}-${i}`,
-          side: a.owner === player ? ('mine' as const) : ('foe' as const),
-          label: `${delta > 0 ? '+' : ''}${delta}`,
-        },
-      ];
-    });
-    const zoneView = views.get(ex.zoneId);
-    if (zoneView) {
-      const mine = getSideHighlight(
-        zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-      );
-      const theirs = getSideHighlight(
-        zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-      );
-      if (
-        !isCreamCancelled(
-          zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId),
+  const tick = useMemo(() => {
+    const map = new Map<string, number>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card') {
+          map.set(
+            keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex),
+            a.to
+          );
+        }
+      }
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const pulse = useMemo(() => {
+    const set = new Set<string>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card') {
+          set.add(keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex));
+        }
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const chips = useMemo(() => {
+    const set = new Set<string>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card' && a.reason !== 'stay-frosty') {
+          set.add(keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex));
+        }
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const zoneExtras = useMemo(() => {
+    const chipsFor = (ex: ZoneExplanation) => {
+      const effects = ex.adjustments.flatMap((a, i) => {
+        if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
+        const delta = a.to - a.from;
+        return [
+          {
+            key: `${a.owner}-${a.reason}-${i}`,
+            side: a.owner === player ? ('mine' as const) : ('foe' as const),
+            label: `${delta > 0 ? '+' : ''}${delta}`,
+          },
+        ];
+      });
+      const zoneView = views.get(ex.zoneId);
+      if (zoneView) {
+        const mine = getSideHighlight(
+          zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+        );
+        const theirs = getSideHighlight(
           zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-        )
-      ) {
-        if (mine.completed.some((c) => c.group === 'berry'))
-          effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
-        if (theirs.completed.some((c) => c.group === 'berry'))
-          effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+        );
+        if (
+          !isCreamCancelled(
+            zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId),
+            zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+          )
+        ) {
+          if (mine.completed.some((c) => c.group === 'berry'))
+            effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
+          if (theirs.completed.some((c) => c.group === 'berry'))
+            effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+        }
       }
-    }
-    return effects;
-  };
-  if (active && (phase === 'apply' || phase === 'verdict')) {
-    for (const a of active.adjustments) {
-      if (a.target.kind === 'card') {
-        const k = keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex);
-        tick.set(k, a.to);
-        pulse.add(k);
-        if (a.reason !== 'stay-frosty') chips.add(k);
-      }
-    }
-  }
+      return effects;
+    };
+    const citrusFor = (ex: ZoneExplanation) =>
+      new Set(
+        ex.adjustments.flatMap((a) => {
+          if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
+          const ref = a.target.ref;
+          return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
+        })
+      );
+    return new Map(
+      explanations.map((ex) => [
+        ex.zoneId,
+        { chips: chipsFor(ex), citrus: citrusFor(ex), verdict: verdictFor(ex) },
+      ])
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [explanations, views, player]);
 
   const withTick = (cards: StripCard[]): StripCard[] =>
     tick.size === 0
@@ -242,15 +291,29 @@ export function ResolutionOverlay({
     else advance();
   };
 
+  // Stable zone-id-keyed tap handler so memoized columns keep prop identity.
+  const handleZoneTap = useCallback(
+    (zoneId: string) => {
+      const i = ZONES.findIndex((z) => z.id === zoneId);
+      if (i >= 0) onZoneTap(i);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inReview, view, zoneIdx, phase, explanations]
+  );
+  const noopRecall = useCallback(() => {}, []);
+
   // Review banner: crown + majority winner (same slot as the sequence banner).
+  // Names render inside <bdi> (bidi-isolated plain text).
   const reviewBanner = (
     <div className="resolution-banner review-banner" role="status">
       <span className="winner-crown" aria-hidden="true">
         <CrownIcon size={28} />
       </span>
       <span className="resolution-text">
-        {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}{' '}
-        {winner ? t.winsTheMatch : t.allTied}
+        <bdi>
+          {winner ? fmt(t.wonMajority, { name: playerNames[winner] }) : t.matchDrawn}{' '}
+          {winner ? t.winsTheMatch : t.allTied}
+        </bdi>
       </span>
     </div>
   );
@@ -268,7 +331,9 @@ export function ResolutionOverlay({
         reviewBanner
       ) : (
         <div className="resolution-banner" onClick={(e) => e.stopPropagation()}>
-          <span className="resolution-text">{banner ?? t.resTapFaster}</span>
+          <span className="resolution-text">
+            <bdi>{banner ?? t.resTapFaster}</bdi>
+          </span>
           <button
             type="button"
             className="btn btn-secondary skip-btn"
@@ -287,13 +352,7 @@ export function ResolutionOverlay({
           const ex = explanations.find((e) => e.zoneId === z.id);
           if (!v || !ex) return null;
           const s = scoreOf(ex);
-          const citrusKeys = new Set(
-            ex.adjustments.flatMap((a) => {
-              if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
-              const ref = a.target.ref;
-              return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
-            })
-          );
+          const extra = zoneExtras.get(ex.zoneId);
           const isActive = !inReview && i === focusIdx;
           const done =
             inReview || i < focusIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
@@ -312,14 +371,14 @@ export function ResolutionOverlay({
               spotlight={isActive}
               dimmed={!inReview && !isActive}
               victory={done && ex.winner === player}
-              verdict={done || (isActive && phase === 'verdict') ? verdictFor(ex) : null}
+              verdict={done || (isActive && phase === 'verdict') ? (extra?.verdict ?? null) : null}
               pulseKeys={isActive ? pulse : undefined}
               chipKeys={isActive ? chips : undefined}
-              citrusKeys={citrusKeys}
-              zoneEffectChips={zoneChipsFor(ex)}
+              citrusKeys={extra?.citrus}
+              zoneEffectChips={extra?.chips}
               mini={true}
-              onZoneClick={() => onZoneTap(i)}
-              onRecall={() => {}}
+              onZoneClick={handleZoneTap}
+              onRecall={noopRecall}
             />
           );
         })}

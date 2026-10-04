@@ -75,6 +75,11 @@ export interface Translations {
   roundN: string;
   takeBack: string;
   oppWaiting: string;
+  oppPlacing: string;
+  oppLocked: string;
+  lockedWaiting: string;
+  waitingOpp: string;
+  noCardsWaiting: string;
   yourTurnHint: string;
   // Zones
   zoneCoolRule: string;
@@ -92,6 +97,7 @@ export interface Translations {
   returnToMenu: string;
   // Title screen + rails + rotate gate
   mainMenu: string;
+  fullscreen: string;
   railStandings: string;
   railLastRound: string;
   railRules: string;
@@ -160,6 +166,39 @@ export interface Translations {
   helpStepReveal: string;
   helpStepScore: string;
   helpMostZones: string;
+  // Online (Phase 3)
+  playOnline: string;
+  onlineTitle: string;
+  onlineName: string;
+  onlineCreate: string;
+  onlineJoin: string;
+  onlineCode: string;
+  onlineCodeHint: string;
+  onlineWaiting: string;
+  onlineCopy: string;
+  onlineCopied: string;
+  onlineReconnecting: string;
+  onlineOppGone: string;
+  onlineBusy: string;
+  onlineUnreachable: string;
+  onlineRetry: string;
+  onlineLeave: string;
+  onlineLeaveSure: string;
+  onlineMatchEnded: string;
+  onlineRoomGone: string;
+  onlineRejoin: string;
+  onlineYouWinForfeit: string;
+  onlineWaitingRematch: string;
+  onlineReadyIn: string;
+  onlineJoining: string;
+  onlineCreating: string;
+  onlineUpdateReload: string;
+  onlineCreateQuick: string;
+  onlineCreateCustom: string;
+  onlineMatchSettings: string;
+  onlineAcceptSettings: string;
+  onlineRulesHeading: string;
+  onlineWaitingAccept: string;
   // Flavors map
   flavors: Record<string, string>;
 }
@@ -268,6 +307,11 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundN: 'Round {n} of 3',
     takeBack: 'Take back {name}',
     oppWaiting: 'waiting for their turn',
+    oppPlacing: 'Opponent: placing…',
+    oppLocked: 'Opponent locked',
+    lockedWaiting: 'Locked — waiting for opponent…',
+    waitingOpp: 'Waiting for opponent…',
+    noCardsWaiting: 'No cards left — waiting for opponent',
     yourTurnHint: 'place 1 or 2 cans',
     // Zones
     zoneCoolRule: 'Lowest Power +1',
@@ -285,6 +329,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     returnToMenu: 'Back to Arena Menu',
     // Title screen + rails + rotate gate
     mainMenu: 'Main Menu',
+    fullscreen: 'Fullscreen',
     railStandings: 'Standings',
     railLastRound: 'Last round',
     railRules: 'Zone rules',
@@ -378,6 +423,39 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     helpStepReveal: 'Cards are revealed',
     helpStepScore: 'Zones score after round 3',
     helpMostZones: 'Win the most zones to win the match',
+    // Online (Phase 3)
+    playOnline: 'Play Online',
+    onlineTitle: 'Online Match',
+    onlineName: 'Your name',
+    onlineCreate: 'Create room',
+    onlineJoin: 'Join room',
+    onlineCode: 'Room code',
+    onlineCodeHint: 'Enter the 6-letter code (no 0, O, 1, I)',
+    onlineWaiting: 'Waiting for an opponent to join',
+    onlineCopy: 'Copy',
+    onlineCopied: 'Copied!',
+    onlineReconnecting: 'Reconnecting…',
+    onlineOppGone: 'Opponent disconnected',
+    onlineBusy: 'Server busy, try again later',
+    onlineUnreachable: "Can't reach server",
+    onlineRetry: 'Retry',
+    onlineLeave: 'Leave',
+    onlineLeaveSure: 'Leave this match?',
+    onlineMatchEnded: 'That match has ended',
+    onlineRoomGone: 'That room is no longer available',
+    onlineRejoin: 'Rejoin your match',
+    onlineYouWinForfeit: 'Opponent left — you win!',
+    onlineWaitingRematch: 'Waiting for opponent to rematch…',
+    onlineReadyIn: 'Next round in {n}s',
+    onlineJoining: 'Joining…',
+    onlineCreating: 'Creating…',
+    onlineUpdateReload: 'A new version is available — please reload to update',
+    onlineCreateQuick: 'Create Quick Room',
+    onlineCreateCustom: 'Custom Settings…',
+    onlineMatchSettings: 'Match Settings',
+    onlineAcceptSettings: 'Accept',
+    onlineRulesHeading: 'Host set custom rules:',
+    onlineWaitingAccept: 'Waiting for opponent to accept settings…',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -467,6 +545,11 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     roundN: 'الجولة {n} من 3',
     takeBack: 'استرجاع {name}',
     oppWaiting: 'بانتظار دوره',
+    oppPlacing: 'الخصم: يضع الكروت…',
+    oppLocked: 'الخصم أكّد',
+    lockedWaiting: 'تم التأكيد — بانتظار الخصم…',
+    waitingOpp: 'بانتظار الخصم…',
+    noCardsWaiting: 'لا كروت متبقية — بانتظار الخصم',
     yourTurnHint: 'ضع كانًا أو كانين',
     // Zones
     zoneCoolRule: 'الأقل قوة +1',
@@ -484,6 +567,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     returnToMenu: 'العودة للساحة الرئيسية',
     // Title screen + rails + rotate gate
     mainMenu: 'القائمة الرئيسية',
+    fullscreen: 'ملء الشاشة',
     railStandings: 'الترتيب',
     railLastRound: 'الجولة الماضية',
     railRules: 'قواعد المناطق',
@@ -576,6 +660,39 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     helpStepReveal: 'تُكشف البطاقات',
     helpStepScore: 'تُحسب المناطق بعد الجولة الثالثة',
     helpMostZones: 'الفوز بأكبر عدد من المناطق يحسم المباراة',
+    // Online (Phase 3)
+    playOnline: 'العب أونلاين',
+    onlineTitle: 'مباراة أونلاين',
+    onlineName: 'اسمك',
+    onlineCreate: 'إنشاء غرفة',
+    onlineJoin: 'الانضمام لغرفة',
+    onlineCode: 'رمز الغرفة',
+    onlineCodeHint: 'أدخل الرمز المكون من ٦ حروف (بدون ٠ أو O أو ١ أو I)',
+    onlineWaiting: 'في انتظار انضمام الخصم…',
+    onlineCopy: 'نسخ',
+    onlineCopied: 'تم النسخ!',
+    onlineReconnecting: 'جارٍ إعادة الاتصال…',
+    onlineOppGone: 'انقطع اتصال الخصم',
+    onlineBusy: 'الخادم مشغول، حاول لاحقًا',
+    onlineUnreachable: 'تعذر الوصول للخادم',
+    onlineRetry: 'إعادة المحاولة',
+    onlineLeave: 'مغادرة',
+    onlineLeaveSure: 'مغادرة هذه المباراة؟',
+    onlineMatchEnded: 'انتهت هذه المباراة',
+    onlineRoomGone: 'لم تعد هذه الغرفة متاحة',
+    onlineRejoin: 'العودة لمباراتك',
+    onlineYouWinForfeit: 'غادر الخصم — فزت!',
+    onlineWaitingRematch: 'بانتظار موافقة الخصم على مباراة جديدة…',
+    onlineReadyIn: 'الجولة التالية بعد {n} ث',
+    onlineJoining: 'جارٍ الانضمام…',
+    onlineCreating: 'جارٍ الإنشاء…',
+    onlineUpdateReload: 'يتوفر إصدار جديد — يرجى تحديث الصفحة',
+    onlineCreateQuick: 'إنشاء غرفة سريعة',
+    onlineCreateCustom: 'إعدادات مخصصة…',
+    onlineMatchSettings: 'إعدادات المباراة',
+    onlineAcceptSettings: 'قبول',
+    onlineRulesHeading: 'حدد المضيف قواعد مخصصة:',
+    onlineWaitingAccept: 'في انتظار قبول الخصم للإعدادات…',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',

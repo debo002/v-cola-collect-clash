@@ -1,10 +1,10 @@
-import { type PointerEvent as ReactPointerEvent } from 'react';
+import { memo, type PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../../game/cards';
-import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
+import { cardGroups } from '../comboTheme';
 import { CardHoldPreview } from '../CardHoldPreview';
 
 /**
@@ -12,8 +12,11 @@ import { CardHoldPreview } from '../CardHoldPreview';
  * stacked in a slim side column. The status line shows the hint by default
  * and the selected card's full effect text (wrapping, never ellipsis);
  * the dock sizes to fit it. All targets ≥56 stage px.
+ *
+ * Memoized: Board re-renders every pointermove drag frame; the dock only
+ * cares about draggingIndex (not x/y), so stable props let it skip those.
  */
-export function Hand({
+export const Hand = memo(function Hand({
   visibleCards,
   selected,
   draggingIndex,
@@ -91,7 +94,7 @@ export function Hand({
             const displayName = t.flavors[flavor.id] || flavor.name;
             const isSelected = selected === i;
             const isDragging = draggingIndex === i;
-            const groups = getCardGroups(flavor.id as FlavorId);
+            const groups = cardGroups(flavor.id as FlavorId);
             return (
               <button
                 key={i === drawnHandIndex ? `${i}-draw-${drawAnimKey}` : i}
@@ -144,4 +147,4 @@ export function Hand({
       </div>
     </div>
   );
-}
+});
