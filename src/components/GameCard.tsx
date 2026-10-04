@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useLayoutEffect, useRef } from 'react';
+import { memo, useLayoutEffect, useRef } from 'react';
 import type { ComboGroup } from '../game/effects';
 import type { Flavor } from '../game/types';
 import { flavorImageUrl } from './assetPaths';
@@ -20,7 +20,7 @@ const NAME_FLOOR_PX = 8;
  * outline + effect/progress chips are driven by zone combo state; greyed
  * dims group colors in Cream zones.
  */
-export function GameCard({
+export const GameCard = memo(function GameCard({
   flavor,
   power,
   displayName,
@@ -144,4 +144,4 @@ export function GameCard({
       ) : null}
     </article>
   );
-}
+});

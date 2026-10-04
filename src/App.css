@@ -190,6 +190,7 @@
   justify-content: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
+  position: relative;
   background: radial-gradient(
     circle at 50% 30%,
     rgba(230, 30, 43, 0.15) 0%,
@@ -727,7 +728,7 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  height: 44px;
+  height: 24px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -3047,4 +3048,40 @@
   flex-direction: column;
   gap: 6px;
   font-size: 15px;
+}
+
+/* Small screens: cut glow/paint cost (box-shadow keyframes + static combo
+ * glows are the most expensive paints on phones). Transform/opacity
+ * one-shots (cardPop, flipCard, chipFloat) keep running. */
+@media (max-height: 480px), (pointer: coarse) {
+  .zone-energy .zone-pillar,
+  .pillar-verdict,
+  .review-actions .btn,
+  .mini-col .pillar-rule,
+  .glow-pulse,
+  .timer-ring.urgent {
+    animation: none !important;
+  }
+  .game-card.has-combo {
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.55);
+  }
+  .game-card.selected {
+    box-shadow:
+      0 5px 0 rgba(0, 0, 0, 0.55),
+      0 0 0 2px #ffd875;
+  }
+  .legend-pop {
+    backdrop-filter: none;
+  }
+}
+
+/* Fullscreen toggle: absolute corner so the main action row keeps its width. */
+.title-fullscreen {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  padding: 8px 14px;
+  font-size: 14px;
+  min-height: 0;
+  z-index: 2;
 }

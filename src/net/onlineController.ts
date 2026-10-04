@@ -3,6 +3,7 @@ import type { Player } from '../game/match';
 import { connectSocket, type SocketClock, type SocketFactory, type SocketHandle } from './socket';
 import { clearSession } from './sessionStore';
 import { wsUrl } from './http';
+import { noteIntentSent, noteViewReceived } from './perfProbe';
 
 export type OnlineConnection =
   | 'connecting'
@@ -172,6 +173,7 @@ export class OnlineController implements GameController {
       this.reject('not-connected');
       return;
     }
+    noteIntentSent(this.clock.now());
     this.socket?.send(JSON.stringify({ type: 'intent', intent }));
   }
 
@@ -216,6 +218,7 @@ export class OnlineController implements GameController {
     }
     if (msg.type === 'view' && msg.view !== undefined) {
       const envelope = msg as EnvelopeView;
+      noteViewReceived(this.clock.now());
       // Version skew: an old client may receive a newer view shape (or vice
       // versa). Validate the load-bearing fields; unknown fields are
       // ignored. An unrecognized shape latches needsRefresh ("reload to

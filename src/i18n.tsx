@@ -97,6 +97,7 @@ export interface Translations {
   returnToMenu: string;
   // Title screen + rails + rotate gate
   mainMenu: string;
+  fullscreen: string;
   railStandings: string;
   railLastRound: string;
   railRules: string;
@@ -328,6 +329,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     returnToMenu: 'Back to Arena Menu',
     // Title screen + rails + rotate gate
     mainMenu: 'Main Menu',
+    fullscreen: 'Fullscreen',
     railStandings: 'Standings',
     railLastRound: 'Last round',
     railRules: 'Zone rules',
@@ -565,6 +567,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     returnToMenu: 'العودة للساحة الرئيسية',
     // Title screen + rails + rotate gate
     mainMenu: 'القائمة الرئيسية',
+    fullscreen: 'ملء الشاشة',
     railStandings: 'الترتيب',
     railLastRound: 'الجولة الماضية',
     railRules: 'قواعد المناطق',

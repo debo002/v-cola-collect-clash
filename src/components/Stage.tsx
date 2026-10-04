@@ -5,14 +5,17 @@ import { useI18n } from '../i18n';
  * Landscape stage shell (MASTER.md spacing/motion; brand tokens untouched).
  *
  * Fixed design height (STAGE_H) with flexible design width (MIN_W–MAX_W).
- * Scaled by HEIGHT ONLY: scale = max(viewportH / STAGE_H, MIN_SCALE), so the
- * board looks identical on phone, laptop and projector. On-screen pixels =
- * stage px × scale, so 44px touch targets need >= 55 stage px at min scale.
+ * Scaled to FIT the viewport exactly: scale = min(h/STAGE_H, w/MIN_W), so
+ * nothing is ever cropped — on a 640x360 phone the whole board fits (the
+ * old 0.8 floor overflowed 24px vertically). On-screen pixels = stage px ×
+ * scale. Viewport units in CSS use dvh (dynamic toolbar height) with vh
+ * fallback; the native safe area pads the centering box via CSS.
  */
 export const STAGE_H = 480;
 export const STAGE_MIN_W = 720;
 export const STAGE_MAX_W = 1100;
-export const STAGE_MIN_SCALE = 0.8;
+/** Absolute floor so targets never shrink past usability (fits 640x360). */
+export const STAGE_MIN_SCALE = 0.75;
 
 interface ScaleInfo {
   scale: number;
@@ -55,7 +58,8 @@ export function Stage({ children }: { children: ReactNode }) {
   }, []);
 
   const portrait = h > w;
-  const scale = Math.max(h / STAGE_H, STAGE_MIN_SCALE);
+  // Exact fit: never crop vertically or horizontally (min supported 640x360).
+  const scale = Math.max(Math.min(h / STAGE_H, w / STAGE_MIN_W), STAGE_MIN_SCALE);
   const stageW = Math.min(STAGE_MAX_W, Math.max(STAGE_MIN_W, w / scale));
   const [lockTried, setLockTried] = useState(false);
 

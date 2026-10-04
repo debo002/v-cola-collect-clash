@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { getFlavorById } from '../../game/cards';
-import { getCardGroups } from '../../game/effects';
 import type { FlavorId } from '../../game/types';
 import { fmt, useI18n } from '../../i18n';
-import { COMBO_COLORS } from '../comboTheme';
+import { COMBO_COLORS, cardGroups } from '../comboTheme';
 import { GameCard } from '../GameCard';
 import { CardHoldPreview } from '../CardHoldPreview';
 import { CoolIcon, EnergyIcon, PartyIcon } from '../icons';
@@ -68,30 +67,11 @@ function useStripFit(count: number): {
  * - stagger: reveal stagger delay base ms (index × 60ms added per card)
  * - mini: compact pillar text for the resolution panel
  * - zoneEffectChips: one badge per zone-total adjustment
+ *
+ * Memoized: Board/ResolutionOverlay re-render per drag-move and per count-up
+ * tick; columns with unchanged props skip reconciliation.
  */
-export function ZoneColumn({
-  zoneId,
-  zoneName,
-  zoneRule,
-  foeCards,
-  myCards,
-  foeScore,
-  myScore,
-  dropReady,
-  dropTarget,
-  spotlight,
-  dimmed,
-  victory,
-  verdict,
-  pulseKeys,
-  chipKeys,
-  citrusKeys,
-  stagger,
-  mini,
-  zoneEffectChips,
-  onZoneClick,
-  onRecall,
-}: {
+export const ZoneColumn = memo(function ZoneColumn(props: {
   zoneId: string;
   zoneName: string;
   zoneRule: string;
@@ -114,6 +94,29 @@ export function ZoneColumn({
   onZoneClick: (zoneId: string) => void;
   onRecall: (handIndex: number) => void;
 }) {
+  const {
+    zoneId,
+    zoneName,
+    zoneRule,
+    foeCards,
+    myCards,
+    foeScore,
+    myScore,
+    dropReady,
+    dropTarget,
+    spotlight,
+    dimmed,
+    victory,
+    verdict,
+    pulseKeys,
+    chipKeys,
+    citrusKeys,
+    stagger,
+    mini,
+    zoneEffectChips,
+    onZoneClick,
+    onRecall,
+  } = props;
   const { t } = useI18n();
   const leading: 'mine' | 'foe' | 'tied' | 'none' =
     myScore === 0 && foeScore === 0
@@ -155,7 +158,7 @@ export function ZoneColumn({
       staggerMs != null
         ? ({ animationDelay: `${staggerMs}ms`, '--pop-delay': `${staggerMs}ms` } as CSSProperties)
         : undefined;
-    const groups = getCardGroups(flavor.id as FlavorId);
+    const groups = cardGroups(flavor.id as FlavorId);
     const { completion, partial } = comboFor(c, side);
     const citrus = (side === 'mine' ? myHi : foeHi).completed.find(
       (item) => item.group === 'citrus'
@@ -287,4 +290,4 @@ export function ZoneColumn({
       </div>
     </div>
   );
-}
+});

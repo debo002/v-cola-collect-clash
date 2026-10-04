@@ -11,8 +11,18 @@ import { OnlinePlay } from './screens/OnlinePlay';
 import { loadSession, type OnlineSession } from './net/sessionStore';
 import { I18nProvider, useI18n } from './i18n';
 import { Stage } from './components/Stage';
-import { NamesHarness } from './components/NamesHarness';
+import { DebugOverlay } from './components/DebugOverlay';
+import { BoardHarness, NamesHarness } from './components/NamesHarness';
 import './App.css';
+
+/** ?debug=1 overlay for on-phone perf reads (off by default). */
+function useDebug(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get('debug') === '1';
+  } catch {
+    return false;
+  }
+}
 
 type Tab = 'play' | 'deck' | 'online';
 
@@ -80,6 +90,20 @@ function MainApp() {
     return (
       <main className={`demo${isRTL ? ' rtl' : ''}`}>
         <NamesHarness />
+      </main>
+    );
+  }
+
+  if (harness === 'board') {
+    let scene = 'full';
+    try {
+      scene = new URLSearchParams(window.location.search).get('scene') ?? 'full';
+    } catch {
+      scene = 'full';
+    }
+    return (
+      <main className={`demo${isRTL ? ' rtl' : ''}`}>
+        <BoardHarness scene={scene} />
       </main>
     );
   }
@@ -175,8 +199,14 @@ function App() {
   return (
     <I18nProvider>
       <MainApp />
+      <DebugGate />
     </I18nProvider>
   );
+}
+
+function DebugGate() {
+  const debug = useDebug();
+  return debug ? <DebugOverlay /> : null;
 }
 
 export default App;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Player } from '../../game/match';
 import type { PlayerView } from '../../game/controller';
 import type { ZoneExplanation } from '../../game/scoring';
@@ -183,53 +183,96 @@ export function ResolutionOverlay({
   };
 
   // Card power ticks + pulse/chip keys for the animated zone in apply/verdict.
-  const tick = new Map<string, number>();
-  const pulse = new Set<string>();
-  const chips = new Set<string>();
-  const zoneChipsFor = (ex: ZoneExplanation) => {
-    const effects = ex.adjustments.flatMap((a, i) => {
-      if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
-      const delta = a.to - a.from;
-      return [
-        {
-          key: `${a.owner}-${a.reason}-${i}`,
-          side: a.owner === player ? ('mine' as const) : ('foe' as const),
-          label: `${delta > 0 ? '+' : ''}${delta}`,
-        },
-      ];
-    });
-    const zoneView = views.get(ex.zoneId);
-    if (zoneView) {
-      const mine = getSideHighlight(
-        zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-      );
-      const theirs = getSideHighlight(
-        zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-      );
-      if (
-        !isCreamCancelled(
-          zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId),
+  const tick = useMemo(() => {
+    const map = new Map<string, number>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card') {
+          map.set(
+            keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex),
+            a.to
+          );
+        }
+      }
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const pulse = useMemo(() => {
+    const set = new Set<string>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card') {
+          set.add(keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex));
+        }
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const chips = useMemo(() => {
+    const set = new Set<string>();
+    if (active && (phase === 'apply' || phase === 'verdict')) {
+      for (const a of active.adjustments) {
+        if (a.target.kind === 'card' && a.reason !== 'stay-frosty') {
+          set.add(keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex));
+        }
+      }
+    }
+    return set;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, phase, player]);
+  const zoneExtras = useMemo(() => {
+    const chipsFor = (ex: ZoneExplanation) => {
+      const effects = ex.adjustments.flatMap((a, i) => {
+        if ((a.target.kind !== 'zone' && a.reason !== 'stay-frosty') || !a.owner) return [];
+        const delta = a.to - a.from;
+        return [
+          {
+            key: `${a.owner}-${a.reason}-${i}`,
+            side: a.owner === player ? ('mine' as const) : ('foe' as const),
+            label: `${delta > 0 ? '+' : ''}${delta}`,
+          },
+        ];
+      });
+      const zoneView = views.get(ex.zoneId);
+      if (zoneView) {
+        const mine = getSideHighlight(
+          zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+        );
+        const theirs = getSideHighlight(
           zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
-        )
-      ) {
-        if (mine.completed.some((c) => c.group === 'berry'))
-          effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
-        if (theirs.completed.some((c) => c.group === 'berry'))
-          effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+        );
+        if (
+          !isCreamCancelled(
+            zoneView.myCards.map((c) => c.flavorId as import('../../game/types').FlavorId),
+            zoneView.foeCards.map((c) => c.flavorId as import('../../game/types').FlavorId)
+          )
+        ) {
+          if (mine.completed.some((c) => c.group === 'berry'))
+            effects.push({ key: 'mine-berry', side: 'mine' as const, label: 'WIN' });
+          if (theirs.completed.some((c) => c.group === 'berry'))
+            effects.push({ key: 'foe-berry', side: 'foe' as const, label: 'WIN' });
+        }
       }
-    }
-    return effects;
-  };
-  if (active && (phase === 'apply' || phase === 'verdict')) {
-    for (const a of active.adjustments) {
-      if (a.target.kind === 'card') {
-        const k = keyOf(player, a.target.ref.owner, a.target.ref.round, a.target.ref.handIndex);
-        tick.set(k, a.to);
-        pulse.add(k);
-        if (a.reason !== 'stay-frosty') chips.add(k);
-      }
-    }
-  }
+      return effects;
+    };
+    const citrusFor = (ex: ZoneExplanation) =>
+      new Set(
+        ex.adjustments.flatMap((a) => {
+          if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
+          const ref = a.target.ref;
+          return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
+        })
+      );
+    return new Map(
+      explanations.map((ex) => [
+        ex.zoneId,
+        { chips: chipsFor(ex), citrus: citrusFor(ex), verdict: verdictFor(ex) },
+      ])
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [explanations, views, player]);
 
   const withTick = (cards: StripCard[]): StripCard[] =>
     tick.size === 0
@@ -242,6 +285,17 @@ export function ResolutionOverlay({
     if (inReview) startReplay(i);
     else advance();
   };
+
+  // Stable zone-id-keyed tap handler so memoized columns keep prop identity.
+  const handleZoneTap = useCallback(
+    (zoneId: string) => {
+      const i = ZONES.findIndex((z) => z.id === zoneId);
+      if (i >= 0) onZoneTap(i);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inReview, view, zoneIdx, phase, explanations]
+  );
+  const noopRecall = useCallback(() => {}, []);
 
   // Review banner: crown + majority winner (same slot as the sequence banner).
   // Names render inside <bdi> (bidi-isolated plain text).
@@ -293,13 +347,7 @@ export function ResolutionOverlay({
           const ex = explanations.find((e) => e.zoneId === z.id);
           if (!v || !ex) return null;
           const s = scoreOf(ex);
-          const citrusKeys = new Set(
-            ex.adjustments.flatMap((a) => {
-              if (a.reason !== 'citrus-trio-double-lowest' || a.target.kind !== 'card') return [];
-              const ref = a.target.ref;
-              return [keyOf(player, ref.owner, ref.round, ref.handIndex)];
-            })
-          );
+          const extra = zoneExtras.get(ex.zoneId);
           const isActive = !inReview && i === focusIdx;
           const done =
             inReview || i < focusIdx || (isActive && (phase === 'apply' || phase === 'verdict'));
@@ -318,14 +366,14 @@ export function ResolutionOverlay({
               spotlight={isActive}
               dimmed={!inReview && !isActive}
               victory={done && ex.winner === player}
-              verdict={done || (isActive && phase === 'verdict') ? verdictFor(ex) : null}
+              verdict={done || (isActive && phase === 'verdict') ? (extra?.verdict ?? null) : null}
               pulseKeys={isActive ? pulse : undefined}
               chipKeys={isActive ? chips : undefined}
-              citrusKeys={citrusKeys}
-              zoneEffectChips={zoneChipsFor(ex)}
+              citrusKeys={extra?.citrus}
+              zoneEffectChips={extra?.chips}
               mini={true}
-              onZoneClick={() => onZoneTap(i)}
-              onRecall={() => {}}
+              onZoneClick={handleZoneTap}
+              onRecall={noopRecall}
             />
           );
         })}

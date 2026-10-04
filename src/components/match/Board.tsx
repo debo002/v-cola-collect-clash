@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { getFlavorById } from '../../game/cards';
-import { getCardGroups } from '../../game/effects';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
 import { MAX_PLACE, MIN_PLACE, type Player } from '../../game/match';
@@ -11,6 +17,7 @@ import type { ZoneExplanation, ZoneResult } from '../../game/scoring';
 import { ZONES } from '../../game/zones';
 import { fmt, useI18n } from '../../i18n';
 import { GameCard } from '../GameCard';
+import { cardGroups } from '../comboTheme';
 import { useStageScale } from '../Stage';
 import {
   allUsedIndicesFromView,
@@ -109,6 +116,7 @@ export function Board({
     isDragging: boolean;
     longPressed: boolean;
   } | null>(null);
+  const rafPending = useRef(false);
 
   function zoneFromPoint(x: number, y: number): string | null {
     // elementFromPoint takes viewport (client) coords, which are already
@@ -160,8 +168,17 @@ export function Board({
     const dist = Math.hypot(e.clientX - state.startX, e.clientY - state.startY);
     if (!state.isDragging && dist <= 7) return;
     state.isDragging = true;
-    setDrag({ handIndex: state.handIndex, x: e.clientX, y: e.clientY });
-    setHoverZone(zoneFromPoint(e.clientX, e.clientY));
+    // rAF-throttle: pointermove can fire >60/s; one Board update per frame
+    // is enough (also rate-limits the elementFromPoint layout per move).
+    if (rafPending.current) return;
+    rafPending.current = true;
+    const x = e.clientX;
+    const y = e.clientY;
+    requestAnimationFrame(() => {
+      rafPending.current = false;
+      setDrag({ handIndex: state.handIndex, x, y });
+      setHoverZone(zoneFromPoint(x, y));
+    });
   }
 
   function onWindowPointerUp(e: PointerEvent) {
@@ -240,33 +257,69 @@ export function Board({
     energy: t.zoneEnergyRule,
   };
 
-  interface ZoneView {
+  interface ZoneModel {
+    zoneId: string;
     foeCards: StripCard[];
     myCards: StripCard[];
     foeScore: number;
     myScore: number;
+    zoneEffectChips: readonly { key: string; side: 'mine' | 'foe'; label: string }[];
+    victory: boolean;
+    hasResult: boolean;
   }
 
-  const views = new Map<string, ZoneView>();
-
-  const rawViews = buildZoneViewsFromView(view, {
-    foeVisible: isRevealing,
-    recallable: !isRevealing,
-  });
-  for (const z of ZONES) {
-    const raw = rawViews.get(z.id);
-    if (!raw) continue;
-    // If the match is over and scored, show official totals.
-    const zResult = results?.find((r) => r.zoneId === z.id);
-    const myScore = zResult ? zResult.totals[player] : raw.myBase;
-    const foeScore = zResult ? zResult.totals[foe] : raw.foeBase;
-    views.set(z.id, {
-      foeCards: raw.foeCards,
-      myCards: raw.myCards,
-      foeScore,
-      myScore,
+  // Memoized per-zone models (cards, scores, chips): drag moves and other
+  // parent updates reuse them, so memoized ZoneColumns skip reconciliation.
+  const zoneModels: ZoneModel[] = useMemo(() => {
+    const rawViews = buildZoneViewsFromView(view, {
+      foeVisible: isRevealing,
+      recallable: !isRevealing,
     });
-  }
+    return ZONES.map((z) => {
+      const raw = rawViews.get(z.id);
+      const zResult = results?.find((r) => r.zoneId === z.id);
+      const myScore = zResult ? zResult.totals[player] : (raw?.myBase ?? 0);
+      const foeScore = zResult ? zResult.totals[foe] : (raw?.foeBase ?? 0);
+      const myCards = raw?.myCards ?? [];
+      const foeCards = raw?.foeCards ?? [];
+      const myFlavors = myCards.map((c) => c.flavorId as FlavorId);
+      const foeFlavors = foeCards.map((c) => c.flavorId as FlavorId);
+      const myHi = getSideHighlight(myFlavors);
+      const foeHi = getSideHighlight(foeFlavors);
+      const cancelled = isCreamCancelled(myFlavors, foeFlavors);
+      const zoneEffectChips = cancelled
+        ? []
+        : [
+            ...myHi.completed
+              .filter((e) => e.group !== 'citrus')
+              .map((e, i) => ({
+                key: `m-${e.group}-${i}`,
+                side: 'mine' as const,
+                label: e.chip,
+              })),
+            ...foeHi.completed
+              .filter((e) => e.group !== 'citrus')
+              .map((e, i) => ({
+                key: `f-${e.group}-${i}`,
+                side: 'foe' as const,
+                label: e.chip,
+              })),
+          ];
+      return {
+        zoneId: z.id,
+        foeCards,
+        myCards,
+        foeScore,
+        myScore,
+        zoneEffectChips,
+        victory: zResult?.winner === player,
+        hasResult: zResult !== undefined,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, isRevealing, results, player, foe]);
+
+  const handleRecall = useCallback((i: number) => onUnplace(i), [onUnplace]);
 
   // Keep selection valid after recalls.
   const effectiveSelected =
@@ -314,33 +367,9 @@ export function Board({
           </div>
         ) : null}
         <div className="zones-row">
-          {ZONES.map((z, zi) => {
-            const v = views.get(z.id);
-            if (!v) return null;
-            const zResult = results?.find((r) => r.zoneId === z.id);
-            const myFlavors = v.myCards.map((c) => c.flavorId as FlavorId);
-            const foeFlavors = v.foeCards.map((c) => c.flavorId as FlavorId);
-            const myHi = getSideHighlight(myFlavors);
-            const foeHi = getSideHighlight(foeFlavors);
-            const cancelled = isCreamCancelled(myFlavors, foeFlavors);
-            const zoneEffectChips = cancelled
-              ? []
-              : [
-                  ...myHi.completed
-                    .filter((e) => e.group !== 'citrus')
-                    .map((e, i) => ({
-                      key: `m-${e.group}-${i}`,
-                      side: 'mine' as const,
-                      label: e.chip,
-                    })),
-                  ...foeHi.completed
-                    .filter((e) => e.group !== 'citrus')
-                    .map((e, i) => ({
-                      key: `f-${e.group}-${i}`,
-                      side: 'foe' as const,
-                      label: e.chip,
-                    })),
-                ];
+          {zoneModels.map((v, zi) => {
+            const z = ZONES[zi];
+            if (!z) return null;
             return (
               <ZoneColumn
                 key={z.id}
@@ -355,11 +384,11 @@ export function Board({
                 dropTarget={!isRevealing && !drawingRequired && hoverZone === z.id}
                 spotlight={false}
                 dimmed={false}
-                victory={zResult?.winner === player}
-                zoneEffectChips={zoneEffectChips}
+                victory={v.victory}
+                zoneEffectChips={v.zoneEffectChips}
                 stagger={isRevealing && !isMatchOver ? zi * 220 : null}
                 onZoneClick={handleZoneClick}
-                onRecall={(i) => onUnplace(i)}
+                onRecall={handleRecall}
               />
             );
           })}
@@ -418,7 +447,7 @@ export function Board({
                 flavor={ghostFlavor}
                 power={hand[drag.handIndex].power}
                 displayName={t.flavors[ghostFlavor.id] || ghostFlavor.name}
-                groups={getCardGroups(ghostFlavor.id as FlavorId)}
+                groups={cardGroups(ghostFlavor.id as FlavorId)}
               />
             </div>,
             document.body
