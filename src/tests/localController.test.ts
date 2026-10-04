@@ -292,6 +292,37 @@ describe('LocalController', () => {
     expect(latest(big).phase).toBe('roundReveal');
   });
 
+  it('hot-seat draw-per-round: A finishing draws must not auto-lock B (smoke-custom)', () => {
+    // Regression: B has an empty hand and stale drawsLeft 0 before its turn
+    // begins. Completing A's draws used to auto-lock B via the both-seats
+    // scope in maybeStartPlacement, so A's lock revealed immediately and B's
+    // turn (and its pass screen) was skipped entirely.
+    const { controller } = make();
+    controller.startCustomGame({
+      ...customConfig(),
+      dealing: 'draw-per-round',
+      drawPerRound: 2,
+    });
+    controller.setSeat('A');
+    controller.send({ type: 'draw' });
+    controller.send({ type: 'draw' });
+    // B never began: not locked, not "empty" for pass-screen purposes.
+    expect(latest(controller).locks.B).toBe(false);
+    expect(controller.isSeatEmpty('B')).toBe(false);
+    controller.send({ type: 'place', handIndex: 0, zone: 'cool' });
+    controller.send({ type: 'place', handIndex: 1, zone: 'party' });
+    controller.send({ type: 'lock' });
+    expect(latest(controller).locks).toEqual({ A: true, B: false });
+    // B's turn begins normally with its own draws.
+    controller.setSeat('B');
+    expect(latest(controller).locks.B).toBe(false);
+    controller.send({ type: 'draw' });
+    controller.send({ type: 'draw' });
+    controller.send({ type: 'place', handIndex: 0, zone: 'cool' });
+    controller.send({ type: 'lock' });
+    expect(latest(controller).phase).toBe('roundReveal');
+  });
+
   it('hidden info: opponent count/zones/recall invisible pre-reveal, visible after', () => {
     const cfg: GameConfig = { ...customConfig(), maxPlacedPerRound: 3 };
     type Run = (c: LocalController, base: number) => void;

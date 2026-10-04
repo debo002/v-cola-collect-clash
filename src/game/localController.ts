@@ -144,6 +144,7 @@ export class LocalController implements GameController {
    */
   isSeatEmpty(seat: Player): boolean {
     if (this.room === null || this.room.stage !== 'placing') return false;
+    if (!this.room.begun[seat]) return false;
     if (this.room.drawsLeft[seat] > 0) return false;
     return unusedIndices(this.room.match, seat).length === 0;
   }

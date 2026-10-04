@@ -59,6 +59,13 @@ export interface RoomState {
   readonly match: MatchState;
   readonly decks: Readonly<Record<Player, readonly FlavorId[]>>;
   readonly drawsLeft: Readonly<Record<Player, number>>;
+  /**
+   * Whether this seat's draws were set up for the round (beginTurn per seat,
+   * or advanceRound for both). A seat with stale drawsLeft 0 that never
+   * began (hot-seat opponent's pre-turn state) must never auto-lock: its
+   * draws simply haven't been arranged yet.
+   */
+  readonly begun: Readonly<Record<Player, boolean>>;
   /** Displayed deadline: drawMs ?? placeMs. */
   readonly deadlineMs: number | null;
   readonly drawMs: number | null;
@@ -94,6 +101,7 @@ export function createRoomState(
     match: createMatch(handA, handB, config),
     decks: { A: poolA, B: poolB },
     drawsLeft: { A: 0, B: 0 },
+    begun: { A: false, B: false },
     deadlineMs: null,
     drawMs: null,
     placeMs: null,
@@ -134,6 +142,7 @@ function autoLockEmpty(
   let changed = false;
   for (const seat of seats) {
     if (match.locks[seat]) continue;
+    if (!state.begun[seat]) continue;
     if (state.drawsLeft[seat] > 0) continue;
     if (unusedIndices(match, seat).length > 0) continue;
     match = { ...match, locks: { ...match.locks, [seat]: true } };
@@ -161,6 +170,7 @@ export function beginTurn(state: RoomState, seat: Player, ctx: EngineCtx): RoomS
   const next: RoomState = {
     ...state,
     drawsLeft: { ...state.drawsLeft, [seat]: count },
+    begun: { ...state.begun, [seat]: true },
     drawMs: count > 0 ? ctx.now + DRAW_SECONDS * 1000 : null,
     placeMs: count === 0 ? ctx.now + PLACE_SECONDS * 1000 : null,
   };
@@ -218,6 +228,9 @@ function advanceRound(state: RoomState, ctx: EngineCtx): RoomState {
     stage: 'placing',
     ready: { A: false, B: false },
     readyMs: null,
+    // New-round setup arranges both seats' draws at once (draw-per-round
+    // counts above; reveal-all needs nothing), so both seats may auto-lock.
+    begun: { A: true, B: true },
   };
   if (next.config.dealing === 'draw-per-round') {
     const drawsLeft = {
