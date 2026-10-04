@@ -3020,3 +3020,29 @@
   color: #fff;
   font-weight: 800;
 }
+.settings-review {
+  justify-content: flex-start;
+  padding-top: 24px;
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+}
+.settings-review h3 {
+  font-family: 'Lilita One', system-ui, sans-serif;
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+.settings-review-hint {
+  font-size: 13px;
+  opacity: 0.75;
+  margin: 0 0 8px;
+}
+.settings-review-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}

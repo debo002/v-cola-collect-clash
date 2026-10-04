@@ -372,4 +372,177 @@ describe('roomServer', () => {
     );
     expect(joined.headers.get('Access-Control-Allow-Origin')).toBe('*');
   });
+
+  it('worker validates custom GameConfig over the wire (valid accepts, invalid rejects)', async () => {
+    const worker = (await import('../../server/worker')).default;
+    type WorkerEnv = Parameters<typeof worker.fetch>[1];
+    const stubFetch = async (url: string | URL | Request): Promise<Response> => {
+      const text = String(url);
+      if (text.endsWith('/internal/exists')) return Response.json({ exists: false });
+      if (text.endsWith('/internal/init')) return Response.json({ ok: true });
+      return new Response('not found', { status: 404 });
+    };
+    const fakeEnv = {
+      ROOM: {
+        idFromName: (name: string) => ({ name }),
+        get: () => ({ fetch: stubFetch }),
+      },
+    } as unknown as WorkerEnv;
+
+    // 1. Valid custom config accepts (200)
+    const validRes = await worker.fetch(
+      new Request('http://x/api/rooms', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Alice', config: config('draw-per-round') }),
+      }),
+      fakeEnv
+    );
+    expect(validRes.status).toBe(200);
+
+    // 2. Invalid drawPerRound rejects (400)
+    const invalidDraw = await worker.fetch(
+      new Request('http://x/api/rooms', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Alice',
+          config: { ...config('draw-per-round'), drawPerRound: 99 },
+        }),
+      }),
+      fakeEnv
+    );
+    expect(invalidDraw.status).toBe(400);
+    const drawErr = (await invalidDraw.json()) as { error: string };
+    expect(drawErr.error).toBe('draw-invalid');
+
+    // 3. Invalid power rejects (400)
+    const invalidPower = await worker.fetch(
+      new Request('http://x/api/rooms', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Alice',
+          config: {
+            ...config(),
+            fixedPower: { ...config().fixedPower, 'v-cola': 10 },
+          },
+        }),
+      }),
+      fakeEnv
+    );
+    expect(invalidPower.status).toBe(400);
+    const powerErr = (await invalidPower.json()) as { error: string };
+    expect(powerErr.error).toBe('power-invalid');
+
+    // 4. Extra unknown key on config rejects (400)
+    const invalidKeys = await worker.fetch(
+      new Request('http://x/api/rooms', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Alice',
+          config: { ...config(), hackedKey: true },
+        }),
+      }),
+      fakeEnv
+    );
+    expect(invalidKeys.status).toBe(400);
+    const keyErr = (await invalidKeys.json()) as { error: string };
+    expect(keyErr.error).toBe('config-invalid');
+  });
+
+  it('custom config is visible to both views and immutable across intents & rematch', () => {
+    const customConfig = config('draw-per-round');
+    const created = createRoom(deps(1_000_000, 42), 'Host', customConfig);
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(1_000_000, 42), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    let row = joined.row;
+    // Config visible in both views
+    const viewA = buildPlayerView(row.room, 'A');
+    const viewB = buildPlayerView(row.room, 'B');
+    expect(viewA.config).toEqual(customConfig);
+    expect(viewB.config).toEqual(customConfig);
+
+    // Apply intents — config remains unchanged
+    row = send(row, 'A', { type: 'draw' }, 42);
+    row = send(row, 'B', { type: 'draw' }, 42);
+    expect(row.room.config).toEqual(customConfig);
+
+    // Rematch preserves the exact custom config
+    row = send(row, 'A', { type: 'draw' }, 42);
+    row = send(row, 'B', { type: 'draw' }, 42);
+    row = send(row, 'A', { type: 'place', handIndex: 0, zone: 'cool' }, 42);
+    row = send(row, 'A', { type: 'lock' }, 42);
+    row = send(row, 'B', { type: 'place', handIndex: 0, zone: 'cool' }, 42);
+    row = send(row, 'B', { type: 'lock' }, 42);
+    row = send(row, 'A', { type: 'ready' }, 42);
+    row = send(row, 'B', { type: 'ready' }, 42);
+    // Round 2
+    row = send(row, 'A', { type: 'draw' }, 42);
+    row = send(row, 'A', { type: 'draw' }, 42);
+    row = send(row, 'B', { type: 'draw' }, 42);
+    row = send(row, 'B', { type: 'draw' }, 42);
+    row = send(row, 'A', { type: 'place', handIndex: 1, zone: 'party' }, 42);
+    row = send(row, 'A', { type: 'lock' }, 42);
+    row = send(row, 'B', { type: 'place', handIndex: 1, zone: 'party' }, 42);
+    row = send(row, 'B', { type: 'lock' }, 42);
+    row = send(row, 'A', { type: 'ready' }, 42);
+    row = send(row, 'B', { type: 'ready' }, 42);
+    // Round 3
+    row = send(row, 'A', { type: 'place', handIndex: 2, zone: 'energy' }, 42);
+    row = send(row, 'A', { type: 'lock' }, 42);
+    row = send(row, 'B', { type: 'place', handIndex: 2, zone: 'energy' }, 42);
+    row = send(row, 'B', { type: 'lock' }, 42);
+    expect(row.room.stage).toBe('complete');
+    expect(row.room.config).toEqual(customConfig);
+
+    // Agree rematch
+    row = send(row, 'A', { type: 'rematch' }, 42);
+    row = send(row, 'B', { type: 'rematch' }, 42);
+    expect(row.room.stage).toBe('placing');
+    expect(row.room.match.round).toBe(1);
+    expect(row.room.config).toEqual(customConfig);
+    expect(buildPlayerView(row.room, 'A').config).toEqual(customConfig);
+    expect(buildPlayerView(row.room, 'B').config).toEqual(customConfig);
+  });
+
+  it('fixed power custom game runs through a full server match with exact powers', () => {
+    const fixedConfig = config('reveal-all');
+    const created = createRoom(deps(1_000_000, 11), 'Host', fixedConfig);
+    if ('error' in created) throw new Error(created.error);
+    const joined = joinRoom(created.row, deps(1_000_000, 11), 'Guest');
+    if ('error' in joined) throw new Error(joined.error);
+
+    let row = joined.row;
+    // Verify initial dealt cards have exact fixed power configured
+    const viewA = buildPlayerView(row.room, 'A');
+    for (const card of viewA.hand) {
+      expect(card.power).toBe(fixedConfig.fixedPower[card.flavor]);
+    }
+    const viewB = buildPlayerView(row.room, 'B');
+    for (const card of viewB.hand) {
+      expect(card.power).toBe(fixedConfig.fixedPower[card.flavor]);
+    }
+
+    // Play 3 rounds
+    for (let r = 0; r < 3; r += 1) {
+      row = send(row, 'A', { type: 'place', handIndex: r * 2, zone: 'cool' }, 11);
+      row = send(row, 'A', { type: 'place', handIndex: r * 2 + 1, zone: 'party' }, 11);
+      row = send(row, 'A', { type: 'lock' }, 11);
+      row = send(row, 'B', { type: 'place', handIndex: r * 2, zone: 'cool' }, 11);
+      row = send(row, 'B', { type: 'place', handIndex: r * 2 + 1, zone: 'party' }, 11);
+      row = send(row, 'B', { type: 'lock' }, 11);
+      if (r < 2) {
+        row = send(row, 'A', { type: 'ready' }, 11);
+        row = send(row, 'B', { type: 'ready' }, 11);
+      }
+    }
+    expect(row.room.stage).toBe('complete');
+    const finalA = buildPlayerView(row.room, 'A');
+    expect(finalA.results).not.toBeNull();
+    expect(finalA.winner).not.toBeUndefined();
+  });
 });

@@ -1,6 +1,5 @@
-import type { GameConfig } from '../src/game/config';
 import { createRoom } from './roomLogic';
-import { cryptoRandom, newRoomCode, validPlayerName } from './protocol';
+import { cryptoRandom, newRoomCode, parseGameConfig, validPlayerName } from './protocol';
 
 export { Room } from './room';
 
@@ -63,10 +62,15 @@ export default {
       }
       const rec = body as Record<string, unknown>;
       if (!validPlayerName(rec.name)) return jsonWithCors({ error: 'bad-name' }, 400);
+      const parsedConfig = parseGameConfig(rec.config);
+      if ('error' in parsedConfig) {
+        return jsonWithCors({ error: parsedConfig.error }, 400);
+      }
+      const { config } = parsedConfig;
       const created = createRoom(
         { now: () => Date.now(), rng: Math.random },
         rec.name,
-        rec.config as GameConfig
+        config
       );
       if ('error' in created) return jsonWithCors({ error: created.error }, 400);
       const code = await uniqueCode(env);

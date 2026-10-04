@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
-import { DEFAULT_GAME_CONFIG } from '../game/config';
+import { DEFAULT_GAME_CONFIG, validateGameConfig, type GameConfig } from '../game/config';
 import type { PlayerView } from '../game/controller';
 import { TIMER_SECONDS, type Player } from '../game/match';
 import type { Players } from '../storage/playersStore';
 import { Stage } from '../components/Stage';
 import { Board } from '../components/match/Board';
 import { TopBar } from '../components/match/TopBar';
+import { CustomGameSetup } from './CustomGameSetup';
 import { fmt, useI18n } from '../i18n';
 import { createOnlineRoom, joinOnlineRoom, OnlineHttpError, serverBaseUrl } from '../net/http';
 import { OnlineController, type OnlineMeta } from '../net/onlineController';
 import { clearSession, saveSession, type OnlineSession } from '../net/sessionStore';
 
-type OnlineStage = 'lobby' | 'waiting' | 'playing' | 'roundReveal' | 'complete' | 'ended';
+type OnlineStage =
+  | 'lobby'
+  | 'customSetup'
+  | 'settingsReview'
+  | 'waiting'
+  | 'playing'
+  | 'roundReveal'
+  | 'complete'
+  | 'ended';
 
 const emptyView: PlayerView = {
   seat: 'A',
@@ -128,16 +137,23 @@ export function OnlinePlay({
     return () => window.clearTimeout(id);
   }, [notice]);
   useEffect(() => {
-    if (stage === 'lobby' || stage === 'ended') return;
+    if (stage === 'lobby' || stage === 'customSetup' || stage === 'ended') return;
     if (view.phase === 'roundReveal') {
       setStage('roundReveal');
     } else if (view.phase === 'complete') {
       setStage('complete');
       setPendingRematch(false);
     } else if (view.phase === 'placing') {
-      setStage(meta.opponentConnected ? 'playing' : 'waiting');
+      // Joiner: if host used custom rules that differ from default, show review screen first
+      const isJoiner = view.seat === 'B';
+      const isCustom = view.config.mode === 'custom';
+      if (isJoiner && isCustom && stage === 'waiting') {
+        setStage('settingsReview');
+      } else {
+        setStage(meta.opponentConnected ? 'playing' : 'waiting');
+      }
     }
-  }, [view.phase, meta.opponentConnected, stage]);
+  }, [view.phase, view.config, view.seat, meta.opponentConnected, stage]);
   useEffect(() => {
     if (meta.connection === 'closed') {
       setEndedKind(meta.closeReason === 'forfeit' ? 'forfeit' : 'ended');
@@ -174,12 +190,19 @@ export function OnlinePlay({
     return () => window.clearInterval(id);
   }, [meta.readyDeadlineMs, stage]);
 
-  async function create() {
+  async function create(config: GameConfig = DEFAULT_GAME_CONFIG) {
     const trimmed = name.trim();
     if (!trimmed || busy !== 'idle') return;
+    // Validate before calling the server; UI should already block this but
+    // the check is cheap and gives a clear notice if somehow bypassed.
+    const configError = validateGameConfig(config);
+    if (configError) {
+      setNotice(configError);
+      return;
+    }
     setBusy('creating');
     try {
-      const room = await createOnlineRoom(baseUrl, trimmed);
+      const room = await createOnlineRoom(baseUrl, trimmed, config);
       await saveSession({ code: room.code, token: room.token, seat: room.seat });
       const controller = new OnlineController(room.seat, room.code, room.token, baseUrl, {
         onSessionGone: handleSessionGone,
@@ -263,6 +286,21 @@ export function OnlinePlay({
   const displayRound = stage === 'roundReveal' ? Math.max(1, view.round - 1) : view.round;
   const showTimer = stage === 'playing' && view.deadlineMs !== null;
 
+  // ── customSetup: host customises config before creating the room ──────────
+  if (stage === 'customSetup') {
+    return (
+      <Stage>
+        <CustomGameSetup
+          onBack={() => setStage('lobby')}
+          onStart={(cfg) => {
+            setStage('lobby');
+            create(cfg);
+          }}
+        />
+      </Stage>
+    );
+  }
+
   if (stage === 'lobby') {
     return (
       <Stage>
@@ -277,9 +315,17 @@ export function OnlinePlay({
               type="button"
               className="btn btn-primary"
               disabled={!name.trim() || busy !== 'idle'}
-              onClick={create}
+              onClick={() => create()}
             >
-              {busy === 'creating' ? t.onlineCreating : t.onlineCreate}
+              {busy === 'creating' ? t.onlineCreating : t.onlineCreateQuick}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={!name.trim() || busy !== 'idle'}
+              onClick={() => setStage('customSetup')}
+            >
+              {t.onlineCreateCustom}
             </button>
           </div>
           <div className="online-join">
@@ -317,7 +363,59 @@ export function OnlinePlay({
     );
   }
 
+  if (stage === 'settingsReview') {
+    const cfg = view.config;
+    const flavors = cfg.deck.kind === 'custom' ? cfg.deck.flavors : null;
+    return (
+      <Stage>
+        <div className="match-screen">
+          <TopBar
+            displayRound={1}
+            seconds={TIMER_SECONDS}
+            showTimer={false}
+            onMenu={requestLeave}
+          />
+          <section className="online-waiting settings-review" aria-label={t.onlineMatchSettings}>
+            <h3>{t.onlineMatchSettings}</h3>
+            <p className="settings-review-hint">{t.onlineRulesHeading}</p>
+            <ul className="settings-review-list">
+              {flavors ? (
+                <li>
+                  {t.customDeck}: {flavors.map((id) => t.flavors[id] || id).join(', ')}
+                </li>
+              ) : null}
+              <li>
+                {t.maxPlaced}: {cfg.maxPlacedPerRound}
+              </li>
+              {cfg.dealing === 'draw-per-round' ? (
+                <li>
+                  {t.drawPerRound}: {cfg.drawPerRound}
+                </li>
+              ) : null}
+              {!cfg.effectsEnabled ? <li>{t.effectsOff}</li> : null}
+              {cfg.power === 'fixed' ? <li>{t.fixedPower}</li> : null}
+            </ul>
+            <div className="online-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setStage('playing')}
+              >
+                {t.onlineAcceptSettings}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={requestLeave}>
+                {t.setupBack}
+              </button>
+            </div>
+          </section>
+        </div>
+      </Stage>
+    );
+  }
+
   if (stage === 'waiting' && !meta.opponentConnected && view.phase !== 'complete') {
+    // If host sent custom rules, show awaiting-accept while joiner reviews
+    const awaitingAccept = view.seat === 'A' && view.config.mode === 'custom';
     return (
       <Stage>
         <div className="match-screen">
@@ -332,7 +430,7 @@ export function OnlinePlay({
             <button type="button" className="btn btn-secondary" onClick={copyCode}>
               {copied ? t.onlineCopied : t.onlineCopy}
             </button>
-            <p role="status">{t.onlineWaiting}</p>
+            <p role="status">{awaitingAccept ? t.onlineWaitingAccept : t.onlineWaiting}</p>
             {meta.connection === 'reconnecting' || meta.connection === 'connecting' ? (
               <p role="status">{t.onlineReconnecting}</p>
             ) : null}

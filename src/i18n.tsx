@@ -185,6 +185,12 @@ export interface Translations {
   onlineReadyIn: string;
   onlineJoining: string;
   onlineCreating: string;
+  onlineCreateQuick: string;
+  onlineCreateCustom: string;
+  onlineMatchSettings: string;
+  onlineAcceptSettings: string;
+  onlineRulesHeading: string;
+  onlineWaitingAccept: string;
   // Flavors map
   flavors: Record<string, string>;
 }
@@ -428,6 +434,12 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineReadyIn: 'Next round in {n}s',
     onlineJoining: 'Joining…',
     onlineCreating: 'Creating…',
+    onlineCreateQuick: 'Create Quick Room',
+    onlineCreateCustom: 'Custom Settings…',
+    onlineMatchSettings: 'Match Settings',
+    onlineAcceptSettings: 'Accept',
+    onlineRulesHeading: 'Host set custom rules:',
+    onlineWaitingAccept: 'Waiting for opponent to accept settings…',
     flavors: {
       'v-cola': 'V Cola',
       'v-diet-cola': 'V Diet Cola',
@@ -651,6 +663,12 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     onlineReadyIn: 'الجولة التالية بعد {n} ث',
     onlineJoining: 'جارٍ الانضمام…',
     onlineCreating: 'جارٍ الإنشاء…',
+    onlineCreateQuick: 'إنشاء غرفة سريعة',
+    onlineCreateCustom: 'إعدادات مخصصة…',
+    onlineMatchSettings: 'إعدادات المباراة',
+    onlineAcceptSettings: 'قبول',
+    onlineRulesHeading: 'حدد المضيف قواعد مخصصة:',
+    onlineWaitingAccept: 'في انتظار قبول الخصم للإعدادات…',
     flavors: {
       'v-cola': 'في كولا',
       'v-diet-cola': 'في كولا دايت',
