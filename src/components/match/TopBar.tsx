@@ -17,30 +17,16 @@ export function RoundPips({ current, total = 3 }: { current: number; total?: num
   );
 }
 
-/** Circular timer ring with the whole-second count BESIDE it (never over it). */
-export function TimerRing({ seconds, total }: { seconds: number; total: number }) {
-  const r = 11;
-  const c = 2 * Math.PI * r;
-  const frac = Math.max(0, Math.min(1, seconds / total));
+/** Compact, non-overlapping whole-second countdown. */
+export function TimerReadout({ seconds }: { seconds: number }) {
   const urgent = seconds <= 10;
   return (
     <span
-      className={`timer-ring${urgent ? ' urgent' : ''}`}
+      className={`timer-readout${urgent ? ' urgent' : ''}`}
       role="timer"
-      aria-label={`${seconds}s`}
+      aria-label={`${seconds} seconds remaining`}
     >
-      <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r={r} className="ring-track" />
-        <circle
-          cx="16"
-          cy="16"
-          r={r}
-          className="ring-fill"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - frac)}
-        />
-      </svg>
-      <span className="ring-num">{seconds}</span>
+      {seconds}
     </span>
   );
 }

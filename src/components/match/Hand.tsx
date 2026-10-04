@@ -1,4 +1,4 @@
-import { type PointerEvent as ReactPointerEvent } from 'react';
+import { memo, type PointerEvent as ReactPointerEvent } from 'react';
 import { getFlavorById } from '../../game/cards';
 import type { HandCard } from '../../game/hands';
 import type { FlavorId } from '../../game/types';
@@ -12,8 +12,11 @@ import { CardHoldPreview } from '../CardHoldPreview';
  * stacked in a slim side column. The status line shows the hint by default
  * and the selected card's full effect text (wrapping, never ellipsis);
  * the dock sizes to fit it. All targets ≥56 stage px.
+ *
+ * Memoized: Board re-renders every pointermove drag frame; the dock only
+ * cares about draggingIndex (not x/y), so stable props let it skip those.
  */
-export function Hand({
+export const Hand = memo(function Hand({
   visibleCards,
   selected,
   draggingIndex,
@@ -144,4 +147,4 @@ export function Hand({
       </div>
     </div>
   );
-}
+})

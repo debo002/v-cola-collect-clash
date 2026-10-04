@@ -75,6 +75,7 @@ export function buildZoneViewsFromView(
     view.boards.forEach((board, bi) => {
       const zone = board.zones[zoneId];
       if (zone === undefined) return;
+      const foeVisible = view.phase === 'complete' || bi < view.round - 1;
       for (const card of zone.mine) {
         if (!getFlavorById(card.flavor)) continue;
         const isCurrent = board.kind === 'current';
@@ -87,7 +88,7 @@ export function buildZoneViewsFromView(
         });
         myBase += card.power;
       }
-      if (board.kind === 'revealed') {
+      if (board.kind === 'revealed' && foeVisible) {
         for (const card of board.zones[zoneId]?.foe ?? []) {
           if (!getFlavorById(card.flavor)) continue;
           foeCards.push({
@@ -101,7 +102,7 @@ export function buildZoneViewsFromView(
         }
       }
       // Current boards carry nothing about the opponent (no cards, no
-      // counts, no placeholders) — only lock status is shown, from `locks`.
+      // counts, no placeholders, no lock status).
     });
     views.set(zoneId, { foeCards, myCards, myBase, foeBase });
   }

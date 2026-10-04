@@ -336,16 +336,30 @@ try {
     await ctx.close();
   }
 
-  // Portrait gate.
+  // Portrait match layout stays within the phone viewport and keeps timer text clear.
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await ctx.newPage();
     try {
-      await step(page, 'portrait gate', async () => {
+      await step(page, 'portrait match', async () => {
         await page.goto(BASE, { waitUntil: 'networkidle' });
-        await page.waitForSelector('.rotate-gate', { timeout: 10000 });
+        await page.waitForSelector('.title-screen', { timeout: 10000 });
+        if ((await page.locator('.rotate-gate').count()) > 0)
+          throw new Error('portrait still shows the rotate gate');
+        await page.locator('.title-actions .btn-primary').click();
+        await page.waitForSelector('.lookaway .btn', { timeout: 5000 });
+        await page.locator('.lookaway .btn').click();
+        await page.waitForSelector('.hand-fan', { timeout: 5000 });
+        const timer = page.locator('.timer-readout');
+        await timer.waitFor({ timeout: 5000 });
+        if (!/^\d+$/.test((await timer.innerText()).trim()))
+          throw new Error('timer is not an integer countdown');
+        const roundBox = await page.locator('.game-round-indicator').boundingBox();
+        const timerBox = await timer.boundingBox();
+        if (roundBox && timerBox && timerBox.x < roundBox.x + roundBox.width)
+          throw new Error('timer overlaps the round label');
       });
-      pass('portrait gate');
+      pass('portrait match');
     } catch {
       // Recorded already.
     }

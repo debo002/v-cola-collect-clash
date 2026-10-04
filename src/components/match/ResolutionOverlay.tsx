@@ -8,6 +8,7 @@ import { CrownIcon } from '../icons';
 import { buildZoneViewsFromView, type StripCard } from './boardUtils';
 import { ZoneColumn } from './ZoneColumn';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
+import { displayPlayerName } from './resolutionNames';
 
 type Phase = 'count' | 'reason' | 'apply' | 'verdict';
 
@@ -54,6 +55,10 @@ export function ResolutionOverlay({
 }) {
   const { t } = useI18n();
   const foe: Player = player === 'A' ? 'B' : 'A';
+  const playerNames = {
+    A: displayPlayerName(names.A, 'A'),
+    B: displayPlayerName(names.B, 'B'),
+  };
   const reduced = useMemo(
     () =>
       typeof window !== 'undefined' &&
@@ -156,17 +161,17 @@ export function ResolutionOverlay({
     const other: Player = owner === 'A' ? 'B' : 'A';
     const counts = first?.counts ?? { A: 0, B: 0 };
     if (first?.reason === 'stay-frosty') {
-      return fmt(t.resCool, { name: names[owner], power: first.from });
+      return fmt(t.resCool, { name: playerNames[owner], power: first.from });
     }
     if (first?.reason === 'more-merrier') {
-      return fmt(t.resParty, { name: names[owner], a: counts[owner], b: counts[other] });
+      return fmt(t.resParty, { name: playerNames[owner], a: counts[owner], b: counts[other] });
     }
-    return fmt(t.resEnergy, { name: names[owner], a: counts[owner], b: counts[other] });
+    return fmt(t.resEnergy, { name: playerNames[owner], a: counts[owner], b: counts[other] });
   }
 
   function verdictFor(ex: ZoneExplanation): string | null {
     if (ex.winner === null) return t.resTiedZone;
-    return fmt(t.resTakesZone, { name: names[ex.winner], zone: ex.zoneId.toUpperCase() });
+    return fmt(t.resTakesZone, { name: playerNames[ex.winner], zone: ex.zoneId.toUpperCase() });
   }
 
   // Displayed scores per zone: past → finals, animated → ticking, future → base.
@@ -306,7 +311,7 @@ export function ResolutionOverlay({
       </span>
       <span className="resolution-text">
         <bdi>
-          {winner ? fmt(t.wonMajority, { name: names[winner] }) : t.matchDrawn}{' '}
+          {winner ? fmt(t.wonMajority, { name: playerNames[winner] }) : t.matchDrawn}{' '}
           {winner ? t.winsTheMatch : t.allTied}
         </bdi>
       </span>

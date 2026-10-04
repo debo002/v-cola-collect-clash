@@ -32,12 +32,17 @@ import { ZoneColumn } from './ZoneColumn';
 import { getSideHighlight, isCreamCancelled } from './comboHighlight';
 
 /**
+ * Button-level move/up stay as no-op fallbacks (window owns the gesture).
+ * Module-stable so memoized Hand skips per-frame re-renders during drags.
+ */
+function noopPointerHandler(): void {}
+
+/**
  * Landscape match board: 3 full-width zone columns + bottom hand + Lock In.
  * Owns tap-select + drag state; game rules stay in src/game via controller.
  *
  * Hidden-info rule: the view carries NOTHING about the opponent's current
- * round (no cards, no backs, no counts, no zone highlights). Only lock
- * status from `locks` is shown: "Opponent: placing…" / "Opponent locked".
+ * round (no cards, no backs, no counts, no zone highlights, no lock status).
  */
 export function Board({
   view,
@@ -97,13 +102,18 @@ export function Board({
   const { scale } = useStageScale();
   const player: Player = view.seat;
   const foe: Player = player === 'A' ? 'B' : 'A';
-  const map = placedMapFromView(view);
+  // Derived per render from the view: memoized on the view identity so
+  // pointermove drag frames (same view, new drag state) reuse the same
+  // array/set refs and memoized ZoneColumn/Hand skip reconciliation.
+  const map = useMemo(() => placedMapFromView(view), [view]);
   const hand: readonly HandCard[] = view.hand;
 
-  const allUsed = allUsedIndicesFromView(view);
-  const visibleCards = hand
-    .map((card, index) => ({ card, index }))
-    .filter(({ index }) => !allUsed.has(index));
+  const allUsed = useMemo(() => allUsedIndicesFromView(view), [view]);
+  const visibleCards = useMemo(
+    () =>
+      hand.map((card, index) => ({ card, index })).filter(({ index }) => !allUsed.has(index)),
+    [hand, allUsed]
+  );
 
   const [selected, setSelected] = useState<number | null>(null);
   const [drag, setDrag] = useState<{ handIndex: number; x: number; y: number } | null>(null);
@@ -117,6 +127,23 @@ export function Board({
     longPressed: boolean;
   } | null>(null);
   const rafPending = useRef(false);
+  const rafId = useRef(0);
+
+  /** Drop a drag frame scheduled but not yet fired (release beat the frame). */
+  const cancelDragFrame = useCallback(() => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = 0;
+    }
+    rafPending.current = false;
+  }, []);
+  // Latest game values for the window-level pointer handlers below. Those
+  // handlers are stable ([]) so memoized Hand/ZoneColumn keep prop identity
+  // across drag frames; they read the live game state through this ref
+  // instead of closing over a stale render.
+  const live = useRef({ view, onPlace, onTooMany, isRevealing, drawPileCount, drawsRemaining });
+  live.current = { view, onPlace, onTooMany, isRevealing, drawPileCount, drawsRemaining };
+  const detachRef = useRef<() => void>(() => {});
 
   function zoneFromPoint(x: number, y: number): string | null {
     // elementFromPoint takes viewport (client) coords, which are already
@@ -126,43 +153,20 @@ export function Board({
     return el?.getAttribute('data-zone') ?? null;
   }
 
-  function handleZoneClick(zoneId: string) {
-    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
-    if (selected === null) return;
-    onPlace(selected, zoneId);
-    setSelected(null);
-  }
+  // Stable prop identity for memoized ZoneColumn: without this every
+  // pointermove drag frame re-renders all three columns (ResizeObserver
+  // measurements + combo highlight recompute per column per frame).
+  const handleZoneClick = useCallback(
+    (zoneId: string) => {
+      if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
+      if (selected === null) return;
+      onPlace(selected, zoneId);
+      setSelected(null);
+    },
+    [isRevealing, drawPileCount, drawsRemaining, selected, onPlace]
+  );
 
-  function handleCardTap(i: number) {
-    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
-    setSelected((prev) => (prev === i ? null : i));
-  }
-
-  function onCardPointerDown(e: ReactPointerEvent<HTMLButtonElement>, i: number) {
-    if (isRevealing || (drawPileCount !== undefined && drawsRemaining > 0)) return;
-    pointerState.current = {
-      handIndex: i,
-      startX: e.clientX,
-      startY: e.clientY,
-      pointerId: e.pointerId,
-      isDragging: false,
-      longPressed: false,
-    };
-    // Window-level move/up: drop tracking must survive the pointer leaving
-    // the card (and must not depend on setPointerCapture, which synthetic
-    // and some mobile flows don't honor). Cleaned up on up/cancel.
-    window.addEventListener('pointermove', onWindowPointerMove);
-    window.addEventListener('pointerup', onWindowPointerUp);
-    window.addEventListener('pointercancel', onWindowPointerCancel);
-  }
-
-  function detachWindowPointer() {
-    window.removeEventListener('pointermove', onWindowPointerMove);
-    window.removeEventListener('pointerup', onWindowPointerUp);
-    window.removeEventListener('pointercancel', onWindowPointerCancel);
-  }
-
-  function onWindowPointerMove(e: PointerEvent) {
+  const onWindowPointerMove = useCallback((e: PointerEvent) => {
     const state = pointerState.current;
     if (!state || e.pointerId !== state.pointerId) return;
     const dist = Math.hypot(e.clientX - state.startX, e.clientY - state.startY);
@@ -174,64 +178,110 @@ export function Board({
     rafPending.current = true;
     const x = e.clientX;
     const y = e.clientY;
-    requestAnimationFrame(() => {
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = 0;
       rafPending.current = false;
+      // Release (or a newer press) already ended this drag: never
+      // resurrect the ghost after the drop cleared it.
+      if (pointerState.current !== state) return;
       setDrag({ handIndex: state.handIndex, x, y });
-      setHoverZone(zoneFromPoint(x, y));
+      const zone = zoneFromPoint(x, y);
+      // Only re-render when the hovered zone actually changes; the full
+      // Board re-render triggers ResizeObserver work in every ZoneColumn.
+      setHoverZone((prev) => (prev === zone ? prev : zone));
     });
-  }
+  }, []);
 
-  function onWindowPointerUp(e: PointerEvent) {
+  const onWindowPointerUp = useCallback((e: PointerEvent) => {
     const state = pointerState.current;
     if (!state || e.pointerId !== state.pointerId) return;
-    detachWindowPointer();
+    detachRef.current();
+    cancelDragFrame();
     pointerState.current = null;
+    const L = live.current;
     if (state.isDragging) {
       const targetZone = zoneFromPoint(e.clientX, e.clientY);
       if (targetZone) {
         // Third-card guard mirrors tap: shake + toast instead of placing.
-        const alreadyPlaced = placedMapFromView(view);
+        const alreadyPlaced = placedMapFromView(L.view);
         if (
           !alreadyPlaced.has(state.handIndex) &&
-          alreadyPlaced.size >= (view.config.maxPlacedPerRound ?? MAX_PLACE)
+          alreadyPlaced.size >= (L.view.config.maxPlacedPerRound ?? MAX_PLACE)
         ) {
-          onTooMany();
+          L.onTooMany();
         } else {
-          onPlace(state.handIndex, targetZone);
+          L.onPlace(state.handIndex, targetZone);
           setSelected(null);
         }
       }
       setDrag(null);
       setHoverZone(null);
-    } else if (!state.longPressed) {
-      handleCardTap(state.handIndex);
+    } else if (
+      !state.longPressed &&
+      !L.isRevealing &&
+      !(L.drawPileCount !== undefined && L.drawsRemaining > 0)
+    ) {
+      const i = state.handIndex;
+      setSelected((prev) => (prev === i ? null : i));
     }
-  }
+  }, [cancelDragFrame]);
 
-  function onWindowPointerCancel(e: PointerEvent) {
-    const state = pointerState.current;
-    if (!state || e.pointerId !== state.pointerId) return;
-    detachWindowPointer();
-    pointerState.current = null;
-    setDrag(null);
-    setHoverZone(null);
-  }
+  const onWindowPointerCancel = useCallback(
+    (e: PointerEvent) => {
+      const state = pointerState.current;
+      if (!state || e.pointerId !== state.pointerId) return;
+      detachRef.current();
+      cancelDragFrame();
+      pointerState.current = null;
+      setDrag(null);
+      setHoverZone(null);
+    },
+    [cancelDragFrame]
+  );
 
-  // Button-level move/up stay as no-op fallbacks (window owns the gesture).
-  function onCardPointerMove() {}
+  // Stable prop identity for memoized Hand: reads only refs + setState,
+  // so it never goes stale and never breaks Hand's memo across frames.
+  const onCardPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLButtonElement>, i: number) => {
+      const L = live.current;
+      if (L.isRevealing || (L.drawPileCount !== undefined && L.drawsRemaining > 0)) return;
+      pointerState.current = {
+        handIndex: i,
+        startX: e.clientX,
+        startY: e.clientY,
+        pointerId: e.pointerId,
+        isDragging: false,
+        longPressed: false,
+      };
+      // Window-level move/up: drop tracking must survive the pointer leaving
+      // the card (and must not depend on setPointerCapture, which synthetic
+      // and some mobile flows don't honor). Cleaned up on up/cancel.
+      window.addEventListener('pointermove', onWindowPointerMove);
+      window.addEventListener('pointerup', onWindowPointerUp);
+      window.addEventListener('pointercancel', onWindowPointerCancel);
+    },
+    [onWindowPointerMove, onWindowPointerUp, onWindowPointerCancel]
+  );
 
-  function onCardPointerUp() {}
+  // Assigned each commit (no cleanup): the stable handlers above never
+  // change identity, so this just refreshes the same three references.
+  useEffect(() => {
+    detachRef.current = () => {
+      window.removeEventListener('pointermove', onWindowPointerMove);
+      window.removeEventListener('pointerup', onWindowPointerUp);
+      window.removeEventListener('pointercancel', onWindowPointerCancel);
+    };
+  });
 
-  function onCardPointerCancel() {}
-
-  // Never leak window listeners (or a stale press) across turns/unmount.
+  // Never leak window listeners, a stale press, or a pending drag frame
+  // across turns/unmount.
   useEffect(
     () => () => {
-      detachWindowPointer();
+      detachRef.current();
+      cancelDragFrame();
       pointerState.current = null;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [cancelDragFrame]
   );
 
   const placedCount = map.size;
@@ -244,7 +294,6 @@ export function Board({
   // Latched pressed state comes from the view (survives reload/reconnect).
   const lock = lockButton(t, {
     locked: view.locks[player],
-    foeLocked: view.locks[foe],
     canLock,
     placedCount,
     maxPlaced,
@@ -316,10 +365,14 @@ export function Board({
         hasResult: zResult !== undefined,
       };
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isRevealing, results, player, foe]);
 
   const handleRecall = useCallback((i: number) => onUnplace(i), [onUnplace]);
+
+  // Stable prop identity for memoized Hand (hold-preview tap suppression).
+  const handleLongPress = useCallback((i: number) => {
+    if (pointerState.current?.handIndex === i) pointerState.current.longPressed = true;
+  }, []);
 
   // Keep selection valid after recalls.
   const effectiveSelected =
@@ -361,11 +414,6 @@ export function Board({
         </div>
       ) : null}
       <div className="match-main zones-full">
-        {!isRevealing ? (
-          <div className="opp-lock-status" role="status">
-            {view.locks[foe] ? t.oppLocked : t.oppPlacing}
-          </div>
-        ) : null}
         <div className="zones-row">
           {zoneModels.map((v, zi) => {
             const z = ZONES[zi];
@@ -422,12 +470,10 @@ export function Board({
           drawAnimating={drawAnimating}
           onDraw={onDraw}
           onCardPointerDown={onCardPointerDown}
-          onCardPointerMove={onCardPointerMove}
-          onCardPointerUp={onCardPointerUp}
-          onCardPointerCancel={onCardPointerCancel}
-          onLongPress={(i) => {
-            if (pointerState.current?.handIndex === i) pointerState.current.longPressed = true;
-          }}
+          onCardPointerMove={noopPointerHandler}
+          onCardPointerUp={noopPointerHandler}
+          onCardPointerCancel={noopPointerHandler}
+          onLongPress={handleLongPress}
           onLock={onLock}
         />
       ) : null}

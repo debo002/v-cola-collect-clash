@@ -3,7 +3,6 @@ import { useI18n } from '../../i18n';
 import type { Players } from '../../storage/playersStore';
 import { DeckIcon, PlayIcon } from '../icons';
 import { QuickGuide } from '../QuickGuide';
-import { tryLockLandscape } from '../Stage';
 
 /**
  * Title screen: logo, Play, Deck, language toggle, compact player setup.
@@ -58,14 +57,7 @@ export function TitleScreen({
       </div>
 
       <div className="title-actions">
-        <button
-          type="button"
-          className="btn btn-primary btn-xl"
-          onClick={() => {
-            tryLockLandscape();
-            onPlay();
-          }}
-        >
+        <button type="button" className="btn btn-primary btn-xl" onClick={onPlay}>
           <PlayIcon size={22} />
           {t.quickPlayBtn}
         </button>

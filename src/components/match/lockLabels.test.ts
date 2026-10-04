@@ -10,7 +10,6 @@ describe('lockLabels', () => {
     expect(
       lockButton(t, {
         locked: false,
-        foeLocked: false,
         canLock: true,
         placedCount: 1,
         maxPlaced: 2,
@@ -20,7 +19,6 @@ describe('lockLabels', () => {
     expect(
       lockButton(t, {
         locked: false,
-        foeLocked: false,
         canLock: false,
         placedCount: 0,
         maxPlaced: 2,
@@ -33,7 +31,6 @@ describe('lockLabels', () => {
     expect(
       lockButton(t, {
         locked: true,
-        foeLocked: false,
         canLock: false,
         placedCount: 1,
         maxPlaced: 2,
@@ -43,7 +40,6 @@ describe('lockLabels', () => {
     expect(
       lockButton(ar, {
         locked: true,
-        foeLocked: false,
         canLock: false,
         placedCount: 1,
         maxPlaced: 2,
@@ -52,33 +48,22 @@ describe('lockLabels', () => {
     ).toBe('تم التأكيد — بانتظار الخصم…');
   });
 
-  it('opponent already locked adds the opponent line', () => {
+  it('locked state has no extra tip', () => {
     const waiting = lockButton(t, {
       locked: true,
-      foeLocked: true,
       canLock: false,
       placedCount: 1,
       maxPlaced: 2,
       normalTip: '',
     });
     expect(waiting.disabled).toBe(true);
-    expect(waiting.tip).toBe('Opponent locked');
-    const solo = lockButton(t, {
-      locked: true,
-      foeLocked: false,
-      canLock: false,
-      placedCount: 1,
-      maxPlaced: 2,
-      normalTip: '',
-    });
-    expect(solo.tip).toBe('');
+    expect(waiting.tip).toBe('');
   });
 
   it('reload while waiting: same view flags recompute the same labels', () => {
     // A reloaded client rebuilds labels from the persisted view only.
     const before = lockButton(t, {
       locked: true,
-      foeLocked: false,
       canLock: false,
       placedCount: 2,
       maxPlaced: 2,
@@ -88,7 +73,6 @@ describe('lockLabels', () => {
     expect(
       lockButton(t, {
         locked: true,
-        foeLocked: false,
         canLock: false,
         placedCount: 2,
         maxPlaced: 2,

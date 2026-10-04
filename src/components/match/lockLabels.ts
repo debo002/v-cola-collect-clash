@@ -16,7 +16,6 @@ export function lockButton(
   t: Translations,
   opts: {
     locked: boolean;
-    foeLocked: boolean;
     canLock: boolean;
     placedCount: number;
     maxPlaced: number;
@@ -27,7 +26,7 @@ export function lockButton(
     return {
       label: t.lockedWaiting,
       disabled: true,
-      tip: opts.foeLocked ? t.oppLocked : '',
+      tip: '',
     };
   }
   return {

@@ -1,7 +1,6 @@
 import { memo, useEffect, useState } from 'react';
-import { TIMER_SECONDS } from '../../game/match';
 import { fmt, useI18n } from '../../i18n';
-import { TimerRing } from './TopBar';
+import { TimerReadout } from './TopBar';
 
 /**
  * Whole-second countdowns that tick once per second WITHOUT re-rendering
@@ -40,7 +39,7 @@ export const TimerCountdown = memo(function TimerCountdown({
 }) {
   const seconds = useWholeSeconds(deadlineMs, nowFn);
   if (seconds === null) return null;
-  return <TimerRing seconds={seconds} total={TIMER_SECONDS} />;
+  return <TimerReadout seconds={seconds} />;
 });
 
 export const ReadyCountdown = memo(function ReadyCountdown({
