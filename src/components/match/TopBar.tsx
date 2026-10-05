@@ -1,6 +1,7 @@
 import { fmt, useI18n } from '../../i18n';
 import { QuickGuide } from '../QuickGuide';
 import { ExitIcon } from '../icons';
+import { requestAppFullscreen, useFullscreenUI } from '../FullscreenFab';
 import type { ReactNode } from 'react';
 
 /** Round pips: 3 dots, current lit. */
@@ -31,6 +32,32 @@ export function TimerReadout({ seconds }: { seconds: number }) {
   );
 }
 
+/** In-match fullscreen toggle: lives in the top bar (inside the stage) so
+ * the floating button never has to compete with it for the corner. */
+function TopBarFullscreen() {
+  const { t } = useI18n();
+  const { supported, hidden } = useFullscreenUI();
+  if (!supported || hidden) return null;
+  return (
+    <button
+      type="button"
+      className="icon-btn topbar-fs-btn"
+      onClick={requestAppFullscreen}
+      aria-label={t.fullscreen}
+      title={t.fullscreen}
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="M3.5 7V3.5H7M13 3.5h3.5V7M16.5 13v3.5H13M7 16.5H3.5V13"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+}
 /** Slim match top bar: menu left, round pips + timer + guide right. */
 export function TopBar({
   displayRound,
@@ -68,6 +95,7 @@ export function TopBar({
           </span>
         ) : null}
         {timer}
+        <TopBarFullscreen />
         <div className="legend-pop-wrap">
           <QuickGuide />
         </div>

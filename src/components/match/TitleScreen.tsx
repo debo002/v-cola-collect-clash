@@ -7,23 +7,8 @@ import { QuickGuide } from '../QuickGuide';
 /**
  * Title screen: logo, Play, Deck, language toggle, compact player setup.
  * Replaces the old card/form menu + web chrome (no header, no tab bar).
+ * Fullscreen lives outside the scaled stage now (FullscreenFab in App).
  */
-
-/** Fullscreen toggle (only rendered where the Fullscreen API is available). */
-function FullscreenButton({ label }: { label: string }) {
-  if (typeof document === 'undefined' || !document.fullscreenEnabled) return null;
-  return (
-    <button
-      type="button"
-      className="btn btn-secondary title-fullscreen"
-      onClick={() => {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }}
-    >
-      {label}
-    </button>
-  );
-}
 export function TitleScreen({
   players,
   onPlayersChange,
@@ -42,7 +27,6 @@ export function TitleScreen({
   const { lang, setLang, t } = useI18n();
   return (
     <div className="title-screen">
-      <FullscreenButton label={t.fullscreen} />
       <div className="title-brand">
         <img src={assetUrl('assets/cards/v7-logo.png')} alt="V7 Logo" className="title-logo" />
         <div className="title-headings">

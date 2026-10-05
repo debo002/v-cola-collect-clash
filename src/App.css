@@ -163,7 +163,8 @@
   padding: 8px 14px;
   border-radius: 14px;
   transition: all 0.15s ease;
-  min-height: 44px;
+  min-width: 56px;
+  min-height: 56px;
 }
 
 .lang-btn.active {
@@ -323,13 +324,14 @@
   overflow: clip;
 }
 
-/* Top bar: menu + round pips + timer (~10% of the 480 stage) */
+/* Top bar: menu + round pips + timer. 60px so the 56px corner buttons
+   never overflow past the stage edge into the letterbox. */
 .game-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 40px;
-  flex: 0 0 40px;
+  height: 60px;
+  flex: 0 0 60px;
   padding: 4px var(--space-sm);
   box-sizing: border-box;
   background: var(--ink);
@@ -768,15 +770,18 @@
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
+  justify-content: safe center;
   align-items: center;
   gap: 6px;
   padding: 2px 8px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
 }
 
 .fan-card {
   flex: 1 1 0;
-  min-width: 0;
+  min-width: 64px;
   max-width: 76px;
   background: none;
   border: none;
@@ -870,7 +875,7 @@
   width: 100%;
   flex: 0 0 auto;
   align-self: center;
-  min-height: 46px;
+  min-height: 56px;
   font-size: 14px;
 }
 
@@ -1274,7 +1279,7 @@
 
 .skip-btn {
   flex: 0 0 auto;
-  min-height: 42px;
+  min-height: 56px;
   padding: 6px 14px;
 }
 
@@ -1802,8 +1807,10 @@
 }
 
 .legend-btn {
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   font-family: var(--heading);
   font-size: 20px;
   color: #ffd875;
@@ -2374,7 +2381,7 @@
 }
 
 .review-dock .review-actions .btn {
-  min-height: 48px;
+  min-height: 56px;
   padding: 7px 14px;
 }
 
@@ -2497,7 +2504,7 @@
   font-weight: 800;
 }
 .custom-back {
-  min-height: 34px;
+  min-height: 56px;
   padding: 4px 14px;
 }
 .custom-deck-mode {
@@ -2758,7 +2765,7 @@
   font-weight: 700;
 }
 .custom-start {
-  min-height: 34px;
+  min-height: 56px;
   padding: 4px 16px;
   font-size: 12px;
 }
@@ -2968,6 +2975,14 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Lobby actions sit side by side in landscape so the whole lobby fits
+   the 480 stage with no scroll. */
+.online-actions {
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 .face-down .card-back {
   display: flex;
   align-items: center;
@@ -3032,15 +3047,59 @@
   }
 }
 
-/* Fullscreen toggle: absolute corner so the main action row keeps its width. */
-.title-fullscreen {
-  position: absolute;
-  top: 8px;
-  inset-inline-end: 8px;
-  padding: 8px 14px;
-  font-size: 14px;
-  min-height: 0;
-  z-index: 2;
+/* Viewport-pinned fullscreen (outside the scaled stage — never cropped).
+ * Fixed corner with safe-area offsets; hidden when already fullscreen or
+ * installed. Minimum 44px tap target, above all stage content. */
+.fs-fab {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  inset-inline-end: calc(env(safe-area-inset-right, 0px) + 10px);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  z-index: 9999;
+}
+
+.fs-hint {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  inset-inline-end: calc(env(safe-area-inset-right, 0px) + 10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(300px, 70vw);
+  background: rgba(11, 14, 24, 0.96);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 8px 8px 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+}
+
+.fs-hint-close {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--ink-2);
+  border: 2px solid #2b3550;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Belt and braces: CSS hides the floating UI when installed/fullscreen even
+ * if the JS state lags a frame behind. */
+@media (display-mode: fullscreen), (display-mode: standalone) {
+  .fs-fab,
+  .fs-hint {
+    display: none;
+  }
 }
 
 @media (orientation: portrait) {
@@ -3341,4 +3400,235 @@
   .game-art img {
     filter: none;
   }
+}
+
+/* ==========================================================================
+   SHORT-SCREEN COMPACT MODE (.stage-compact, landscape scale < 0.7)
+   Fixed 480px budget: topbar 72 + zones ~252 + hand 148 + padding.
+   Chrome (padding, gaps, art, helper text) shrinks first; tap targets stay
+   >=68 stage px so they render >=40px on screen. Zones stay the focus:
+   no sidebars, no layout reshuffle — same grid, tighter spacing.
+   ========================================================================== */
+
+.stage-compact .btn {
+  min-height: 68px;
+}
+
+/* Top bar: taller bar, full-size corner buttons. */
+.stage-compact .game-topbar {
+  height: 72px;
+  flex-basis: 72px;
+  padding: 2px 8px;
+}
+
+.stage-compact .game-topbar-info {
+  gap: 6px;
+}
+
+.stage-compact .game-topbar .icon-btn,
+.stage-compact .legend-btn,
+.stage-compact .topbar-fs-btn {
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  font-size: 24px;
+}
+
+.stage-compact .timer-readout {
+  height: 40px;
+  min-width: 56px;
+  font-size: 20px;
+}
+
+/* Zones: tighter chrome, same 3-column focus. */
+.stage-compact .match-main,
+.stage-compact .match-main.zones-full {
+  padding: 4px;
+  gap: 4px;
+}
+
+.stage-compact .zone-col {
+  padding: 2px;
+}
+
+.stage-compact .zone-pillar {
+  min-height: 52px;
+  padding: 1px 4px;
+  margin: 1px 0;
+}
+
+.stage-compact .pillar-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.stage-compact .pillar-score {
+  font-size: 14px;
+}
+
+.stage-compact .pillar-name {
+  font-size: 11px;
+}
+
+.stage-compact .pillar-rule {
+  font-size: 10px;
+}
+
+.stage-compact .strip {
+  padding: 1px 6px;
+  gap: 4px;
+}
+
+/* Hand dock: taller lock + scrollable fan with a floor on card width. */
+.stage-compact .hand-row {
+  flex-basis: 148px;
+  height: 148px;
+  padding: 4px 8px;
+  gap: 4px;
+}
+
+.stage-compact .hand-fan {
+  overflow-x: auto;
+  justify-content: flex-start;
+  scrollbar-width: thin;
+}
+
+.stage-compact .fan-card {
+  flex: 1 1 0;
+  min-width: 68px;
+  max-width: 76px;
+}
+
+.stage-compact .dock-side {
+  flex-basis: 190px;
+  width: 190px;
+  gap: 4px;
+}
+
+.stage-compact .lock-btn {
+  min-height: 68px;
+  font-size: 16px;
+}
+
+.stage-compact .dock-count {
+  font-size: 11px;
+}
+
+.stage-compact .dock-line {
+  font-size: 10px;
+}
+
+.stage-compact .reveal-dock .lock-btn {
+  flex-basis: 240px;
+  width: 240px;
+}
+
+/* Resolution / review: taller action row, slimmer banner text. */
+.stage-compact .resolution-main {
+  padding: 4px;
+}
+
+.stage-compact .resolution-banner {
+  min-height: 76px;
+  padding: 4px 6px 4px 10px;
+  gap: 6px;
+}
+
+.stage-compact .skip-btn {
+  min-height: 68px;
+  padding: 6px 16px;
+}
+
+.stage-compact .resolution-footer {
+  flex-basis: 96px;
+}
+
+.stage-compact .review-actions .btn {
+  min-height: 68px;
+  padding: 8px 20px;
+  font-size: 16px;
+}
+
+.stage-compact .thin-banner {
+  padding: 4px 8px;
+}
+
+/* Title: smaller brand block, full-size actions and inputs. */
+.stage-compact .title-screen {
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.stage-compact .title-logo {
+  width: 72px;
+  height: 72px;
+}
+
+.stage-compact .title-game {
+  font-size: 28px;
+}
+
+.stage-compact .title-sub {
+  font-size: 13px;
+}
+
+.stage-compact .menu-guide-btn {
+  min-width: 110px;
+}
+
+.stage-compact .title-players input {
+  min-height: 68px;
+  padding: 6px 10px;
+}
+
+.stage-compact .lang-btn {
+  min-width: 68px;
+  min-height: 68px;
+  padding: 6px 12px;
+}
+
+/* Online lobby: tighter stack, full-size controls. */
+.stage-compact .online-lobby,
+.stage-compact .online-waiting,
+.stage-compact .online-ended {
+  gap: 3px;
+  padding: 4px;
+}
+
+.stage-compact .online-actions {
+  flex-direction: row;
+}
+
+.stage-compact .online-lobby h2 {
+  font-size: 18px;
+}
+
+.stage-compact .online-lobby label {
+  font-size: 12px;
+}
+
+.stage-compact .online-hint {
+  display: none;
+}
+
+.stage-compact .online-lobby input {
+  min-height: 68px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+}
+
+.stage-compact .online-room-code {
+  font-size: 32px;
+}
+
+/* Custom setup scrolls: keep its primary buttons full-size. */
+.stage-compact .custom-back,
+.stage-compact .custom-start {
+  min-height: 68px;
+}
+
+.stage-compact .toast-notice {
+  bottom: 170px;
+  font-size: 12px;
 }

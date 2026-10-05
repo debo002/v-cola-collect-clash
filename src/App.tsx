@@ -11,6 +11,7 @@ import { OnlinePlay } from './screens/OnlinePlay';
 import { loadSession, type OnlineSession } from './net/sessionStore';
 import { I18nProvider, useI18n } from './i18n';
 import { Stage } from './components/Stage';
+import { FullscreenFab } from './components/FullscreenFab';
 import { DebugOverlay } from './components/DebugOverlay';
 import { BoardHarness, NamesHarness } from './components/NamesHarness';
 import './App.css';
@@ -199,6 +200,7 @@ function App() {
   return (
     <I18nProvider>
       <MainApp />
+      <FullscreenFab />
       <DebugGate />
     </I18nProvider>
   );

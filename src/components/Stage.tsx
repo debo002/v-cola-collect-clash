@@ -9,8 +9,10 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 export const STAGE_H = 480;
 export const STAGE_MIN_W = 720;
 export const STAGE_MAX_W = 1100;
-/** Absolute floor so targets never shrink past usability in landscape. */
-export const STAGE_MIN_SCALE = 0.75;
+/** Floor so the stage never crops: scale always fits height AND width. */
+export const STAGE_MIN_SCALE = 0.5;
+/** Below this scale the stage gets .stage-compact (short-screen CSS). */
+export const STAGE_COMPACT_SCALE = 0.7;
 
 interface ScaleInfo {
   scale: number;
@@ -24,6 +26,14 @@ export function useStageScale(): ScaleInfo {
 }
 
 function viewportSize(): { w: number; h: number } {
+  // visualViewport excludes the mobile URL bar / keyboard when present;
+  // fall back to innerWidth/innerHeight where unsupported.
+  try {
+    const vv = window.visualViewport;
+    if (vv && vv.width > 0 && vv.height > 0) return { w: vv.width, h: vv.height };
+  } catch {
+    // Ignore and fall through to innerWidth/innerHeight.
+  }
   return { w: window.innerWidth, h: window.innerHeight };
 }
 
@@ -45,15 +55,28 @@ export function Stage({ children }: { children: ReactNode }) {
     const onResize = () => setSize(viewportSize());
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
+    try {
+      window.visualViewport?.addEventListener('resize', onResize);
+    } catch {
+      // visualViewport listeners unsupported — window resize covers it.
+    }
     return () => {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
+      try {
+        window.visualViewport?.removeEventListener('resize', onResize);
+      } catch {
+        // Ignore cleanup failures for unsupported visualViewport.
+      }
     };
   }, []);
 
   const portrait = h > w;
   // Portrait uses a responsive layout; landscape retains the fixed design stage.
+  // Scale is never clamped above what fits, so the stage letterboxes
+  // (centered with margins) instead of cropping on short viewports.
   const scale = portrait ? 1 : Math.max(Math.min(h / STAGE_H, w / STAGE_MIN_W), STAGE_MIN_SCALE);
+  const compact = !portrait && scale < STAGE_COMPACT_SCALE;
   const stageW = portrait ? w : Math.min(STAGE_MAX_W, Math.max(STAGE_MIN_W, w / scale));
   const stageH = portrait ? h : STAGE_H;
   const [lockTried, setLockTried] = useState(false);
@@ -70,7 +93,7 @@ export function Stage({ children }: { children: ReactNode }) {
     <div className="viewport">
       <ScaleContext.Provider value={{ scale, stageW }}>
         <div
-          className={`stage${portrait ? ' stage-portrait' : ''}`}
+          className={`stage${portrait ? ' stage-portrait' : ''}${compact ? ' stage-compact' : ''}`}
           style={{ width: `${stageW}px`, height: `${stageH}px`, transform: `scale(${scale})` }}
         >
           {children}

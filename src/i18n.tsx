@@ -98,6 +98,7 @@ export interface Translations {
   // Title screen + rails + rotate gate
   mainMenu: string;
   fullscreen: string;
+  addToHomeHint: string;
   railStandings: string;
   railLastRound: string;
   railRules: string;
@@ -330,6 +331,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     // Title screen + rails + rotate gate
     mainMenu: 'Main Menu',
     fullscreen: 'Fullscreen',
+    addToHomeHint: 'Add to Home Screen for fullscreen',
     railStandings: 'Standings',
     railLastRound: 'Last round',
     railRules: 'Zone rules',
@@ -568,6 +570,7 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     // Title screen + rails + rotate gate
     mainMenu: 'القائمة الرئيسية',
     fullscreen: 'ملء الشاشة',
+    addToHomeHint: 'أضف إلى الشاشة الرئيسية لملء الشاشة',
     railStandings: 'الترتيب',
     railLastRound: 'الجولة الماضية',
     railRules: 'قواعد المناطق',
