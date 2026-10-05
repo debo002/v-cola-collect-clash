@@ -4,7 +4,8 @@ import { cryptoRandom, newRoomCode, parseGameConfig, sanitizePlayerName } from '
 export { Room } from './room';
 
 /**
- * Online lobby Worker (local only for now; deploy is a later phase).
+ * Online lobby Worker: serves the SPA single-origin in production and the
+ * room API on the same origin (local dev via `npm run dev:server`).
  * HTTP: create room (name + validated GameConfig -> code + token),
  * join room, WebSocket upgrade proxied to the Room Durable Object.
  * Gameplay randomness is Math.random passed in as ctx.rng (seeded only in
